@@ -168,14 +168,16 @@ def _inject_semester_filter(query):
     if sem_id == 0 and sch_id == 1:
         return query  # 无激活学期，不注入
 
-    # 遍历查询涉及的实体（使用 _entities 避免触发编译）
-    entities = getattr(query, "_entities", [])
+    # 遍历查询涉及的实体（使用 column_descriptions 获取实体信息，兼容 SQLAlchemy 2.0）
+    entities = query.column_descriptions
     if not entities:
         return query
 
-    for entity in entities:
-        if hasattr(entity, "mapper") and entity.mapper and hasattr(entity.mapper, "columns"):
-            cols = entity.mapper.columns
+    for entity_desc in entities:
+        entity = entity_desc.get("entity")
+        if entity and hasattr(entity, "__mapper__"):
+            mapper = entity.__mapper__
+            cols = mapper.columns
 
             # 注入 semester_id 过滤
             if "semester_id" in cols and sem_id != 0:
