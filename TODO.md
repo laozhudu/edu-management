@@ -3,6 +3,15 @@
 > 与 DEV_PLAN_v3.md 状态保持一致。完成一项划一项 `[x]`。
 > 最后同步：2026-08-04
 
+## ✅ M2 模块化配置化重构（已完成 2026-08-04）
+
+- [x] M2-1 配置单源化：删死代码 config.py（零引用），全仓统一 config/ 包单一配置源
+- [x] M2-2 死代码清理：删 navigation.py/design_system.py（互成闭环零引用）+ templates 空目录 + TEMPLATE_DIR 死配置
+- [x] M2-3 API 补 /api/config：新路由暴露 ui_config（品牌/6域导航/页签/主题），gateway 白名单公开，+2 契约测试
+- [x] M2-4 依赖精简：104→79 包（移除 great-expectations/pdf-reports/pyqt-fluent-widgets 三个零引用包），pandas 转显式；cache 双模块核查非重复
+- [x] M2-5 文档重写：README 公开友好版（清本机路径）+ CHANGELOG 重写为新仓库历史
+- [x] M2-6 CI 适配：补 license job（pip-licenses 门禁 + THIRD_PARTY.md）；lint exclude 清理已删文件；本地预演 ruff/format/许可证全绿
+
 ## ✅ M1 新仓库搭建（已完成 2026-08-04）
 
 - [x] M1-1 git init -b main + 首次 commit（f5d4082，182 文件，敏感清零前置）
