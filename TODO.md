@@ -40,12 +40,15 @@
 - [x] **Web 端升级为与桌面功能完全一致**（用户定案）：非简化版/非只读；6 域 26 页签 + 全局能力逐项对等。规划已改：REQUIREMENTS G 组（含功能对等清单）、DEV_PLAN_v3 M5-G（G1-G11）、REFACTOR_PLAN Phase 5、README。技术栈后续单定（候选 SPA Vue3 / HTMX+Jinja2）
 - [ ] 历史重写后 CHANGELOG commit hash 待更新（filter-repo 重写 8 个 commit）
 
-## ✅ M3-1 敏感扫描（已完成 2026-08-04）
+## ✅ M3-1 敏感扫描（已完成 2026-08-04，M4 前补漏二次）
 
 - [x] test_data/generate.py:348-349：校名关键词→示例学校、校名代码→SLZX（无测试断言依赖旧值，test_ui_config 断言"示例学校"一致）
 - [x] scripts/migrate_semester_context.py:183：校名代码→SLZX
-- [x] docs/ui_redesign_preview.html + _v2.html（含校名关键词原型）已删（旧仓库兜底）
+- [x] docs/ui_redesign_preview.html + _v2.html（含校名原型）已删（旧仓库兜底）
 - [x] 复查：校名代码 全仓零命中；"校名关键词"仅剩文档扫描命令示例/防回归断言（tests/gui/test_gui_main_window.py:110）
+- [x] **补漏（M4 前自查发现）**：源码/脚本 13 处硬编码本机路径 `/home/xsx/旧仓库/...` → 全部改 config 引用（PROJECT_ROOT/STORAGE_DIR/CACHE_DIR/DB_PATH/DATA_DIR）；tests/smoke.py 改相对路径；ui_config.json $schema 旧仓库 URL 移除；pyproject URLs 改新仓库名
+- [x] 历史二次重写（filter-repo + filter-branch）：城南中学/CNZX//home/xsx/edu_system_v2/edu_system_v2 全词 git log 零命中
+- [x] **经验**：敏感扫描词表必须含【本机绝对路径 / 旧仓库名 / 内网 IP】——首次只扫校名漏了路径，M4 前自查才抓出
 
 ## 🔴 基础设施缺口
 
