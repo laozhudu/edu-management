@@ -23,8 +23,8 @@ class GatewayMiddleware(BaseHTTPMiddleware):
         # 1. 解析服务代码
         service_code = self._extract_service_code(request)
 
-        # 跳过健康检查端点
-        if self._is_health_check(request):
+        # 跳过公开端点（健康检查/认证/UI 配置）
+        if self._is_public_endpoint(request):
             return await call_next(request)
 
         # 2. 服务是否启用
@@ -82,6 +82,15 @@ class GatewayMiddleware(BaseHTTPMiddleware):
         response.headers["X-Response-Time-Ms"] = str(duration_ms)
 
         return response
+
+    def _is_public_endpoint(self, request: Request) -> bool:
+        """公开端点（跳过网关校验）：健康检查 + 认证 + UI 配置"""
+        if self._is_health_check(request):
+            return True
+        # UI 配置：公开只读（品牌/导航结构），Web 登录页渲染依赖
+        if request.url.path in ("/api/config", "/api/config/"):
+            return True
+        return False
 
     def _is_health_check(self, request: Request) -> bool:
         """检查是否为健康检查端点或认证相关端点（跳过网关校验）"""
