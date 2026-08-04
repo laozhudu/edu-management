@@ -24,11 +24,12 @@ def qapp():
 
 @pytest.fixture
 def session():
-    """内存 SQLite 会话（含 admin 用户）"""
+    """内存 SQLite 会话（含 admin 用户 + 默认学期）"""
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
     from edu_system.core.permissions import Permission
+    from edu_system.database import init_db_with_defaults
     from edu_system.models import Base, Role, User
 
     engine = create_engine("sqlite:///:memory:")
@@ -42,6 +43,89 @@ def session():
     )
     s.add(admin_role)
     s.add(User(username="admin", password_hash="x", role=admin_role))
+    s.commit()
+    
+    # 初始化默认学期（通过 init_db_with_defaults 的默认数据逻辑）
+    from edu_system.models import AcademicYear, Semester, SemesterStatus, Grade, Subject, GlobalSetting
+    from datetime import date
+    
+    # 默认年级
+    for i, name in enumerate(["初一级", "初二级", "初三级"]):
+        if not s.query(Grade).filter_by(name=name).first():
+            s.add(Grade(name=name, sort_order=i))
+    
+    # 默认科目
+    defaults = [
+        ("语文", 120, 72, 84, 96, 36),
+        ("数学", 120, 72, 84, 96, 36),
+        ("英语", 120, 72, 84, 96, 36),
+        ("政治", 80, 48, 56, 64, 24),
+        ("物理", 100, 60, 70, 80, 30),
+        ("化学", 80, 48, 56, 64, 24),
+        ("历史", 80, 48, 56, 64, 24),
+        ("地理", 100, 60, 70, 80, 30),
+        ("生物", 100, 60, 70, 80, 30),
+        ("体育", 70, 42, 49, 56, 21),
+    ]
+    for i, (name, fm, pl, gl, el, ll) in enumerate(defaults):
+        if not s.query(Subject).filter_by(name=name).first():
+            s.add(
+                Subject(
+                    name=name,
+                    full_mark=fm,
+                    pass_line=pl,
+                    good_line=gl,
+                    excellent_line=el,
+                    low_line=ll,
+                    sort_order=i,
+                )
+            )
+    
+    # 默认学年/学期
+    ay = s.query(AcademicYear).filter_by(name="2024-2025").first()
+    if not ay:
+        ay = AcademicYear(
+            name="2024-2025", sort_order=0, is_active=True, description="2024-2025 学年"
+        )
+        s.add(ay)
+        s.flush()
+
+    sem1 = s.query(Semester).filter_by(academic_year_id=ay.id, semester="1").first()
+    if not sem1:
+        sem1 = Semester(
+            academic_year_id=ay.id,
+            year_start=2024,
+            semester="1",
+            label="2024-2025 第1学期",
+            sort_order=1,
+            is_active=True,
+            status=SemesterStatus.active,
+            start_date=date(2024, 9, 1),
+            end_date=date(2025, 1, 15),
+        )
+        s.add(sem1)
+        s.flush()
+
+    sem2 = s.query(Semester).filter_by(academic_year_id=ay.id, semester="2").first()
+    if not sem2:
+        sem2 = Semester(
+            academic_year_id=ay.id,
+            year_start=2024,
+            semester="2",
+            label="2024-2025 第2学期",
+            sort_order=2,
+            is_active=False,
+            status=SemesterStatus.draft,
+            start_date=date(2025, 2, 15),
+            end_date=date(2025, 7, 15),
+        )
+        s.add(sem2)
+        s.flush()
+    
+    # 默认缺考标记
+    if not s.query(GlobalSetting).filter_by(key="absent_marks").first():
+        s.add(GlobalSetting(key="absent_marks", value="-1,0"))
+    
     s.commit()
     yield s
     s.close()
@@ -68,11 +152,11 @@ class TestTopBar:
         """顶部栏仅显示当前学年学期（无搜索框/面包屑等其他字样）"""
         topbar = main_window.topbar
         texts = [lbl.text() for lbl in topbar.findChildren(QLabel) if lbl.text()]
-        assert texts == ["2026-2027学年度第一学期"], f"顶部栏应只有学期字样，实际: {texts}"
+        assert texts == ["2024-2025 第1学期"], f"顶部栏应只有学期字样，实际: {texts}"
 
     def test_semester_standard_format(self, main_window):
-        """学年度使用标准写法：2026-2027学年度第一学期"""
-        assert main_window.topbar.semester_label.text() == "2026-2027学年度第一学期"
+        """学年度使用标准写法：2024-2025 第1学期"""
+        assert main_window.topbar.semester_label.text() == "2024-2025 第1学期"
 
     def test_semester_not_green(self, main_window):
         """学期标签不使用绿色强调（业界审美：浅灰普通样式）"""
