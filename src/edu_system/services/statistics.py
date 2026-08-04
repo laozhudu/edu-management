@@ -473,53 +473,13 @@ class StatisticsWorker:
 
         session = get_session()
         try:
-            service = StatisticsService(session)
-            if self._progress_callback:
-                self._progress_callback(0, "开始全量重算...")
-
-            # 获取总进度步骤数
-            total_steps = 1  # school
-            grades = session.query(Grade).count()
-            classes = (
-                session.query(Class).filter(Class.semester_id == get_active_semester()).count()
+            run_full_recompute(
+                session,
+                progress_cb=self._progress_callback,
+                finished_cb=self._finished_callback,
+                error_cb=self._error_callback,
+                cancel_check=lambda: self._cancelled,
             )
-            exams = session.query(Exam).filter(Exam.semester_id == get_active_semester()).count()
-            total_steps += 1 + grades + classes + exams
-
-            current = 0
-
-            def update_progress(step_name: str):
-                nonlocal current
-                current += 1
-                if self._progress_callback and not self._cancelled:
-                    self._progress_callback(int(current / total_steps * 100), step_name)
-
-            if self._cancelled:
-                return
-
-            update_progress("学期汇总")
-            service = StatisticsService(session)
-            service.full_recompute()
-
-            if self._cancelled:
-                return
-
-            update_progress("年级统计")
-            # 年级在 full_recompute 内已处理
-
-            update_progress("班级统计")
-            # 班级在 full_recompute 内已处理
-
-            update_progress("考试统计")
-            # 考试在 full_recompute 内已处理
-
-            if not self._cancelled:
-                update_progress("完成")
-                if self._finished_callback:
-                    self._finished_callback("全量重算完成")
-        except Exception as e:
-            if self._error_callback:
-                self._error_callback(str(e))
         finally:
             session.close()
 
@@ -528,27 +488,111 @@ class StatisticsWorker:
 
         session = get_session()
         try:
-            service = StatisticsService(session)
-            total = len(self._dirty_entities)
-
-            for i, item in enumerate(self._dirty_entities):
-                if self._cancelled:
-                    return
-                if self._progress_callback:
-                    self._progress_callback(
-                        int((i + 1) / total * 100),
-                        f"增量重算: {item['entity_type']}-{item['entity_id']}",
-                    )
-
-                service.incremental_recompute([item])
-
-            if not self._cancelled and self._finished_callback:
-                self._finished_callback(f"增量重算完成: {total} 项")
-        except Exception as e:
-            if self._error_callback:
-                self._error_callback(str(e))
+            run_incremental_recompute(
+                session,
+                self._dirty_entities,
+                progress_cb=self._progress_callback,
+                finished_cb=self._finished_callback,
+                error_cb=self._error_callback,
+                cancel_check=lambda: self._cancelled,
+            )
         finally:
             session.close()
+
+
+# ============================================================
+# M5-B3 后台 Worker 可测试核心（纯函数，不依赖 QThread/全局会话）
+# StatisticsWorker 通过 QThread 调用；单测直接调用同步函数
+# ============================================================
+
+
+def run_full_recompute(
+    session: Session,
+    progress_cb=None,
+    finished_cb=None,
+    error_cb=None,
+    cancel_check=None,
+) -> bool:
+    """全量重算（同步，可取消）
+
+    返回是否完成（False = 中途取消或异常）。
+    cancel_check: 无参可调用，返回 True 时提前终止。
+    """
+    try:
+        service = StatisticsService(session)
+        if progress_cb:
+            progress_cb(0, "开始全量重算...")
+
+        # 进度固定 5 步：学期汇总/年级/班级/考试/完成
+        # （update_progress 调用次数与 total_steps 必须一致，避免百分比溢出）
+        total_steps = 5
+        current = 0
+
+        def update_progress(step_name: str):
+            nonlocal current
+            current += 1
+            if progress_cb and not (cancel_check and cancel_check()):
+                progress_cb(int(current / total_steps * 100), step_name)
+
+        if cancel_check and cancel_check():
+            return False
+
+        update_progress("学期汇总")
+        service = StatisticsService(session)
+        service.full_recompute()
+
+        if cancel_check and cancel_check():
+            return False
+
+        update_progress("年级统计")
+        update_progress("班级统计")
+        update_progress("考试统计")
+
+        if not (cancel_check and cancel_check()):
+            update_progress("完成")
+            if finished_cb:
+                finished_cb("全量重算完成")
+        return True
+    except Exception as e:
+        if error_cb:
+            error_cb(str(e))
+        return False
+
+
+def run_incremental_recompute(
+    session: Session,
+    dirty_entities: list[dict],
+    progress_cb=None,
+    finished_cb=None,
+    error_cb=None,
+    cancel_check=None,
+) -> bool:
+    """增量重算（同步，可取消）
+
+    返回是否完成（False = 中途取消或异常）。
+    """
+    try:
+        service = StatisticsService(session)
+        total = len(dirty_entities)
+
+        for i, item in enumerate(dirty_entities):
+            if cancel_check and cancel_check():
+                return False
+            if progress_cb:
+                progress_cb(
+                    int((i + 1) / total * 100) if total else 100,
+                    f"增量重算: {item['entity_type']}-{item['entity_id']}",
+                )
+
+            service.incremental_recompute([item])
+
+        if not (cancel_check and cancel_check()) and finished_cb:
+            finished_cb(f"增量重算完成: {total} 项")
+        return True
+    except Exception as e:
+        if error_cb:
+            error_cb(str(e))
+        return False
 
 
 class _StatisticsWorkerRunnable:
