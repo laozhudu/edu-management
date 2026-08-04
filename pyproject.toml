@@ -20,10 +20,9 @@ dependencies = [
     "openpyxl>=3.1",
     "docxtpl>=0.20",
     "weasyprint>=61",
-    "pdf-reports>=0.3",
     "jinja2>=3.1",
+    "pandas>=3.0",
     "pandera>=0.19",
-    "great-expectations>=1.19",
     "tablib>=3.7",
     "python-dotenv>=1.0",
     "requests>=2.32",
@@ -34,7 +33,6 @@ dependencies = [
     "prometheus-client>=0.20",
     "cryptography>=43.0",
     "PyQt5>=5.15",
-    "PyQt-Fluent-Widgets[full]>=1.8",
     "pypinyin>=0.55",
 ]
 
