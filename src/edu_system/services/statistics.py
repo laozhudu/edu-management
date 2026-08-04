@@ -12,6 +12,8 @@ from datetime import datetime
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from PyQt5.QtCore import QObject, pyqtSignal
+
 from edu_system.database import get_active_semester
 from edu_system.models import Class, Exam, Grade, Score, SemesterStatsCache, Student, Teacher
 
@@ -595,15 +597,15 @@ def run_incremental_recompute(
         return False
 
 
-class _StatisticsWorkerRunnable:
-    """QThread 运行包装"""
+class _StatisticsWorkerRunnable(QObject):
+    """QThread 运行包装（QObject 子类：moveToThread + pyqtSignal 才有效）"""
+
+    finished = pyqtSignal()
 
     def __init__(self, target, worker):
+        super().__init__()
         self.target = target
         self.worker = worker
-        from PyQt5.QtCore import pyqtSignal
-
-        self.finished = pyqtSignal()
 
     def run(self):
         try:
