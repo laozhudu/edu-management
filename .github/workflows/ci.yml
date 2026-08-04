@@ -188,7 +188,7 @@ jobs:
           result = loader.load_version(version='1.0.0', scenario='test')
           print(f'Test data loaded: {result}')
           "
-      - run: xvfb-run -a pytest tests/gui -x --timeout=180 -v -m "gui"
+      - run: QT_QPA_PLATFORM=offscreen pytest tests/gui -x --timeout=180 -v -m "gui"
 
   security:
     name: 安全扫描
