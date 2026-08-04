@@ -253,7 +253,7 @@ jobs:
           cache: 'pip'
       - run: pip install -r requirements.lock
       - run: pip install nuitka pyinstaller
-      - run: python -m nuitka --standalone --onefile --windows-icon-from-ico=assets/icon.ico main.py
+      - run: python -m nuitka --standalone --onefile --enable-plugin=pyqt5 --assume-yes-for-downloads --windows-icon-from-ico=assets/icon.ico main.py
       - uses: actions/upload-artifact@v4
         with:
           name: edu-system-windows
@@ -277,7 +277,7 @@ jobs:
           sudo apt-get install -y libgl1 libfontconfig1
       - run: pip install -r requirements.lock
       - run: pip install nuitka
-      - run: python -m nuitka --standalone --onefile main.py
+      - run: python -m nuitka --standalone --onefile --enable-plugin=pyqt5 main.py
       - uses: actions/upload-artifact@v4
         with:
           name: edu-system-linux
