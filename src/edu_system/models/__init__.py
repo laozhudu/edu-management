@@ -606,6 +606,27 @@ class SemesterConfig(Base):
     source_semester = relationship("Semester", foreign_keys=[inherited_from])
 
 
+class SemesterConfigHistory(Base):
+    """学期配置版本快照表：保存每次写入/回滚的历史（key/value/version）
+
+    semester_configs 表保持 (semester_id, key) 唯一存当前值；
+    历史版本存此快照表，支持回滚追溯（回避 SQLite 约束 batch 迁移）。
+    """
+
+    __tablename__ = "semester_config_history"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    semester_id = Column(Integer, ForeignKey("semesters.id"), nullable=False, index=True)
+    key = Column(String(50), nullable=False)
+    value = Column(Text, nullable=True)
+    version = Column(Integer, nullable=False, index=True)
+    action = Column(String(20), nullable=False, default="SAVE", comment="SAVE/ROLLBACK/INHERIT")
+    operator = Column(String(50), nullable=True, default="")
+    created_at = Column(DateTime, server_default=func.now())
+    __table_args__ = (
+        Index("ix_config_history_semester_version", "semester_id", "version"),
+    )
+
+
 # ════════════════════════════════════
 # 多校区支持
 # ════════════════════════════════════
