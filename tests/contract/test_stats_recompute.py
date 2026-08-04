@@ -82,6 +82,19 @@ class TestStatsRecomputeContract:
             self._db.commit()
             self._db.close()
 
+        # 等待后台统计 worker 线程结束，避免遗留线程持有 DB 锁污染后续测试
+        from edu_system.api.routes.stats import get_worker
+
+        worker = get_worker()
+        for _ in range(50):
+            if worker._thread is None or not worker._thread.isRunning():
+                break
+            import time
+
+            time.sleep(0.1)
+        if worker._thread is not None and worker._thread.isRunning():
+            worker.cancel()
+
     def test_full_recompute_trigger(self):
         """全量重算手动触发：返回任务启动确认"""
         resp = self.client.post("/api/stats/recompute/full", headers=self.headers)
