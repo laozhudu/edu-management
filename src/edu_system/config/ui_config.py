@@ -20,8 +20,8 @@ class AppConfig(BaseModel):
     name_short: str = "教务管理"
     school_name: str = "示例学校"
     window_title: str = "{school} {name} v{version}"
-    version: str = "2.0.0"
-    version_display: str = "v2.0"
+    version: str = "3.0.0"
+    version_display: str = "v3.0"
     footer: str = "{school} · v{version}"
 
 

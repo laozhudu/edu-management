@@ -6,6 +6,7 @@ UI 配置 API 契约测试（M2-3）
 运行：pytest tests/contract/test_config_api.py -x -v
 """
 
+import json
 import sys
 from pathlib import Path
 
@@ -19,6 +20,11 @@ sys.path.insert(0, str(project_root))
 
 from edu_system.api.main import create_app
 
+# 配置源（ui_config.json）——断言与配置源一致，不硬编码版本/校名，防升级后契约失效
+_SRC_CFG = json.load(
+    open(project_root / "src/edu_system/config/ui_config.json", encoding="utf-8")
+)
+
 
 @pytest.fixture()
 def client():
@@ -30,13 +36,13 @@ class TestUIConfigAPI:
     """UI 配置只读端点契约"""
 
     def test_get_config_returns_brand_and_domains(self, client):
-        """返回学校名称/版本 + 6 域导航结构（按 order 升序）"""
+        """返回学校名称/版本（与配置源一致）+ 6 域导航结构（按 order 升序）"""
         resp = client.get("/api/config")
         assert resp.status_code == 200
         data = resp.json()
-        # 品牌/版本
-        assert data["app"]["school_name"] == "示例学校"
-        assert data["app"]["version"] == "2.0.0"
+        # 品牌/版本：与 ui_config.json 配置源一致
+        assert data["app"]["school_name"] == _SRC_CFG["app"]["school_name"]
+        assert data["app"]["version"] == _SRC_CFG["app"]["version"]
         # 6 域导航（home/students/scores/exams/teachers/system）
         assert len(data["domains"]) == 6
         domain_ids = [d["id"] for d in data["domains"]]
