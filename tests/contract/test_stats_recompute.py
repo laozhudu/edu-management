@@ -94,6 +94,7 @@ class TestStatsRecomputeContract:
             time.sleep(0.1)
         if worker._thread is not None and worker._thread.isRunning():
             worker.cancel()
+
     def test_full_recompute_trigger(self):
         """全量重算手动触发：返回任务启动确认"""
         resp = self.client.post("/api/stats/recompute/full", headers=self.headers)
