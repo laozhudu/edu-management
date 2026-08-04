@@ -21,8 +21,8 @@ sys.path.insert(0, str(project_root))
 from edu_system.api.main import create_app
 
 # 配置源（ui_config.json）——断言与配置源一致，不硬编码版本/校名，防升级后契约失效
-_SRC_CFG = json.load(
-    open(project_root / "src/edu_system/config/ui_config.json", encoding="utf-8")
+_SRC_CFG = json.loads(
+    (project_root / "src/edu_system/config/ui_config.json").read_text(encoding="utf-8")
 )
 
 
