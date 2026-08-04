@@ -55,6 +55,14 @@ class DBInitWorker(QThread):
 
 
 def main():
+    # 0. 命令行支持 --help/-h（不启动 GUI，供冒烟与文档使用）
+    if "--help" in sys.argv or "-h" in sys.argv:
+        print((__doc__ or "教务管理系统（开发版）").strip())
+        print("\n用法: python main.py [--help]")
+        print("选项:")
+        print("  -h, --help    显示帮助并退出")
+        sys.exit(0)
+
     # 2. 创建应用
     QApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
     app = QApplication(sys.argv)

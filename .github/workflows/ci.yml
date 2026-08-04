@@ -54,7 +54,7 @@ jobs:
           cache: 'pip'
       - run: mkdir -p data/cache/stats
       - run: pip install -r requirements.lock
-      - run: pip install pytest pytest-asyncio pytest-cov pytest-timeout httpx itsdangerous
+      - run: pip install pytest pytest-asyncio pytest-cov pytest-timeout httpx itsdangerous factory_boy
       - run: |
           python -c "
           import sys
@@ -93,7 +93,7 @@ jobs:
           cache: 'pip'
       - run: mkdir -p data/cache/stats
       - run: pip install -r requirements.lock
-      - run: pip install pytest pytest-asyncio pytest-cov pytest-timeout httpx itsdangerous
+      - run: pip install pytest pytest-asyncio pytest-cov pytest-timeout httpx itsdangerous factory_boy
       - run: |
           python -c "
           import sys
@@ -169,7 +169,7 @@ jobs:
           sudo apt-get install -y xvfb libgl1 libgl1-mesa-dri libfontconfig1 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libxcb-cursor0
       - run: mkdir -p data/cache/stats
       - run: pip install -r requirements.lock
-      - run: pip install pytest pytest-asyncio pytest-cov pytest-timeout pytest-qt
+      - run: pip install pytest pytest-asyncio pytest-cov pytest-timeout pytest-qt factory_boy
       - run: |
           python -c "
           import sys
