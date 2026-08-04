@@ -52,9 +52,6 @@ class TestStatsCacheContract:
         db = get_session()
         run_full_recompute(db)
         db.close()
-
-        # 触发全量重算，保证有缓存数据
-        client.post("/api/stats/recompute/full", headers=self.headers)
         self.semester_id = 1
 
     def test_first_query_has_version(self):
