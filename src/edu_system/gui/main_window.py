@@ -363,6 +363,14 @@ class MainWindow(QMainWindow):
         # 登录验证：模态登录框（阻塞直到用户登录/取消），验证通过才进入主界面
         # 注：exec_() 嵌套在 finished 信号回调中是安全的（主事件循环已运行）；
         # 之前"卡死"真因是首次引导 QMessageBox 模态弹窗，已改为内联提示
+        # 已有登录态（如测试/热重载场景）则跳过登录框，直接进入主界面（幂等）
+        from edu_system.core.permissions import get_current_user
+
+        current = get_current_user()
+        if current is not None:
+            self._enter_main(current)
+            return
+
         from edu_system.gui.dialogs import LoginDialog
 
         login_dlg = LoginDialog(self.session, parent=self)
