@@ -394,7 +394,22 @@ class MainWindow(QMainWindow):
         self.sidebar.btns[0][0].setChecked(True)
         self.sidebar.btns[0][0].setStyleSheet(_nav_btn_style(True))
 
+        # 更新学期显示
+        self._update_semester_display()
+
         self.statusBar().showMessage("就绪", 3000)
+
+    def _update_semester_display(self):
+        """更新顶部栏学期显示（从数据库读取当前激活学期）"""
+        if self.session is None:
+            return
+        from edu_system.services.semester import SemesterService
+        svc = SemesterService(self.session)
+        current = svc.get_active()
+        if current:
+            self.topbar.set_semester(current.label)
+        else:
+            self.topbar.set_semester("未设置当前学期")
 
     def _build_all_workbenches(self):
         """根据 UIConfig 动态构建所有工作台"""

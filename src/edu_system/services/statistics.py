@@ -104,7 +104,9 @@ class StatisticsService:
         """计算班级相关指标"""
         query = self.session.query(Class).filter(Class.semester_id == self.semester_id)
 
-        if entity_type == "grade" and entity_id:
+        if entity_type == "class" and entity_id:
+            query = query.filter(Class.id == entity_id)
+        elif entity_type == "grade" and entity_id:
             query = query.filter(Class.grade_id == entity_id)
         elif entity_type == "school":
             pass

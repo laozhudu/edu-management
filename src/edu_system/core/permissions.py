@@ -66,6 +66,11 @@ class Permission(StrEnum):
     # 数据锁定
     DATA_UNLOCK = "data:unlock"
 
+    # 学期维度权限
+    SEMESTER_VIEW = "semester:view"
+    SEMESTER_EDIT = "semester:edit"
+    SEMESTER_ADMIN = "semester:admin"
+
 
 # 角色默认权限映射（可后续迁移到数据库）
 ROLE_PERMISSIONS = {
@@ -101,6 +106,8 @@ ROLE_PERMISSIONS = {
         Permission.SYSTEM_BACKUP.value,
         Permission.SYSTEM_AUDIT.value,
         Permission.DATA_UNLOCK.value,
+        Permission.SEMESTER_VIEW.value,
+        Permission.SEMESTER_EDIT.value,
     ],
     "teacher": [
         Permission.STUDENT_VIEW.value,
