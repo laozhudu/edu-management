@@ -3,6 +3,14 @@
 > 与 DEV_PLAN_v3.md 状态保持一致。完成一项划一项 `[x]`。
 > 最后同步：2026-08-04
 
+## ✅ M1 新仓库搭建（已完成 2026-08-04）
+
+- [x] M1-1 git init -b main + 首次 commit（f5d4082，182 文件，敏感清零前置）
+- [x] M1-2 venv 重建（python3.11 + requirements.lock，108 运行包 + 测试工具）；补齐依赖清单缺口 factory_boy/pytest-timeout/itsdangerous（旧仓库遗漏，CI 会红）
+- [x] M1-3 冒烟：fresh pytest = **277 passed** + main.py --help 正常退出
+- [x] main.py 新增 --help/-h 支持（GUI 前退出，供冒烟）
+- [x] data/ 目录（CI 对齐方式 `mkdir -p data/cache/stats`，测试空库，内容 gitignore 忽略）
+
 ## ✅ M0 准备与冻结（已完成 2026-08-04）
 
 - [x] M0-1 旧仓库冻结：README 顶部 FROZEN 标注（master a73a775），停止推送

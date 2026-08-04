@@ -554,6 +554,8 @@ main (受保护，PR 合入，CI 必绿)
 | 日期 | 当前分支 | 完成到 | 下一步 | 未提交改动 |
 |------|----------|--------|--------|-----------|
 | 08-04 | master(旧仓 a73a775) | **M0 全部完成** | M1-1 git init + 首次 commit | 新仓未 init；~/.git 已隔离 |
+| 08-04 | main(新仓) | **M1-1 完成**（git init -b main + 首次 commit f5d4082，182 文件，敏感清零前置完成） | M1-2 venv 重建中 → M1-3 冒烟 | venv 安装后台运行 |
+| 08-04 | main(新仓) | **M1 全部完成**（venv 重建；277 passed；main.py --help；依赖清单补齐 factory_boy 等；data/ 目录对齐 CI） | M2-1 配置单源化（config.py → config/__init__.py） | 本次 M1 变更待 commit |
 
 ---
 
