@@ -57,18 +57,14 @@ class GatewayMiddleware(BaseHTTPMiddleware):
             is_admin = "admin" in user_roles
 
             # 权限校验
-            if not is_admin and required_perms and not any(
-                p in user_perms for p in required_perms
-            ):
+            if not is_admin and required_perms and not any(p in user_perms for p in required_perms):
                 return JSONResponse(
                     status_code=403,
                     content={"error": f"缺少权限: {required_perms}"},
                     headers={"X-Permission-Denied": "true"},
                 )
 
-            if not is_admin and allowed_roles and not any(
-                r in user_roles for r in allowed_roles
-            ):
+            if not is_admin and allowed_roles and not any(r in user_roles for r in allowed_roles):
                 return JSONResponse(
                     status_code=403,
                     content={"error": f"角色不匹配，需要: {allowed_roles}"},
