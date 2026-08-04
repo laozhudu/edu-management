@@ -564,6 +564,7 @@ main (受保护，PR 合入，CI 必绿)
 | 08-04 | main(新仓) | **M1 全部完成**（venv 重建；277 passed；main.py --help；依赖清单补齐 factory_boy 等；data/ 目录对齐 CI） | M2-1 配置单源化（config.py → config/__init__.py） | 本次 M1 变更待 commit |
 | 08-04 | main(新仓) | **M2 全部完成**（M2-1 单源化/M2-2 死代码/M2-3 /api/config/M2-4 依赖104→79/M2-5 文档/M2-6 license job；279 passed） | M3 加固验收（敏感扫描/全量测试+格式/安全扫描/空库迁移/Win dry-run） | 无 |
 | 08-04 | main(新仓) | **M3 全部完成**（敏感历史重写零命中/279 passed/bandit 0 高危+gitleaks/迁移全表/win icon 修复）；**Web端规划升级为与桌面功能完全一致**（REQUIREMENTS G/DEV_PLAN M5-G/REFACTOR Phase5/README） | M4 公开上线（建公开仓库/push/CI 全绿/Release/旧仓库归档） | 无 |
+| 08-04 | main(新仓) | **M4 全部完成**（公开仓库建好 push/CI 10 job 全绿/Release v3.0.0（产物按用户要求不上传）/旧仓已归档）。CI 修复：跨平台 lock、libgl1、nuitka pyqt5 插件、GUI 登录框挂起 | M5 待办补齐（含 Web 端全功能 M5-G，技术栈后续单定） | 无 |
 
 ---
 

@@ -27,6 +27,14 @@
 - [x] M0-3 排除项核验：新仓库已清 73400340/import_exam_scores.py/import_real_data.py/`"alembic`；templates+static(3死文件base.html/js/css) 已删；data/logs/crudadmin_data/exports 未复制
 - [x] ~/.git 误建 home 仓库已隔离为 ~/.git.bak_home_mistake（可逆）
 
+## ✅ M4 公开上线（已完成 2026-08-04）
+
+- [x] M4-1 建公开仓库 + push：https://github.com/laozhudu/edu-management（PUBLIC，main，11+ commit）
+- [x] M4-2 CI 全绿：10 jobs（lint/license/security/test/contract/db-migrate/test-gui + win/linux 构建）。修复：跨平台 lock（pyqt5-qt5 双分支 marker）、Ubuntu 24.04 libgl1、nuitka pyqt5 插件、GUI 测试挂起（MainWindow 登录框跳过）
+- [x] M4-3 Release v3.0.0（gh release create --generate-notes；产物按用户要求不上传，assets=0）
+- [x] M4-4 旧仓库 edu_system_v2 已 archived+PRIVATE 确认（无需操作）
+- [x] ci.yml on.push 加 tags 触发（未来 tag 自动发 Release）
+
 ## ✅ M3 加固验收（已完成 2026-08-04）
 
 - [x] M3-1 敏感扫描：filter-repo 重写 8 commit 历史中性化敏感字样；git log + 工作树 校名关键词 零命中
