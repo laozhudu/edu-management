@@ -61,9 +61,7 @@ class TestStatsRecomputeContract:
                 )
             )
             self._db.commit()
-        self._teacher_headers = {
-            "Authorization": f"Bearer {self._login_teacher_token()}"
-        }
+        self._teacher_headers = {"Authorization": f"Bearer {self._login_teacher_token()}"}
 
     def _login_teacher_token(self):
         resp = self.client.post(
