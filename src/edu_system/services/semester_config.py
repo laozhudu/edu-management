@@ -228,29 +228,43 @@ class SemesterConfigService:
         ):
             new_configs[key] = diff["new_value"]
 
-        # 软删除目标学期旧配置（保留历史版本可回滚）
-        now = datetime.now()
-        self.session.query(SemesterConfig).filter(
-            SemesterConfig.semester_id == target_semester_id,
-            SemesterConfig.is_deleted.is_(False),
-        ).update({SemesterConfig.is_deleted: True, SemesterConfig.deleted_at: now})
+        # 快照目标旧配置到历史表（保留回滚能力）
+        self._snapshot(target_semester_id, old_configs, version=0, action="INHERIT", operator=operator)
 
-        # 写入新配置（带版本）
+        # 写入新配置（每 key 一行当前值 + 当前版本号）
         version = self._get_next_version(target_semester_id)
         now = datetime.now()
 
         for key, value in new_configs.items():
             if value is not None:
-                config = SemesterConfig(
-                    semester_id=target_semester_id,
-                    key=key,
-                    value=str(value),
-                    version=version,
-                    inherited_from=source_semester_id,
-                    created_by=operator,
-                    created_at=now,
+                config = (
+                    self.session.query(SemesterConfig)
+                    .filter(
+                        SemesterConfig.semester_id == target_semester_id,
+                        SemesterConfig.key == key,
+                    )
+                    .first()
                 )
-                self.session.add(config)
+                if config:
+                    config.value = str(value)
+                    config.version = version
+                    config.inherited_from = source_semester_id
+                    config.created_by = operator
+                    config.updated_at = now
+                else:
+                    config = SemesterConfig(
+                        semester_id=target_semester_id,
+                        key=key,
+                        value=str(value),
+                        version=version,
+                        inherited_from=source_semester_id,
+                        created_by=operator,
+                        created_at=now,
+                    )
+                    self.session.add(config)
+
+        # 快照新配置到历史表（当前版本）
+        self._snapshot(target_semester_id, new_configs, version=version, action="INHERIT", operator=operator)
 
         # 记录继承历史
         self._record_inheritance_history(
@@ -276,45 +290,56 @@ class SemesterConfigService:
     # ===== 版本控制 =====
 
     def get_versions(self, semester_id: int) -> list[dict]:
-        """获取学期的所有配置版本"""
+        """获取学期的所有配置版本（从历史快照表）"""
+        from sqlalchemy import distinct
+
+        from edu_system.models import SemesterConfigHistory
+
         versions = (
             self.session.query(
-                SemesterConfig.version,
-                SemesterConfig.created_at,
-                SemesterConfig.created_by,
-                SemesterConfig.inherited_from,
+                distinct(SemesterConfigHistory.version).label("v"),
+                SemesterConfigHistory.created_at,
+                SemesterConfigHistory.operator,
             )
-            .filter(SemesterConfig.semester_id == semester_id)
-            .group_by(SemesterConfig.version)
-            .order_by(SemesterConfig.version.desc())
+            .filter(
+                SemesterConfigHistory.semester_id == semester_id,
+                SemesterConfigHistory.version > 0,
+            )
+            .order_by(SemesterConfigHistory.version.desc())
             .all()
         )
 
         result = []
-        for v in versions:
+        for row in versions:
             count = (
-                self.session.query(SemesterConfig)
+                self.session.query(SemesterConfigHistory)
                 .filter(
-                    SemesterConfig.semester_id == semester_id, SemesterConfig.version == v.version
+                    SemesterConfigHistory.semester_id == semester_id,
+                    SemesterConfigHistory.version == row.v,
                 )
                 .count()
             )
             result.append(
                 {
-                    "version": v.version,
-                    "created_at": v.created_at.isoformat() if v.created_at else None,
-                    "created_by": v.created_by,
-                    "inherited_from": v.inherited_from,
+                    "version": row.v,
+                    "created_at": row.created_at.isoformat() if row.created_at else None,
+                    "created_by": row.operator,
+                    "inherited_from": None,
                     "config_count": count,
                 }
             )
         return result
 
     def get_version_configs(self, semester_id: int, version: int) -> dict[str, str]:
-        """获取指定版本的所有配置"""
+        """获取指定版本的所有配置（从历史快照表）"""
+        from edu_system.models import SemesterConfigHistory
+
         configs = (
-            self.session.query(SemesterConfig)
-            .filter(SemesterConfig.semester_id == semester_id, SemesterConfig.version == version)
+            self.session.query(SemesterConfigHistory)
+            .filter(
+                SemesterConfigHistory.semester_id == semester_id,
+                SemesterConfigHistory.version == version,
+            )
             .all()
         )
         return {c.key: c.value for c in configs}
@@ -322,36 +347,58 @@ class SemesterConfigService:
     def rollback_to_version(
         self, semester_id: int, target_version: int, operator: str = "system"
     ) -> dict:
-        """回滚到指定版本"""
-        # 获取目标版本配置
+        """回滚到指定版本（从历史快照恢复）"""
+        # 获取目标版本配置（历史快照）
         target_configs = self.get_version_configs(semester_id, target_version)
         if not target_configs:
             return {"success": False, "error": f"版本 {target_version} 不存在或为空"}
 
+        # 当前配置（用于快照保留）
+        current_configs = self._get_all_configs(semester_id)
+
         # 当前版本
         current_version = self._get_current_version(semester_id)
 
-        # 软删除当前配置（保留历史版本行，标记 is_deleted 以便回滚追溯）
-        now = datetime.now()
-        self.session.query(SemesterConfig).filter(
-            SemesterConfig.semester_id == semester_id, SemesterConfig.is_deleted.is_(False)
-        ).update({SemesterConfig.is_deleted: True, SemesterConfig.deleted_at: now})
-
-        # 写入回滚配置（新版本号）
+        # 写入回滚配置（新版本号，每 key 一行覆盖当前值）
         new_version = current_version + 1
         now = datetime.now()
 
         for key, value in target_configs.items():
-            config = SemesterConfig(
-                semester_id=semester_id,
-                key=key,
-                value=value,
-                version=new_version,
-                inherited_from=None,  # 回滚不记录继承来源
-                created_by=operator,
-                created_at=now,
+            config = (
+                self.session.query(SemesterConfig)
+                .filter(SemesterConfig.semester_id == semester_id, SemesterConfig.key == key)
+                .first()
             )
-            self.session.add(config)
+            if config:
+                config.value = value
+                config.version = new_version
+                config.inherited_from = None  # 回滚不记录继承来源
+                config.created_by = operator
+                config.updated_at = now
+            else:
+                config = SemesterConfig(
+                    semester_id=semester_id,
+                    key=key,
+                    value=value,
+                    version=new_version,
+                    inherited_from=None,
+                    created_by=operator,
+                    created_at=now,
+                )
+                self.session.add(config)
+
+        # 删除当前值里目标版本没有的 key（回滚语义：完全恢复目标版本）
+        target_keys = set(target_configs.keys())
+        stale_query = self.session.query(SemesterConfig).filter(
+            SemesterConfig.semester_id == semester_id
+        )
+        if target_keys:
+            stale_query = stale_query.filter(SemesterConfig.key.notin_(target_keys))
+        for s in stale_query.all():
+            self.session.delete(s)
+
+        # 快照回滚后的配置到历史表（新版本）
+        self._snapshot(semester_id, target_configs, version=new_version, action="ROLLBACK", operator=operator)
 
         # 记录回滚历史
         self._record_rollback_history(
@@ -371,6 +418,31 @@ class SemesterConfigService:
 
     # ===== 内部辅助方法 =====
 
+    def _snapshot(
+        self,
+        semester_id: int,
+        configs: dict,
+        version: int,
+        action: str = "SAVE",
+        operator: str = "system",
+    ) -> None:
+        """将配置快照写入历史表（每次写入/回滚/继承记录）"""
+        from edu_system.models import SemesterConfigHistory
+
+        now = datetime.now()
+        for key, value in configs.items():
+            self.session.add(
+                SemesterConfigHistory(
+                    semester_id=semester_id,
+                    key=key,
+                    value=str(value) if value is not None else None,
+                    version=version,
+                    action=action,
+                    operator=operator,
+                    created_at=now,
+                )
+            )
+
     def _get_all_configs(self, semester_id: int) -> dict[str, str]:
         """获取学期所有配置（最新版本）"""
         latest_version = self._get_current_version(semester_id)
@@ -382,7 +454,6 @@ class SemesterConfigService:
             .filter(
                 SemesterConfig.semester_id == semester_id,
                 SemesterConfig.version == latest_version,
-                SemesterConfig.is_deleted.is_(False),
             )
             .all()
         )

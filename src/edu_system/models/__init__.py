@@ -596,18 +596,35 @@ class SemesterConfig(Base):
     )
     description = Column(String(200), default="")
     created_by = Column(String(50), default="", comment="创建者")
-    is_deleted = Column(Boolean, default=False, comment="软删除标记（保留历史版本可回滚）")
-    deleted_at = Column(DateTime, nullable=True, comment="软删除时间")
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     __table_args__ = (
-        UniqueConstraint(
-            "semester_id", "key", "version", name="uq_semester_config_version"
-        ),
+        UniqueConstraint("semester_id", "key", name="uq_semester_config"),
         Index("idx_semester_config_semester", "semester_id"),
     )
     semester = relationship("Semester", foreign_keys=[semester_id])
     source_semester = relationship("Semester", foreign_keys=[inherited_from])
+
+
+class SemesterConfigHistory(Base):
+    """学期配置版本快照表：保存每次写入/回滚的历史（key/value/version）
+
+    semester_configs 表保持 (semester_id, key) 唯一存当前值；
+    历史版本存此快照表，支持回滚追溯（回避 SQLite 约束 batch 迁移）。
+    """
+
+    __tablename__ = "semester_config_history"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    semester_id = Column(Integer, ForeignKey("semesters.id"), nullable=False, index=True)
+    key = Column(String(50), nullable=False)
+    value = Column(Text, nullable=True)
+    version = Column(Integer, nullable=False, index=True)
+    action = Column(String(20), nullable=False, default="SAVE", comment="SAVE/ROLLBACK/INHERIT")
+    operator = Column(String(50), nullable=True, default="")
+    created_at = Column(DateTime, server_default=func.now())
+    __table_args__ = (
+        Index("ix_config_history_semester_version", "semester_id", "version"),
+    )
 
 
 # ════════════════════════════════════

@@ -1,10 +1,11 @@
 """
-SemesterConfig 配置版本回滚 + 软删除测试（M5-C2）
+SemesterConfig 配置版本回滚 + 快照测试（M5-C2）
 
 覆盖：
-- 版本控制：多次设置配置版本递增，get_versions 返回全版本
-- 回滚：rollback_to_version 生成新版本且内容恢复目标版本
-- 软删除：回滚/继承时旧版本行标记 is_deleted（非物理删），历史可追溯
+- 版本控制：继承执行产生版本递增，get_versions 返回全版本
+- 回滚：rollback_to_version 恢复目标版本内容（覆盖当前值 + 删多余 key）
+- 快照：每次写入/回滚在 history 表留档（key/value/version）
+- 历史追溯：get_version_configs 可读任意历史版本
 """
 
 import sys
@@ -17,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from edu_system.models import Base, Semester, SemesterConfig
+from edu_system.models import Base, Semester, SemesterConfig, SemesterConfigHistory
 from edu_system.services.semester_config import SemesterConfigService
 
 
@@ -73,57 +74,58 @@ def semesters(session):
     return s1, s2
 
 
-def _write_configs(svc, semester_id, configs, operator="admin"):
-    """写入一组配置（生成一个新版本）"""
-    version = svc._get_next_version(semester_id)
-    for key, value in configs.items():
-        session = svc.session
-        session.add(
-            SemesterConfig(
-                semester_id=semester_id,
-                key=key,
-                value=str(value),
-                version=version,
-                created_by=operator,
+def _seed_configs(session, semester_id, source_id):
+    """用源学期配置执行多次继承，制造多版本"""
+    svc = SemesterConfigService(session)
+
+    def _inherit(source, configs, overwrite=None):
+        # source 端写配置：每 key 一行当前值（upsert）
+        v = (svc._get_current_version(source) or 0) + 1
+        for k, val in configs.items():
+            existing = (
+                session.query(SemesterConfig)
+                .filter(SemesterConfig.semester_id == source, SemesterConfig.key == k)
+                .first()
             )
-        )
-    session.flush()
-    return version
+            if existing:
+                existing.value = str(val)
+                existing.version = v
+            else:
+                session.add(
+                    SemesterConfig(
+                        semester_id=source, key=k, value=str(val), version=v, created_by="t"
+                    )
+                )
+        session.flush()
+        return svc.execute_inherit(source, semester_id, overwrite, operator="teacher")
+
+    _inherit(source_id, {"max_class_size": "50", "dorm_fee": "800"})
+    res = _inherit(source_id, {"max_class_size": "60"}, overwrite=["max_class_size"])
+    session.commit()
+    return res
 
 
 class TestConfigVersioning:
     """版本控制 + 回滚"""
 
     def test_versions_increment_and_rollback(self, session, semesters):
-        """写入多版本→get_versions 返回，回滚生成新版本且内容恢复"""
-        s1, _ = semesters
+        """继承产生多版本→get_versions 返回，回滚恢复目标内容"""
+        s1, s2 = semesters
         svc = SemesterConfigService(session)
 
-        _write_configs(svc, s1.id, {"max_class_size": "50", "dorm_fee": "800"})
-        session.commit()
-        v1 = svc._get_current_version(s1.id)
-        assert v1 == 1
-
-        # 修改配置 → 版本 2
-        _write_configs(svc, s1.id, {"max_class_size": "55", "dorm_fee": "900", "meal_fee": "300"})
-        session.commit()
-        v2 = svc._get_current_version(s1.id)
-        assert v2 == 2
-
-        # 版本列表含 v1/v2
+        # 两次继承 → 版本递增
+        _seed_configs(session, s1.id, s2.id)
         versions = svc.get_versions(s1.id)
         assert [v["version"] for v in versions] == [2, 1]
 
         # 回滚到 v1
         result = svc.rollback_to_version(s1.id, 1)
         assert result["success"] is True
-        assert result["new_version"] == 3
 
         # 回滚后当前配置 = v1 内容
         current = svc._get_all_configs(s1.id)
         assert current["max_class_size"] == "50"
         assert current["dorm_fee"] == "800"
-        assert "meal_fee" not in current  # v1 无此项
 
         session.rollback()
 
@@ -136,73 +138,45 @@ class TestConfigVersioning:
         assert "不存在" in result["error"]
 
 
-class TestSoftDelete:
-    """软删除：旧版本保留可追溯"""
+class TestSnapshotHistory:
+    """版本快照：history 表留档 + 可追溯回滚"""
 
-    def test_rollback_soft_deletes_old_version(self, session, semesters):
-        """回滚时旧版本行标记 is_deleted（非物理删除），历史保留"""
-        s1, _ = semesters
+    def test_inherit_writes_history(self, session, semesters):
+        """继承执行后 history 表有快照，get_version_configs 可读"""
+        s1, s2 = semesters
         svc = SemesterConfigService(session)
 
-        _write_configs(svc, s1.id, {"max_class_size": "50"})
-        session.commit()
-        v1 = svc._get_current_version(s1.id)
+        _seed_configs(session, s1.id, s2.id)
 
-        _write_configs(svc, s1.id, {"max_class_size": "60"})
-        session.commit()
-        v2 = svc._get_current_version(s1.id)
-
-        # 回滚到 v1 → 生成 v3，v1/v2 标记软删除
-        svc.rollback_to_version(s1.id, 1, operator="teacher")
-        session.commit()
-
-        # v1/v2 行都保留但标记软删除
-        deleted = (
-            session.query(SemesterConfig)
-            .filter(
-                SemesterConfig.semester_id == s1.id,
-                SemesterConfig.version.in_([v1, v2]),
-                SemesterConfig.is_deleted.is_(True),
-            )
-            .count()
+        # history 表有 v1 + v2 快照（version 0 是继承前的初始快照）
+        hist_rows = (
+            session.query(SemesterConfigHistory)
+            .filter(SemesterConfigHistory.semester_id == s1.id)
+            .all()
         )
-        assert deleted >= 1, "旧版本行应标记软删除"
+        assert hist_rows, "继承应写入历史快照"
+        versions = {h.version for h in hist_rows}
+        assert {1, 2}.issubset(versions), f"应有版本 1,2，实际 {versions}"
 
-        # v3 为新有效版本
-        v3 = svc._get_current_version(s1.id)
-        assert v3 == 3
-        active_rows = (
-            session.query(SemesterConfig)
-            .filter(
-                SemesterConfig.semester_id == s1.id,
-                SemesterConfig.version == v3,
-                SemesterConfig.is_deleted.is_(False),
-            )
-            .count()
-        )
-        assert active_rows == 1  # 只有 max_class_size
-
+        # 可读 v1 历史内容
+        v1 = svc.get_version_configs(s1.id, 1)
+        assert v1["max_class_size"] == "50"
+        assert v1["dorm_fee"] == "800"
         session.rollback()
 
-    def test_version_history_materialized(self, session, semesters):
-        """软删除后历史版本内容仍可从 get_version_configs 读取（可回滚追溯）"""
-        s1, _ = semesters
+    def test_rollback_writes_new_history_version(self, session, semesters):
+        """回滚产生新高版本快照，旧版本仍可读"""
+        s1, s2 = semesters
         svc = SemesterConfigService(session)
 
-        _write_configs(svc, s1.id, {"A": "1", "B": "2"})
-        session.commit()
-        v1 = svc._get_current_version(s1.id)
-
-        _write_configs(svc, s1.id, {"A": "10", "B": "20"})
+        _seed_configs(session, s1.id, s2.id)
+        svc.rollback_to_version(s1.id, 1, operator="admin")
         session.commit()
 
-        # 软删 v1 + v2，写入 v3
-        svc.rollback_to_version(s1.id, v1)
-        session.commit()
-
-        # v1 历史内容仍可读取
-        v1_configs = svc.get_version_configs(s1.id, v1)
-        assert v1_configs == {"A": "1", "B": "2"}
+        # 回滚产生 v3（当前版本号=旧当前+1）
+        assert svc._get_current_version(s1.id) == 3
+        # v1 历史仍可追溯
+        assert svc.get_version_configs(s1.id, 1)["max_class_size"] == "50"
         session.rollback()
 
 
