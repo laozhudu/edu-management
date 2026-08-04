@@ -1,0 +1,30 @@
+{
+  "new_schedule_engine": {
+    "enabled": true,
+    "percentage": 20,
+    "roles": ["admin", "director"],
+    "description": "新版排课引擎（OR-Tools）"
+  },
+  "new_score_import": {
+    "enabled": true,
+    "percentage": 100,
+    "description": "新版成绩导入（支持拖拽/粘贴/预览）"
+  },
+  "new_report_engine": {
+    "enabled": false,
+    "percentage": 0,
+    "roles": ["admin"],
+    "description": "新版报表引擎（docxtpl + WeasyPrint）"
+  },
+  "mobile_app_api": {
+    "enabled": true,
+    "percentage": 100,
+    "description": "移动端 API 接口"
+  },
+  "ai_assist": {
+    "enabled": false,
+    "percentage": 5,
+    "roles": ["director", "teacher"],
+    "description": "AI 辅助功能（成绩分析/预警）"
+  }
+}
