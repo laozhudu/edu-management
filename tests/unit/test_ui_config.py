@@ -68,7 +68,7 @@ class TestUIConfig:
         """无配置文件时内嵌默认兜底"""
         cfg = reload_config("/nonexistent/path.json")
         assert isinstance(cfg, UIConfig)
-        assert cfg.window_title == "示例学校 教务管理系统 v2.0.0"
+        assert cfg.window_title == "示例学校 教务管理系统 v3.0.0"
         assert len(cfg.domains_parsed) == 6
 
     def test_app_config_fields(self):
@@ -76,7 +76,7 @@ class TestUIConfig:
         app = UIConfig().app
         assert app.name == "教务管理系统"
         assert app.school_name == "示例学校"
-        assert app.version == "2.0.0"
+        assert app.version == "3.0.0"
 
     def test_theme_config(self):
         """ThemeConfig 字段完整"""
