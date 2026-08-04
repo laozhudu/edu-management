@@ -30,6 +30,7 @@ def session():
 def _clean_semester():
     """每个测试前清理线程局部学期，防止被测试数据集加载器/其他测试污染"""
     from edu_system.database import set_active_semester
+
     set_active_semester(0)
     yield
     set_active_semester(0)
