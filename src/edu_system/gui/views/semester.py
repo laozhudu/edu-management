@@ -106,6 +106,7 @@ class SemesterView(QWidget):
         tabs.setFont(font(9))
         tabs.addTab(self._build_list_tab(cur), "学期列表")
         tabs.addTab(self._build_create_tab(cur), "新建学期")
+        tabs.addTab(self._build_inherit_tab(), "继承配置")
         l.addWidget(tabs)
 
     # ═══════════════════════════════════
@@ -291,6 +292,156 @@ class SemesterView(QWidget):
             )
             l.addWidget(grp2)
         l.addStretch()
+        return w
+
+    # ═══════════════════════════════════
+    #  Tab 3: 继承配置向导（M5-C1）
+    # ═══════════════════════════════════
+
+    def _build_inherit_tab(self):
+        w = QWidget()
+        l = QVBoxLayout(w)
+        l.setContentsMargins(8, 8, 8, 8)
+        l.setSpacing(8)
+
+        grp = QGroupBox("从历史学期继承配置")
+        grp.setFont(font(10, True))
+        gl = QVBoxLayout(grp)
+        gl.setSpacing(6)
+
+        # 选择源学期 + 目标学期
+        sems = (
+            self.session.query(Semester).order_by(Semester.year_start.desc(), Semester.id).all()
+        )
+        row = QHBoxLayout()
+        row.setSpacing(6)
+        row.addWidget(QLabel("源学期:"))
+        src_cb = QComboBox()
+        for s in sems:
+            src_cb.addItem(f"{s.label}", s.id)
+        src_cb.setFont(font(9))
+        src_cb.setMinimumWidth(160)
+        row.addWidget(src_cb)
+        row.addWidget(QLabel("→ 目标学期:"))
+        tgt_cb = QComboBox()
+        for s in sems:
+            tgt_cb.addItem(f"{s.label}", s.id)
+        tgt_cb.setFont(font(9))
+        tgt_cb.setMinimumWidth(160)
+        row.addWidget(tgt_cb)
+        row.addStretch()
+        gl.addLayout(row)
+
+        # 预览按钮
+        b = QPushButton("预览差异（四色）")
+        b.setStyleSheet(
+            f"""
+            QPushButton {{ background: {C["accent_blue"]}; color: white; border: none;
+                border-radius: 4px; padding: 6px 16px; font-size: 9pt; }}
+            QPushButton:hover {{ background: #2E86C1; }}
+        """
+        )
+        b.setCursor(Qt.PointingHandCursor)
+        gl.addWidget(b)
+
+        # 差异表（四色）
+        t = QTableWidget(0, 5)
+        t.setHorizontalHeaderLabels(["配置项", "类型", "源值", "目标值", "新值"])
+        t.setFont(font(9))
+        t.verticalHeader().hide()
+        t.setEditTriggers(QTableWidget.NoEditTriggers)
+        t.horizontalHeader().setStretchLastSection(True)
+        t.setStyleSheet(
+            """QTableWidget { font-size:9pt; border:1px solid #DDD; background:white; }
+            QHeaderView::section { background:#D9E1F2; font-weight:bold;
+            padding:4px; border:1px solid #CCC; }"""
+        )
+        t.setMinimumHeight(140)
+        gl.addWidget(t)
+
+        # 执行按钮
+        exec_row = QHBoxLayout()
+        exec_row.setSpacing(6)
+        info_label = QLabel("")
+        info_label.setFont(font(8))
+        info_label.setStyleSheet("color:#666;")
+        exec_row.addWidget(info_label)
+        exec_row.addStretch()
+        run_b = QPushButton("确认继承")
+        run_b.setStyleSheet(
+            f"""
+            QPushButton {{ background: {C["accent_green"]}; color: white; border: none;
+                border-radius: 4px; padding: 8px 20px; font-size: 10pt; font-weight: bold; }}
+            QPushButton:hover {{ background: #27AE60; }}
+        """
+        )
+        run_b.setCursor(Qt.PointingHandCursor)
+        run_b.setMinimumHeight(34)
+        run_b.setEnabled(False)
+        exec_row.addWidget(run_b)
+        gl.addLayout(exec_row)
+
+        l.addWidget(grp)
+
+        # 四色图例
+        legend = QLabel(
+            '<span style="color:#22c55e">■ 新增</span> '
+            '<span style="color:#3b82f6">■ 修改</span> '
+            '<span style="color:#9ca3af">■ 保留</span> '
+            '<span style="color:#ef4444">■ 冲突</span>'
+        )
+        legend.setFont(font(8))
+        l.addWidget(legend)
+        l.addStretch()
+
+        def _preview():
+            src_id = src_cb.currentData()
+            tgt_id = tgt_cb.currentData()
+            if not src_id or not tgt_id or src_id == tgt_id:
+                info_label.setText("请选择不同的源/目标学期")
+                return
+            from edu_system.services.semester_config import SemesterConfigService
+
+            svc = SemesterConfigService(self.session)
+            result = svc.preview_inherit(src_id, tgt_id)
+            diffs = result["diffs"]
+            t.setRowCount(len(diffs))
+            for i, d in enumerate(diffs):
+                t.setItem(i, 0, QTableWidgetItem(d["key"]))
+                type_it = QTableWidgetItem(d["type"])
+                type_it.setForeground(QColor(d["color"]))
+                t.setItem(i, 1, type_it)
+                t.setItem(i, 2, QTableWidgetItem(str(d.get("source_value") or "")))
+                t.setItem(i, 3, QTableWidgetItem(str(d.get("target_value") or "")))
+                t.setItem(i, 4, QTableWidgetItem(str(d.get("new_value") or "")))
+            stats = result["stats"]
+            info_label.setText(
+                f"新增 {stats['added']} · 修改 {stats['modified']} · "
+                f"保留 {stats['retained']} · 冲突 {stats['conflict']}"
+            )
+            # 有可继承项（非全保留）才可执行
+            run_b.setEnabled(stats["total"] > 0)
+
+        def _run():
+            src_id = src_cb.currentData()
+            tgt_id = tgt_cb.currentData()
+            from edu_system.services.semester_config import SemesterConfigService
+
+            svc = SemesterConfigService(self.session)
+            r = svc.execute_inherit(src_id, tgt_id, operator="admin")
+            if r["success"]:
+                QMessageBox.information(
+                    self,
+                    "继承完成",
+                    f"{r['message']}\\n\\n继承配置后目标学期值已更新，历史版本可回滚。",
+                )
+                info_label.setText(r["message"])
+                run_b.setEnabled(False)
+            else:
+                QMessageBox.warning(self, "继承失败", r.get("error", "未知错误"))
+
+        b.clicked.connect(lambda: _preview())
+        run_b.clicked.connect(lambda: _run())
         return w
 
     def _create(self, start_yr, term, info_lbl):
