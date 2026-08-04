@@ -228,10 +228,12 @@ class SemesterConfigService:
         ):
             new_configs[key] = diff["new_value"]
 
-        # 删除目标学期旧配置
+        # 软删除目标学期旧配置（保留历史版本可回滚）
+        now = datetime.now()
         self.session.query(SemesterConfig).filter(
-            SemesterConfig.semester_id == target_semester_id
-        ).delete()
+            SemesterConfig.semester_id == target_semester_id,
+            SemesterConfig.is_deleted.is_(False),
+        ).update({SemesterConfig.is_deleted: True, SemesterConfig.deleted_at: now})
 
         # 写入新配置（带版本）
         version = self._get_next_version(target_semester_id)
@@ -329,10 +331,11 @@ class SemesterConfigService:
         # 当前版本
         current_version = self._get_current_version(semester_id)
 
-        # 删除当前配置
+        # 软删除当前配置（保留历史版本行，标记 is_deleted 以便回滚追溯）
+        now = datetime.now()
         self.session.query(SemesterConfig).filter(
-            SemesterConfig.semester_id == semester_id
-        ).delete()
+            SemesterConfig.semester_id == semester_id, SemesterConfig.is_deleted.is_(False)
+        ).update({SemesterConfig.is_deleted: True, SemesterConfig.deleted_at: now})
 
         # 写入回滚配置（新版本号）
         new_version = current_version + 1
@@ -377,14 +380,16 @@ class SemesterConfigService:
         configs = (
             self.session.query(SemesterConfig)
             .filter(
-                SemesterConfig.semester_id == semester_id, SemesterConfig.version == latest_version
+                SemesterConfig.semester_id == semester_id,
+                SemesterConfig.version == latest_version,
+                SemesterConfig.is_deleted.is_(False),
             )
             .all()
         )
         return {c.key: c.value for c in configs}
 
     def _get_current_version(self, semester_id: int) -> int:
-        """获取学期当前最大版本号"""
+        """获取学期当前最大版本号（含软删除标记的版本）"""
         from sqlalchemy import func
 
         max_ver = (

@@ -596,10 +596,14 @@ class SemesterConfig(Base):
     )
     description = Column(String(200), default="")
     created_by = Column(String(50), default="", comment="创建者")
+    is_deleted = Column(Boolean, default=False, comment="软删除标记（保留历史版本可回滚）")
+    deleted_at = Column(DateTime, nullable=True, comment="软删除时间")
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     __table_args__ = (
-        UniqueConstraint("semester_id", "key", name="uq_semester_config"),
+        UniqueConstraint(
+            "semester_id", "key", "version", name="uq_semester_config_version"
+        ),
         Index("idx_semester_config_semester", "semester_id"),
     )
     semester = relationship("Semester", foreign_keys=[semester_id])
