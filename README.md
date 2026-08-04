@@ -1,30 +1,102 @@
-# 教务管理系统 v3.0（edu-management）
+# 教务管理系统（edu-management）
 
-> 适配小型学校的教务管理系统：学生/成绩/学籍/考试/报表核心闭环，配置驱动零代码扩展，桌面为主、Web 只读为辅，Linux 开发 / Windows 部署。
+> 适配**小型学校**的教务管理系统：学生 / 成绩 / 学籍 / 考试 / 报表核心闭环，配置驱动零代码扩展，桌面为主、Web 只读为辅。Linux 开发，Windows / Linux 双端部署。
 
-## 🚀 新对话接手指引（必读）
+![CI](https://img.shields.io/github/actions/workflow/status/laozhudu/edu-management/ci.yml?branch=main)
 
-1. **读计划**：`DEV_PLAN_v3.md`（主计划 v3.6）+ `REQUIREMENTS.md`（需求）+ `EDU_REVIEW.md`（教务审视）
-2. **代码源头**：本地 `项目根目录` master（a73a775，277 passed 零敏感，旧仓库已 archived 冻结）
-3. **测试基线**：`rm -rf .pytest_cache && QT_QPA_PLATFORM=offscreen ./venv/bin/pytest -q -p no:cacheprovider` = **277 passed**
-4. **开发纪律**：每轮 ≤150 步；小步快进；**每任务先搜成品**（GitHub/PyPI/本地资产），不重复造轮子
-5. **续接说法**：「继续 M0 新仓库搭建」/「执行 M5-G1 桌面快捷方式」
+## ✨ 特性
 
-## 技术栈
-Python 3.11 + PyQt5 + FastAPI + SQLAlchemy + Pydantic 2.x + openpyxl + docxtpl + WeasyPrint
+- **核心业务闭环**：学生管理 / 成绩录入与统计 / 学籍变动 / 考试安排 / 报表导出，一整套学期制教务工作流
+- **配置驱动，零代码扩展**：改校名、菜单、页签、主题只改一份配置；新增业务字段走界面配置（动态字段），不改代码
+- **双端架构**：PyQt5 桌面端（主 UI）+ FastAPI 服务层；`/api/config` 暴露 UI 配置，为 Web 端双端一致渲染预留接口
+- **学期上下文**：多学期数据隔离，配置继承、数据锁定
+- **性能设计**：全量内存缓存 + 预计算统计 + SQLite WAL，单校区规模毫秒级响应
+- **工程化**：279+ 单测契约、CI 门禁（lint/test/契约/迁移/安全/构建）、语义化版本、git-cliff changelog
 
-## 启动（开发环境 Linux）
+## 🧰 技术栈
+
+| 层 | 技术 |
+|----|------|
+| 桌面端 | PyQt5 + 自研组件库 + 主题令牌系统 |
+| API 服务层 | FastAPI + SQLAlchemy 2.0 + Pydantic 2.x |
+| 数据库 | SQLite（WAL） + Alembic 迁移 |
+| 报表 | openpyxl（Excel）/ docxtpl（Word）/ WeasyPrint（PDF） |
+| 数据质量 | pandas + pandera Schema 校验 |
+
+## 🚀 快速开始
+
+前置：Python 3.11+（推荐 3.12）
+
 ```bash
-cd 项目根目录   # 代码源头（M1 迁移后改 edu-management）
-/usr/bin/python3.12 main.py  # 或 venv/bin/python main.py
+# 1. 克隆并创建虚拟环境
+git clone <repo-url> edu-management && cd edu-management
+python3 -m venv venv
+
+# 2. 安装依赖（可复现，由 lock 固定版本）
+./venv/bin/pip install -r requirements.lock
+
+# 测试依赖（跑测试/CI 用）
+./venv/bin/pip install pytest pytest-asyncio pytest-cov pytest-timeout pytest-mock httpx itsdangerous factory_boy ruff
+
+# 3. 运行桌面端
+./venv/bin/python main.py
+
+# 4. 运行 API 服务层（可选，供局域网 / 未来 Web 端）
+./venv/bin/uvicorn edu_system.api.main:create_app --factory --host 0.0.0.0 --port 8080
+
+# 5. 运行测试（基线 279 passed）
+rm -rf .pytest_cache
+QT_QPA_PLATFORM=offscreen ./venv/bin/pytest -q -p no:cacheprovider
 ```
 
-## 文档索引
+> 首次运行会自动创建 `data/` 下的空库并建表（生产数据请自行备份，本仓库不含任何真实数据）。
+
+## 🖥️ 双端定位
+
+| 端 | 定位 | 说明 |
+|----|------|------|
+| 桌面端（PyQt5） | **主 UI** | 18 个视图，学期管理、成绩录入、报表生成的日常操作入口 |
+| API 服务层（FastAPI） | 服务层 | 桌面内嵌 uvicorn 供局域网访问；未来 Web 前端复用 |
+| Web 前端 | 可选扩展（v3.1+） | 基于 `/api/config` + 业务 API 构建，与桌面共用配置，视觉一致 |
+
+访问 `http://<host>:8080/api/docs` 查看交互式 OpenAPI 文档。
+
+## ⚙️ 配置指南
+
+单一配置源：`src/edu_system/config/ui_config.json`
+
+| 配置 | 作用 | 示例 |
+|------|------|------|
+| `app` | 校名 / 名称 / 版本 | `"school_name": "示例学校"` |
+| `theme` | 品牌 / 强调色 / 侧栏色 / 密度 | `"accent_color": "#3498DB"` |
+| `topbar` | 顶栏开关 / 快捷键 | `"shortcuts": {"command_palette": "Ctrl+K"}` |
+| `domains` | 6 域导航 + 页签 + 角色权限 | `[{"id": "students", "title": "学生管理", ...}]` |
+| `statusbar` | 状态栏内容 | `{"left": [...], "right": [...]}` |
+
+改动即生效（桌面重启或 API 热加载）。完整配置模型见 `src/edu_system/config/ui_config.py`（Pydantic，含 `domains` 角色过滤）。
+
+## 🔐 安全
+
+- `SECRET_KEY` 通过环境变量注入（未注入时自动生成随机密钥）
+- 认证：JWT（桌面端与会话共用同一 auth API）
+- 服务级权限 + 行级权限（RLS），按角色过滤域 / 页签
+
+## 📚 文档索引
+
 | 文档 | 内容 |
 |------|------|
-| DEV_PLAN_v3.md | 主开发计划（里程碑/需求绑定/纪律） |
-| REQUIREMENTS.md | 需求清单（源头） |
-| EDU_REVIEW.md | 教务审视（务实剪裁定案） |
-| REFACTOR_PLAN.md | 重构执行路线（Phase 0-5） |
-| DEV_STANDARDS.md | 工程规范 |
-| SECURITY_CHECKLIST.md | 安全清单 |
+| `REQUIREMENTS.md` | 需求清单（源头） |
+| `DEV_PLAN_v3.md` | 开发计划（里程碑 / 需求绑定 / 纪律） |
+| `REFACTOR_PLAN.md` | 重构执行路线 |
+| `EDU_REVIEW.md` | 教务审视（小型学校剪裁定案） |
+| `DEV_STANDARDS.md` | 工程规范 |
+| `SECURITY_CHECKLIST.md` | 安全清单 |
+| `THIRD_PARTY.md` | 第三方依赖许可证说明 |
+
+## 🗺️ 路线图
+
+见 `DEV_PLAN_v3.md`：M0-M4 已达成（含公开上线），M5 补齐待办（学期上下文 / 统计预计算 / 配置继承与锁定 / 桌面补全 / Web 前端），M6 后续 Sprint（考试管理 / 学期 UI / Win 打包签名）。
+
+## 📄 License
+
+MIT（公开仓库将在发布时确认）。
