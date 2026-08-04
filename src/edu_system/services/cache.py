@@ -222,8 +222,8 @@ class HttpCacheMiddleware(BaseHTTPMiddleware):
         return f"http:{semester_id}:{school_id}:{request.url.path}:{query}"
 
     def _compute_etag(self, content: bytes) -> str:
-        """计算 ETag"""
-        return hashlib.md5(content).hexdigest()
+        """计算 ETag（非安全用途，仅缓存一致性校验）"""
+        return hashlib.md5(content, usedforsecurity=False).hexdigest()
 
     async def dispatch(self, request: Request, call_next):
         if not self._should_cache(request):
