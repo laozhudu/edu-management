@@ -3,4 +3,4 @@
 校名可于 config/ui_config.json 灵活配置
 """
 
-__version__ = "2.0.0"
+__version__ = "3.0.0"
