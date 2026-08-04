@@ -7,7 +7,7 @@
     "name_short": "教务管理",
     "school_name": "示例学校",
     "window_title": "{school} {name} · {version_display}",
-    "version": "2.0.0",
+    "version": "3.0.0",
     "version_display": "开发版",
     "footer": "{school} · {version_display}"
   },
