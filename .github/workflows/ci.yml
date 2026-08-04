@@ -25,8 +25,8 @@ jobs:
           cache: 'pip'
       - run: pip install -r requirements.lock
       - run: pip install ruff mypy black isort pre-commit
-      - run: ruff check src/ tests/ --exclude=src/edu_system/api/ --exclude=src/edu_system/gui/ --exclude=src/edu_system/services/ --exclude=src/edu_system/models/__init__.py --exclude=src/edu_system/repository/ --exclude=src/edu_system/schemas/ --exclude=alembic/versions/ --exclude=import_*.py --exclude=import_real_data.py --exclude=test_data/generate.py --exclude=test_data/loader.py --exclude=test_data/schema.py --exclude=test_data/validator.py --exclude=src/edu_system/core/auth.py --exclude=src/edu_system/core/event_bus.py --exclude=src/edu_system/core/features.py --exclude=src/edu_system/core/idempotency.py --exclude=src/edu_system/core/permissions.py --exclude=src/edu_system/core/result.py --exclude=src/edu_system/database.py --exclude=src/edu_system/config/__init__.py --output-format=github
-      - run: ruff format --check src/ tests/ --exclude=src/edu_system/api/ --exclude=src/edu_system/gui/ --exclude=src/edu_system/services/ --exclude=src/edu_system/models/__init__.py --exclude=src/edu_system/repository/ --exclude=src/edu_system/schemas/ --exclude=alembic/versions/ --exclude=import_*.py --exclude=import_real_data.py --exclude=test_data/generate.py --exclude=test_data/loader.py --exclude=test_data/schema.py --exclude=test_data/validator.py --exclude=src/edu_system/core/auth.py --exclude=src/edu_system/core/event_bus.py --exclude=src/edu_system/core/features.py --exclude=src/edu_system/core/idempotency.py --exclude=src/edu_system/core/permissions.py --exclude=src/edu_system/core/result.py --exclude=src/edu_system/database.py --exclude=src/edu_system/config/__init__.py
+      - run: ruff check src/ tests/ --exclude=src/edu_system/api/ --exclude=src/edu_system/gui/ --exclude=src/edu_system/services/ --exclude=src/edu_system/models/__init__.py --exclude=src/edu_system/repository/ --exclude=src/edu_system/schemas/ --exclude=alembic/versions/ --exclude=test_data/generate.py --exclude=test_data/loader.py --exclude=test_data/schema.py --exclude=test_data/validator.py --exclude=src/edu_system/core/auth.py --exclude=src/edu_system/core/event_bus.py --exclude=src/edu_system/core/features.py --exclude=src/edu_system/core/idempotency.py --exclude=src/edu_system/core/permissions.py --exclude=src/edu_system/core/result.py --exclude=src/edu_system/database.py --exclude=src/edu_system/config/__init__.py --output-format=github
+      - run: ruff format --check src/ tests/ --exclude=src/edu_system/api/ --exclude=src/edu_system/gui/ --exclude=src/edu_system/services/ --exclude=src/edu_system/models/__init__.py --exclude=src/edu_system/repository/ --exclude=src/edu_system/schemas/ --exclude=alembic/versions/ --exclude=test_data/generate.py --exclude=test_data/loader.py --exclude=test_data/schema.py --exclude=test_data/validator.py --exclude=src/edu_system/core/auth.py --exclude=src/edu_system/core/event_bus.py --exclude=src/edu_system/core/features.py --exclude=src/edu_system/core/idempotency.py --exclude=src/edu_system/core/permissions.py --exclude=src/edu_system/core/result.py --exclude=src/edu_system/database.py --exclude=src/edu_system/config/__init__.py
 
   # typecheck:
   #   name: 类型检查
@@ -212,6 +212,33 @@ jobs:
             pip-audit.json
             bandit.json
             semgrep.json
+
+  license:
+    name: 许可证检测
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      - run: pip install -r requirements.lock
+      - run: pip install pip-licenses
+      - name: 许可证门禁
+        run: |
+          # 生成许可证清单（artifact）+ 门禁：拦截 UNKNOWN/UNLICENSED
+          # GPL 项（pyqt5/pyphen/docxtpl 等）见 THIRD_PARTY.md 合规说明，公开发布时定案
+          pip-licenses --format=markdown --order=count > THIRD_PARTY.ci.md
+          if pip-licenses --format=plain | grep -iE "UNKNOWN|UNLICENSED"; then
+            echo "::error::存在未知/未授权许可证，拦截"
+            exit 1
+          fi
+          echo "许可证检查 ✓"
+      - name: Upload license report
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-report
+          path: THIRD_PARTY.ci.md
 
   build-windows:
     name: Windows 构建
