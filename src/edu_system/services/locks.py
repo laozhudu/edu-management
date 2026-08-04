@@ -300,7 +300,7 @@ class DataLockService:
 def _is_entity_locked(session: Session, entity) -> DataLock | None:
     """检查实体是否被锁定"""
     # 获取实体对应的表名和主键
-    mapper = inspect(entity)
+    mapper = inspect(entity).mapper
     table_name = mapper.class_.__tablename__
     pk = mapper.primary_key
 
