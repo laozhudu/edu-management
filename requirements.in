@@ -1,6 +1,5 @@
 # Core dependencies
 PyQt5==5.15.11
-PyQt-Fluent-Widgets[full]==1.8.0
 
 # FastAPI & API
 fastapi==0.115.0
@@ -28,14 +27,15 @@ apscheduler==3.10.4
 openpyxl==3.1.5
 docxtpl==0.20.2
 WeasyPrint==61.2
-pdf-reports==0.3.9
+
+# Data Processing
+pandas==3.0.5
 
 # Reports & Templates
 jinja2==3.1.4
 
 # Validation & Data Quality
 pandera==0.19.1
-great-expectations==1.19.1
 
 # Utilities
 python-dotenv==1.0.1
