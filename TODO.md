@@ -27,6 +27,14 @@
 - [x] M0-3 排除项核验：新仓库已清 73400340/import_exam_scores.py/import_real_data.py/`"alembic`；templates+static(3死文件base.html/js/css) 已删；data/logs/crudadmin_data/exports 未复制
 - [x] ~/.git 误建 home 仓库已隔离为 ~/.git.bak_home_mistake（可逆）
 
+## ✅ M3 加固验收（已完成 2026-08-04）
+
+- [x] M3-1 敏感扫描：filter-repo 重写 8 commit 历史中性化敏感字样；git log + 工作树 校名关键词 零命中
+- [x] M3-2 全量测试+格式：279 passed + ruff All checks passed
+- [x] M3-3 安全扫描：bandit 0 高危（修复 cache.py B324 ETag-md5 usedforsecurity=False）+ gitleaks no leaks
+- [x] M3-4 空库迁移：alembic upgrade head 到 head，模型 37 表全建（missing=[]；extra 3 历史表 domain_events/dw_refresh_logs/teacher_subjects，CI 兼容不阻断）
+- [x] M3-5 Windows dry-run：10 jobs YAML 语法验证；修复 build-windows 缺失的 assets/icon.ico（Pillow 生成占位图标）；实际构建 M4 push 后 CI 触发
+
 ## 🔴 规划变更（2026-08-04）
 
 - [x] **Web 端升级为与桌面功能完全一致**（用户定案）：非简化版/非只读；6 域 26 页签 + 全局能力逐项对等。规划已改：REQUIREMENTS G 组（含功能对等清单）、DEV_PLAN_v3 M5-G（G1-G11）、REFACTOR_PLAN Phase 5、README。技术栈后续单定（候选 SPA Vue3 / HTMX+Jinja2）
