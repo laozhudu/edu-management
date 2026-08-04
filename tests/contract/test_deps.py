@@ -53,7 +53,7 @@ class TestSemesterDeps:
 
     def test_fastapi_integration(self):
         """FastAPI 集成测试：依赖注入在请求中生效
-        
+
         注意：TestClient 可能使用不同线程处理每个请求，
         线程局部存储不跨请求共享。真实部署中单线程/单进程下生效。
         """
@@ -65,7 +65,9 @@ class TestSemesterDeps:
 
         # 使用 Query 参数而不是路径参数
         @app.post("/set-semester")
-        def set_endpoint(semester_id: int = Query(...), sem_id: int = Depends(set_current_semester_dep)):
+        def set_endpoint(
+            semester_id: int = Query(...), sem_id: int = Depends(set_current_semester_dep)
+        ):
             return {"set_semester_id": sem_id}
 
         client = TestClient(app)

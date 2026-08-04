@@ -21,7 +21,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from edu_system.models import Base, Class, Exam, Grade, Score, Semester, Student, Subject, Teacher
-from edu_system.services.statistics import StatisticsService, METRIC_KEYS
+from edu_system.services.statistics import METRIC_KEYS, StatisticsService
 
 
 @pytest.fixture
@@ -38,6 +38,7 @@ def session():
 def _clean_semester():
     """每个测试前清理线程局部学期，防止被测试数据集加载器/其他测试污染"""
     from edu_system.database import set_active_semester
+
     set_active_semester(0)
     yield
     set_active_semester(0)
@@ -48,6 +49,7 @@ def test_data(session):
     """构造测试数据：学年/学期/年级/班级/学生/教师/学科/考试/成绩"""
     # 学年
     from edu_system.models import AcademicYear
+
     ay = AcademicYear(name="2024-2025", sort_order=0, is_active=True)
     session.add(ay)
     session.flush()
@@ -67,6 +69,7 @@ def test_data(session):
 
     # 设置全局激活学期（供 StatisticsService 读取）
     from edu_system.database import set_active_semester
+
     set_active_semester(sem.id)
 
     # 年级
@@ -85,9 +88,15 @@ def test_data(session):
     session.flush()
 
     # 学科
-    sub_chinese = Subject(name="语文", full_mark=120, pass_line=72, good_line=84, excellent_line=96, low_line=36)
-    sub_math = Subject(name="数学", full_mark=120, pass_line=72, good_line=84, excellent_line=96, low_line=36)
-    sub_english = Subject(name="英语", full_mark=120, pass_line=72, good_line=84, excellent_line=96, low_line=36)
+    sub_chinese = Subject(
+        name="语文", full_mark=120, pass_line=72, good_line=84, excellent_line=96, low_line=36
+    )
+    sub_math = Subject(
+        name="数学", full_mark=120, pass_line=72, good_line=84, excellent_line=96, low_line=36
+    )
+    sub_english = Subject(
+        name="英语", full_mark=120, pass_line=72, good_line=84, excellent_line=96, low_line=36
+    )
     session.add_all([sub_chinese, sub_math, sub_english])
     session.flush()
 
@@ -101,18 +110,98 @@ def test_data(session):
     # 学生（分布在不同班级，不同性别/住宿）
     students = [
         # 初一1班：5人
-        Student(class_id=c1.id, name="学生1", gender="男", boarding="住校", semester_id=sem.id, status="在校", student_code="S001"),
-        Student(class_id=c1.id, name="学生2", gender="女", boarding="走读", semester_id=sem.id, status="在校", student_code="S002"),
-        Student(class_id=c1.id, name="学生3", gender="男", boarding="住校", semester_id=sem.id, status="在校", student_code="S003"),
-        Student(class_id=c1.id, name="学生4", gender="女", boarding="走读", semester_id=sem.id, status="在校", student_code="S004"),
-        Student(class_id=c1.id, name="学生5", gender="男", boarding="住校", semester_id=sem.id, status="在校", student_code="S005"),
+        Student(
+            class_id=c1.id,
+            name="学生1",
+            gender="男",
+            boarding="住校",
+            semester_id=sem.id,
+            status="在校",
+            student_code="S001",
+        ),
+        Student(
+            class_id=c1.id,
+            name="学生2",
+            gender="女",
+            boarding="走读",
+            semester_id=sem.id,
+            status="在校",
+            student_code="S002",
+        ),
+        Student(
+            class_id=c1.id,
+            name="学生3",
+            gender="男",
+            boarding="住校",
+            semester_id=sem.id,
+            status="在校",
+            student_code="S003",
+        ),
+        Student(
+            class_id=c1.id,
+            name="学生4",
+            gender="女",
+            boarding="走读",
+            semester_id=sem.id,
+            status="在校",
+            student_code="S004",
+        ),
+        Student(
+            class_id=c1.id,
+            name="学生5",
+            gender="男",
+            boarding="住校",
+            semester_id=sem.id,
+            status="在校",
+            student_code="S005",
+        ),
         # 初一2班：3人
-        Student(class_id=c2.id, name="学生6", gender="女", boarding="走读", semester_id=sem.id, status="在校", student_code="S006"),
-        Student(class_id=c2.id, name="学生7", gender="男", boarding="走读", semester_id=sem.id, status="在校", student_code="S007"),
-        Student(class_id=c2.id, name="学生8", gender="女", boarding="住校", semester_id=sem.id, status="在校", student_code="S008"),
+        Student(
+            class_id=c2.id,
+            name="学生6",
+            gender="女",
+            boarding="走读",
+            semester_id=sem.id,
+            status="在校",
+            student_code="S006",
+        ),
+        Student(
+            class_id=c2.id,
+            name="学生7",
+            gender="男",
+            boarding="走读",
+            semester_id=sem.id,
+            status="在校",
+            student_code="S007",
+        ),
+        Student(
+            class_id=c2.id,
+            name="学生8",
+            gender="女",
+            boarding="住校",
+            semester_id=sem.id,
+            status="在校",
+            student_code="S008",
+        ),
         # 初二1班：2人
-        Student(class_id=c3.id, name="学生9", gender="男", boarding="住校", semester_id=sem.id, status="在校", student_code="S009"),
-        Student(class_id=c3.id, name="学生10", gender="女", boarding="走读", semester_id=sem.id, status="在校", student_code="S010"),
+        Student(
+            class_id=c3.id,
+            name="学生9",
+            gender="男",
+            boarding="住校",
+            semester_id=sem.id,
+            status="在校",
+            student_code="S009",
+        ),
+        Student(
+            class_id=c3.id,
+            name="学生10",
+            gender="女",
+            boarding="走读",
+            semester_id=sem.id,
+            status="在校",
+            student_code="S010",
+        ),
         # 初三1班：0人（空班测试边界）
     ]
     session.add_all(students)
@@ -129,19 +218,23 @@ def test_data(session):
     for stu in students:
         for sub in [sub_chinese, sub_math, sub_english]:
             # 期中
-            scores.append(Score(
-                student_id=stu.id,
-                subject_id=sub.id,
-                exam_id=exam1.id,
-                score=80.0 if sub == sub_chinese else (85.0 if sub == sub_math else 75.0),
-            ))
+            scores.append(
+                Score(
+                    student_id=stu.id,
+                    subject_id=sub.id,
+                    exam_id=exam1.id,
+                    score=80.0 if sub == sub_chinese else (85.0 if sub == sub_math else 75.0),
+                )
+            )
             # 期末
-            scores.append(Score(
-                student_id=stu.id,
-                subject_id=sub.id,
-                exam_id=exam2.id,
-                score=90.0 if sub == sub_chinese else (95.0 if sub == sub_math else 85.0),
-            ))
+            scores.append(
+                Score(
+                    student_id=stu.id,
+                    subject_id=sub.id,
+                    exam_id=exam2.id,
+                    score=90.0 if sub == sub_chinese else (95.0 if sub == sub_math else 85.0),
+                )
+            )
     session.add_all(scores)
     session.commit()
 

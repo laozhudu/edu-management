@@ -25,12 +25,23 @@ def qapp():
 @pytest.fixture
 def session():
     """内存 SQLite 会话（含 admin 用户 + 默认学期）"""
+    from datetime import date
+
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
     from edu_system.core.permissions import Permission
-    from edu_system.database import init_db_with_defaults
-    from edu_system.models import Base, Role, User
+    from edu_system.models import (
+        AcademicYear,
+        Base,
+        GlobalSetting,
+        Grade,
+        Role,
+        Semester,
+        SemesterStatus,
+        Subject,
+        User,
+    )
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
@@ -44,16 +55,13 @@ def session():
     s.add(admin_role)
     s.add(User(username="admin", password_hash="x", role=admin_role))
     s.commit()
-    
+
     # 初始化默认学期（通过 init_db_with_defaults 的默认数据逻辑）
-    from edu_system.models import AcademicYear, Semester, SemesterStatus, Grade, Subject, GlobalSetting
-    from datetime import date
-    
     # 默认年级
     for i, name in enumerate(["初一级", "初二级", "初三级"]):
         if not s.query(Grade).filter_by(name=name).first():
             s.add(Grade(name=name, sort_order=i))
-    
+
     # 默认科目
     defaults = [
         ("语文", 120, 72, 84, 96, 36),
@@ -80,7 +88,7 @@ def session():
                     sort_order=i,
                 )
             )
-    
+
     # 默认学年/学期
     ay = s.query(AcademicYear).filter_by(name="2024-2025").first()
     if not ay:
@@ -121,11 +129,11 @@ def session():
         )
         s.add(sem2)
         s.flush()
-    
+
     # 默认缺考标记
     if not s.query(GlobalSetting).filter_by(key="absent_marks").first():
         s.add(GlobalSetting(key="absent_marks", value="-1,0"))
-    
+
     s.commit()
     yield s
     s.close()

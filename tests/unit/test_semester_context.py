@@ -92,9 +92,8 @@ class TestSemesterContext:
     def test_context_restores_on_exception(self):
         """异常时同样恢复原值"""
         set_active_semester(4)
-        with pytest.raises(RuntimeError):
-            with semester_context(8):
-                raise RuntimeError("boom")
+        with pytest.raises(RuntimeError), semester_context(8):
+            raise RuntimeError("boom")
         assert get_active_semester() == 4
 
 
@@ -163,6 +162,7 @@ class TestInjectSemesterFilter:
         result = _inject_semester_filter(q)
         # filter() 返回新对象，验证返回的是 Query 且已注入过滤
         from sqlalchemy.orm import Query
+
         assert isinstance(result, Query)
         sql = self._sql(result)
         assert "semester_id = 10" in sql

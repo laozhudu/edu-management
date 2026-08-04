@@ -17,8 +17,14 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from edu_system.core.permissions import Permission, ROLE_PERMISSIONS, has_permission, set_current_user, clear_current_user
-from edu_system.models import Base, Role, User
+from edu_system.core.permissions import (
+    ROLE_PERMISSIONS,
+    Permission,
+    clear_current_user,
+    has_permission,
+    set_current_user,
+)
+from edu_system.models import Base
 
 
 @pytest.fixture
@@ -45,44 +51,44 @@ class TestSemesterPermissions:
         """教务主任拥有学期查看/编辑权限"""
         user = type("User", (), {"permissions": ROLE_PERMISSIONS["director"]})()
         set_current_user(user)
-        
+
         assert has_permission(Permission.SEMESTER_VIEW)
         assert has_permission(Permission.SEMESTER_EDIT)
         assert not has_permission(Permission.SEMESTER_ADMIN)  # 管理员专属
-        
+
         clear_current_user()
 
     def test_admin_has_all_semester_permissions(self):
         """管理员拥有所有学期权限"""
         user = type("User", (), {"permissions": ROLE_PERMISSIONS["admin"]})()
         set_current_user(user)
-        
+
         assert has_permission(Permission.SEMESTER_VIEW)
         assert has_permission(Permission.SEMESTER_EDIT)
         assert has_permission(Permission.SEMESTER_ADMIN)
-        
+
         clear_current_user()
 
     def test_teacher_no_semester_permissions(self):
         """教师无学期管理权限"""
         user = type("User", (), {"permissions": ROLE_PERMISSIONS["teacher"]})()
         set_current_user(user)
-        
+
         assert not has_permission(Permission.SEMESTER_VIEW)
         assert not has_permission(Permission.SEMESTER_EDIT)
         assert not has_permission(Permission.SEMESTER_ADMIN)
-        
+
         clear_current_user()
 
     def test_reader_no_semester_permissions(self):
         """只读角色无学期管理权限"""
         user = type("User", (), {"permissions": ROLE_PERMISSIONS["reader"]})()
         set_current_user(user)
-        
+
         assert not has_permission(Permission.SEMESTER_VIEW)
         assert not has_permission(Permission.SEMESTER_EDIT)
         assert not has_permission(Permission.SEMESTER_ADMIN)
-        
+
         clear_current_user()
 
 
