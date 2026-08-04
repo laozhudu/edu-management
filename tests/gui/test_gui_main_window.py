@@ -49,11 +49,17 @@ def session():
 
 @pytest.fixture
 def main_window(qapp, session):
+    from edu_system.core.permissions import set_current_user
     from edu_system.gui.main_window import MainWindow
+    from edu_system.models import User
 
     w = MainWindow(session)
+    # 预置登录态：跳过 LoginDialog 模态框（_on_db_ready 检测已有登录态直接进入主界面）
+    admin = session.query(User).filter_by(username="admin").first()
+    set_current_user(admin)
     w.show()
     yield w
+    set_current_user(None)  # 清理登录态
     w.close()
 
 
