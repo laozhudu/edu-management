@@ -274,7 +274,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgl1-mesa-glx libfontconfig1
+          sudo apt-get install -y libgl1 libfontconfig1
       - run: pip install -r requirements.lock
       - run: pip install nuitka
       - run: python -m nuitka --standalone --onefile main.py
