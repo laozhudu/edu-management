@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from edu_system.core.permissions import get_current_user
 from edu_system.models import AuditLog
 
-# 需要审计的表（排除高频/临时表）
+# 需要审计的表（排除高频/临时表；audit_logs 不自审计，避免 before_flush 递归）
 AUDIT_TABLES = {
     "students",
     "teachers",
@@ -21,7 +21,6 @@ AUDIT_TABLES = {
     "enrollments",
     "semesters",
     "subjects",
-    "audit_logs",
 }
 
 # 排除的字段（不记录变更）
@@ -106,9 +105,12 @@ def _audit_listener(session: Session, flush_context, instances):
 
 
 def audit_init(engine):
-    """初始化审计监听器（应用启动时调用一次）"""
-    event.listen(Session, "before_flush", _audit_listener)
-    print("[Audit] 审计监听器已启用")
+    """初始化审计监听器（应用启动时调用一次；幂等，重复调用不叠加）"""
+    # 幂等：避免 init_db_with_defaults 多次调用时重复注册导致 before_flush 叠加
+    if not getattr(_audit_listener, "_registered", False):
+        event.listen(Session, "before_flush", _audit_listener)
+        _audit_listener._registered = True
+        print("[Audit] 审计监听器已启用")
 
 
 def query_audit_logs(
