@@ -8,7 +8,8 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, R
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-from edu_system.core.permissions import Permission, require_permission
+from edu_system.api.deps import require_permission
+from edu_system.core.permissions import Permission
 from edu_system.database import get_active_semester, get_session
 from edu_system.models import Semester, SemesterStatsCache
 from edu_system.services.cache import bump_cache_version, cache_service, invalidate_stats_cache
