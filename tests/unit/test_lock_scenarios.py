@@ -58,8 +58,13 @@ def semester(session):
     session.add(ay)
     session.flush()
     sem = Semester(
-        academic_year_id=ay.id, year_start=2024, semester="1",
-        label="2024-2025 第1学期", sort_order=1, is_active=True, status=SemesterStatus.active,
+        academic_year_id=ay.id,
+        year_start=2024,
+        semester="1",
+        label="2024-2025 第1学期",
+        sort_order=1,
+        is_active=True,
+        status=SemesterStatus.active,
     )
     session.add(sem)
     session.flush()
@@ -75,7 +80,9 @@ class TestAutoLockScenarios:
 
         # 构造考试
         exam = Exam(
-            name="期中考试", semester_id=semester.id, exam_type="midterm",
+            name="期中考试",
+            semester_id=semester.id,
+            exam_type="midterm",
             status="completed",
         )
         session.add(exam)
@@ -96,7 +103,9 @@ class TestAutoLockScenarios:
 
         svc = DataLockService(session)
         mov = StudentMovement(
-            semester_id=semester.id, student_id=1, movement_category="transfer_in",
+            semester_id=semester.id,
+            student_id=1,
+            movement_category="transfer_in",
         )
         session.add(mov)
         session.flush()
@@ -132,13 +141,20 @@ class TestAutoLockScenarios:
         session.add(grade)
         session.flush()
         cls = ClassModel(
-            grade_id=grade.id, semester_id=semester.id, name="1班",
+            grade_id=grade.id,
+            semester_id=semester.id,
+            name="1班",
         )
         session.add(cls)
         session.flush()
         stu = Student(
-            class_id=cls.id, name="张三", student_code="20240001",
-            semester_id=semester.id, status="在校", gender="男", enroll_year=2024,
+            class_id=cls.id,
+            name="张三",
+            student_code="20240001",
+            semester_id=semester.id,
+            status="在校",
+            gender="男",
+            enroll_year=2024,
         )
         session.add(stu)
         session.flush()
