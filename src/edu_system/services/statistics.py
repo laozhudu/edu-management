@@ -566,3 +566,94 @@ class _StatisticsWorkerRunnable:
             self.target()
         finally:
             self.finished.emit()
+
+
+# ============================================================
+# M5-B2 事件驱动增量刷新
+# 业务层数据变更 → mark_stats_dirty() 发布 stats.dirty 事件
+# → outbox 轮询触发 handler → 增量重算脏实体 + 失效查询缓存
+# ============================================================
+
+# 支持标记脏的实体类型（与 SemesterStatsCache.entity_type 一致）
+_DIRTY_ENTITY_TYPES = {"student", "class", "grade", "teacher", "subject", "exam", "school"}
+
+
+def mark_stats_dirty(
+    session: Session,
+    entity_type: str,
+    entity_id: int,
+    semester_id: int | None = None,
+    exam_id: int | None = None,
+) -> bool:
+    """数据变更后标记统计缓存脏（发布 stats.dirty 事件）
+
+    业务层在 student/score/exam 等变更事务内调用：
+        mark_stats_dirty(session, "student", stu.id)
+        mark_stats_dirty(session, "exam", exam.id, exam_id=exam.id)
+    返回是否成功入队（非法实体类型返回 False）。
+    """
+    if entity_type not in _DIRTY_ENTITY_TYPES:
+        return False
+
+    from edu_system.core.event_bus import DomainEvent, EventTypes, event_bus
+
+    payload = {"entity_type": entity_type, "entity_id": entity_id, "exam_id": exam_id}
+    if semester_id is not None:
+        payload["semester_id"] = semester_id
+
+    event_bus.publish(
+        DomainEvent(
+            event_type=EventTypes.STATS_DIRTY,
+            aggregate_id=f"{entity_type}:{entity_id}",
+            payload=payload,
+        ),
+        session=session,
+    )
+    return True
+
+
+def handle_stats_dirty(payload: dict, session: Session | None = None) -> None:
+    """stats.dirty 事件处理器：增量重算脏实体并失效查询缓存
+
+    由 outbox 轮询（APScheduler 10s）在事件发布方事务提交后调用。
+    session 参数供测试注入；生产环境留空使用全局会话。
+    """
+    entity_type = payload.get("entity_type")
+    entity_id = payload.get("entity_id")
+    if entity_type not in _DIRTY_ENTITY_TYPES or not entity_id:
+        return
+
+    from edu_system.database import get_active_semester, get_session
+    from edu_system.services.cache import invalidate_stats_cache
+
+    semester_id = payload.get("semester_id") or get_active_semester()
+    if not semester_id:
+        return
+
+    close_session = session is None
+    if session is None:
+        session = get_session()
+    try:
+        service = StatisticsService(session)
+        service.set_semester(int(semester_id))
+        service.incremental_recompute(
+            [
+                {
+                    "entity_type": entity_type,
+                    "entity_id": int(entity_id),
+                    "exam_id": payload.get("exam_id"),
+                }
+            ]
+        )
+        session.commit()
+        invalidate_stats_cache(semester_id=int(semester_id))
+    finally:
+        if close_session:
+            session.close()
+
+
+def register_stats_dirty_handler() -> None:
+    """注册 stats.dirty 处理器到全局事件总线（应用启动时调用一次）"""
+    from edu_system.core.event_bus import EventTypes, event_bus
+
+    event_bus.register(EventTypes.STATS_DIRTY, handle_stats_dirty)

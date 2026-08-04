@@ -95,3 +95,16 @@
 - [ ] `design_system.py` 死代码（740 行，仅被 navigation.py 引用；主程序用 components.py 的 CommandPalette）——GUI 加固扫描发现，待清理
 - [ ] 视图 QSS 批量令牌化（GUI 加固扫描发现）：theme.py C 字典已补全 27 键，但 teacher/exam/student/score 等 12 视图仍硬编码 54 处颜色——需统一改为引用 C 字典（普通字符串 QSS 需谨慎转 f-string 转义）
 - [ ] 原型遗留：ui_redesign_preview_v2.html 待办状态列显示原始 tag
+
+## ✅ M5-A 学期上下文 + M5-B1/2 统计预计算（2026-08-05 进行中）
+
+- [x] M5-A1 会话上下文管理器（线程局部 + semester_context，8 单测）
+- [x] M5-A2 before_compile 自动注入 semester_id/school_id（6 单测）
+- [x] M5-A3 FastAPI 学期依赖注入（5 契约测试）
+- [x] M5-A4 学期切换器 UI（顶部栏显示 + 广播刷新，GUI 测试）
+- [x] M5-A5 学期维度权限（SEMESTER_VIEW/EDIT/ADMIN，5 单测）
+- [x] M5-B1 核心指标清单（20 单测覆盖学生/班级/教师/成绩/考试）
+- [x] M5-B2 事件驱动增量刷新（mark_stats_dirty + handle_stats_dirty + 注册，6 单测）
+- [ ] M5-B3 后台 Worker（进度/取消）— StatisticsWorker 已有框架，补 2 单测
+- [ ] M5-B4 手动触发（幂等契约）
+- [ ] M5-B5 缓存 API + 304（无实时聚合契约）
