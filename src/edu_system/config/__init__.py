@@ -39,7 +39,6 @@ class Settings(BaseSettings):
 
     # 路径
     PROJECT_ROOT: Path = Path(__file__).parent.parent
-    TEMPLATE_DIR: Path = PROJECT_ROOT / "templates"
     STATIC_DIR: Path = PROJECT_ROOT / "static"
     DATA_DIR: Path = PROJECT_ROOT / "data"
     LOG_DIR: Path = PROJECT_ROOT / "logs"
@@ -58,7 +57,6 @@ settings = Settings()
 
 # 导出常用路径
 PROJECT_ROOT = settings.PROJECT_ROOT
-TEMPLATE_DIR = settings.TEMPLATE_DIR
 STATIC_DIR = settings.STATIC_DIR
 DATA_DIR = settings.DATA_DIR
 LOG_DIR = settings.LOG_DIR
@@ -81,5 +79,5 @@ PORT = settings.PORT
 CORS_ORIGINS = settings.CORS_ORIGINS
 
 # 确保目录存在
-for d in [DATA_DIR, LOG_DIR, CACHE_DIR, STORAGE_DIR, TEMPLATE_DIR, STATIC_DIR]:
+for d in [DATA_DIR, LOG_DIR, CACHE_DIR, STORAGE_DIR, STATIC_DIR]:
     d.mkdir(parents=True, exist_ok=True)
