@@ -56,8 +56,8 @@ QT_QPA_PLATFORM=offscreen ./venv/bin/pytest -q -p no:cacheprovider
 | 端 | 定位 | 说明 |
 |----|------|------|
 | 桌面端（PyQt5） | **主 UI** | 18 个视图，学期管理、成绩录入、报表生成的日常操作入口 |
-| API 服务层（FastAPI） | 服务层 | 桌面内嵌 uvicorn 供局域网访问；未来 Web 前端复用 |
-| Web 前端 | 可选扩展（v3.1+） | 基于 `/api/config` + 业务 API 构建，与桌面共用配置，视觉一致 |
+| API 服务层（FastAPI） | 服务层 | 桌面内嵌 uvicorn 供局域网访问；Web 前端复用同一套 API |
+| Web 前端 | **与桌面功能完全一致**（2026-08-04 定案） | 6 域 26 页签 + 全局能力逐项对等（报表下载/导入向导/动态字段/主题切换等），共用 ui_config 与业务 API，技术栈后续单定 |
 
 访问 `http://<host>:8080/api/docs` 查看交互式 OpenAPI 文档。
 

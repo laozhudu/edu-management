@@ -27,7 +27,12 @@
 - [x] M0-3 排除项核验：新仓库已清 73400340/import_exam_scores.py/import_real_data.py/`"alembic`；templates+static(3死文件base.html/js/css) 已删；data/logs/crudadmin_data/exports 未复制
 - [x] ~/.git 误建 home 仓库已隔离为 ~/.git.bak_home_mistake（可逆）
 
-## ✅ 敏感残留清零（2026-08-04，首次 commit 前置）
+## 🔴 规划变更（2026-08-04）
+
+- [x] **Web 端升级为与桌面功能完全一致**（用户定案）：非简化版/非只读；6 域 26 页签 + 全局能力逐项对等。规划已改：REQUIREMENTS G 组（含功能对等清单）、DEV_PLAN_v3 M5-G（G1-G11）、REFACTOR_PLAN Phase 5、README。技术栈后续单定（候选 SPA Vue3 / HTMX+Jinja2）
+- [ ] 历史重写后 CHANGELOG commit hash 待更新（filter-repo 重写 8 个 commit）
+
+## ✅ M3-1 敏感扫描（已完成 2026-08-04）
 
 - [x] test_data/generate.py:348-349：校名关键词→示例学校、校名代码→SLZX（无测试断言依赖旧值，test_ui_config 断言"示例学校"一致）
 - [x] scripts/migrate_semester_context.py:183：校名代码→SLZX
