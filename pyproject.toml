@@ -1,0 +1,210 @@
+[project]
+name = "edu-system"
+version = "2.0.0"
+description = "教务管理系统 — 模块化重构版"
+requires-python = ">=3.12"
+dependencies = [
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "python-jose[cryptography]>=3.3",
+    "passlib[bcrypt]>=1.7",
+    "python-multipart>=0.0.9",
+    "diskcache>=5.6",
+    "orjson>=3.10",
+    "msgpack>=1.1",
+    "apscheduler>=3.10",
+    "openpyxl>=3.1",
+    "docxtpl>=0.20",
+    "weasyprint>=61",
+    "pdf-reports>=0.3",
+    "jinja2>=3.1",
+    "pandera>=0.19",
+    "great-expectations>=1.19",
+    "tablib>=3.7",
+    "python-dotenv>=1.0",
+    "requests>=2.32",
+    "qrcode>=8.2",
+    "structlog>=24.1",
+    "watchfiles>=0.21",
+    "tenacity>=8.3",
+    "prometheus-client>=0.20",
+    "cryptography>=43.0",
+    "PyQt5>=5.15",
+    "PyQt-Fluent-Widgets[full]>=1.8",
+    "pypinyin>=0.55",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=5.0",
+    "pytest-mock>=3.14",
+    "pytest-timeout>=2.2",
+    "httpx>=0.27",
+    "ruff>=0.5",
+    "mypy>=1.10",
+    "black>=24.4",
+    "isort>=5.13",
+    "pre-commit>=3.6",
+    "pip-audit>=2.7",
+    "bandit>=1.7",
+    "semgrep>=1.80",
+    "nuitka>=2.4",
+    "pyinstaller>=6.11",
+    "git-cliff>=2.0",
+]
+gui = [
+    "PyQt5-Qt5>=5.15",
+    "PyQt5_sip>=12.18",
+    "PyQtChart>=5.15",
+    "PyQtChart-Qt5>=5.15",
+    "PyQtWebEngine>=5.15",
+    "PyQtWebEngine-Qt5>=5.15",
+    "PyQt5-Frameless-Window>=0.8",
+]
+
+[project.urls]
+Homepage = "https://github.com/laozhudu/edu-management"
+Repository = "https://github.com/laozhudu/edu-management"
+Issues = "https://github.com/laozhudu/edu-management/issues"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+select = ["E", "F", "I", "UP", "W", "C4", "PTH", "PERF", "TCH", "TID", "SIM", "PIE", "ARG", "PD", "PL", "TRY", "NPY", "RSE", "RET", "SLF"]
+ignore = ["E501", "PTH118", "PTH123"]
+fixable = ["ALL"]
+unfixable = ["TCH", "SIM", "PIE", "ARG", "PD", "PL", "TRY", "NPY", "RSE", "RET", "SLF"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+
+# 对存量代码宽容：排除 Alembic 迁移、导入脚本、测试数据生成脚本
+[tool.ruff.lint]
+extend-ignore = ["ARG001", "ARG002", "ARG005", "PLR2004", "PLR0912", "PLR0913", "PLR0915", "PLR0917", "PLC0415", "E402", "E722", "SLF001", "F821", "F841", "TRY003", "RET504", "RET505", "SIM103", "SIM105", "SIM108", "SIM118", "C401", "C405", "C416", "C420", "PERF102", "PERF401", "UP038", "W291", "W293"]
+extend-select = []
+ignore = ["E501", "PTH118", "PTH123"]
+# 排除存量脚本目录
+exclude = [
+    "alembic/versions/",
+    "import_*.py",
+    "import_real_data.py",
+    "test_data/generate.py",
+    "test_data/loader.py",
+    "test_data/schema.py",
+    "test_data/validator.py",
+    "src/edu_system/api/",
+]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+follow_imports = "normal"
+namespace_packages = true
+explicit_package_bases = true
+enable_error_code = ["unused-ignore", "attr-defined", "name-defined", "arg-type", "union-attr", "assignment", "call-arg", "no-untyped-def", "no-untyped-call", "unused-coroutine", "annotation-unchecked"]
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+strict = false
+disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["test_*"]
+strict = false
+disallow_untyped_defs = false
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+include = "\\.pyi?$"
+extend-exclude = """
+/(
+  \\.git
+  | \\.hg
+  | \\.mypy_cache
+  | \\.tox
+  | \\.venv
+  | venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+"""
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+atomic = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-x --tb=short --strict-markers --strict-config"
+markers = [
+    "unit: 单元测试",
+    "contract: 契约测试",
+    "integration: 集成测试",
+    "e2e: 端到端测试",
+    "gui: GUI 测试",
+    "perf: 性能测试",
+    "slow: 耗时测试 (>5s)",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore:.*PydanticDeprecatedSince20.*",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*_test.py",
+    "*/migrations/*",
+    "*/alembic/*",
+]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+show_missing = true
+skip_covered = true
+
+[tool.bandit]
+exclude_dirs = ["tests", "venv", ".venv"]
+skips = ["B101", "B601"]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"

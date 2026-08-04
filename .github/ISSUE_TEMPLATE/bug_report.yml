@@ -1,0 +1,70 @@
+name: Bug Report
+description: 结构化 Bug 上报
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        谢谢反馈！请按模板填写，便于快速定位。
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      placeholder: v2.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 平台
+      options:
+        - Windows 10/11
+        - Windows Server 2019+
+        - Linux (Ubuntu/Debian)
+        - macOS
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 打开 ...
+        2. 点击 ...
+        3. 观察到 ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期行为
+      placeholder: 应该 ...
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+      placeholder: 实际 ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 相关日志/堆栈
+      placeholder: |
+        ```
+        paste logs here
+        ```
+      render: shell
+  - type: textarea
+    id: env
+    attributes:
+      label: 环境信息
+      placeholder: |
+        Python: 3.12.x
+        PyQt5: 5.15.x
+        SQLite: 3.x
+        其他依赖版本...

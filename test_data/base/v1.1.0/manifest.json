@@ -1,0 +1,29 @@
+{
+  "version": "1.1.0",
+  "generated_at": "2026-08-02T10:38:27.358613",
+  "seed": 123,
+  "description": "标准测试数据集：3学年×2学期×3年级×12班×50人=10,800学生",
+  "coverage": {
+    "academic_years": 3,
+    "semesters": 6,
+    "grades": 3,
+    "subjects": 10,
+    "total_students": 1080,
+    "total_classes": 72,
+    "total_teachers": 180,
+    "total_exams": 12
+  },
+  "checksums": {
+    "academic_years": "eccbc87e",
+    "semesters": "1679091c",
+    "grades": "eccbc87e",
+    "subjects": "d3d94468",
+    "total_students": "731c83db",
+    "total_classes": "32bb90e8",
+    "total_teachers": "045117b0",
+    "total_exams": "c20ad4d7"
+  },
+  "files": [
+    "dataset.json"
+  ]
+}

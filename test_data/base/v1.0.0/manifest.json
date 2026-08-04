@@ -1,0 +1,18 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026-08-02T10:38:27.358613",
+  "seed": 123,
+  "description": "标准测试数据集（3学年×2学期×3年级×12班×50人≈10,800学生）。注意：dataset.json 含学生/教师隐私数据，已在公开仓库中移除；按需用 generate.py 以固定种子内存生成（loader 缺省自动生成，结果可复现）。",
+  "coverage": {
+    "academic_years": 3,
+    "semesters": 6,
+    "grades": 3,
+    "subjects": 10,
+    "total_students": 1080,
+    "total_classes": 72,
+    "total_teachers": 180,
+    "total_exams": 12
+  },
+  "files": [],
+  "checksums": {}
+}
