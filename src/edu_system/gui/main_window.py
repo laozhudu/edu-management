@@ -15,6 +15,7 @@ from PyQt5.QtCore import QEasingCurve, QPropertyAnimation, Qt, QThread, pyqtSign
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (
     QApplication,
+    QDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -314,6 +315,12 @@ class MainWindow(QMainWindow):
     def _on_server_stopped(self):
         """服务器停止回调"""
         self.statusBar().showMessage("嵌入式服务已停止")
+        if hasattr(self, "_srv_switch_btn"):
+            self._srv_switch_btn.setText("启动服务")
+            self._srv_switch_btn.setStyleSheet(
+                "QPushButton { background:#27AE60; color:white; border:none;"
+                "border-radius:3px; padding:2px 10px; font-size:8pt; }"
+            )
 
     def _on_server_error(self, error: str):
         """服务器错误回调"""
@@ -333,7 +340,70 @@ class MainWindow(QMainWindow):
             return "127.0.0.1"
 
     def _update_network_info(self, ip: str, port: int):
-        pass
+        """填充状态栏：局域网地址 + 端口 + 服务开关 + 二维码（D4）"""
+        sb = self.statusBar()
+        self._net_ip = ip
+        self._net_port = port
+
+        # 局域网地址 + 端口（持久 label）
+        url = f"http://{ip}:{port}"
+        if not hasattr(self, "_net_label"):
+            self._net_label = QLabel()
+            self._net_label.setFont(font(8))
+            self._net_label.setStyleSheet(f"color:{C['accent_blue']}; padding:0 8px;")
+            sb.addPermanentWidget(self._net_label)
+
+        self._net_label.setText(f"局域网: {url}")
+
+        # 服务开关按钮
+        if not hasattr(self, "_srv_switch_btn"):
+            self._srv_switch_btn = QPushButton()
+            self._srv_switch_btn.clicked.connect(self._toggle_server)
+            sb.addPermanentWidget(self._srv_switch_btn)
+
+        self._srv_switch_btn.setText("停止服务")
+        self._srv_switch_btn.setStyleSheet(
+            "QPushButton { background:#E74C3C; color:white; border:none;"
+            "border-radius:3px; padding:2px 10px; font-size:8pt; }"
+        )
+
+        # 二维码按钮（弹窗展示局域网地址 QR）
+        if not hasattr(self, "_qr_btn"):
+            self._qr_btn = QPushButton("二维码")
+            self._qr_btn.setStyleSheet(
+                "QPushButton { background:#34495E; color:white; border:none;"
+                "border-radius:3px; padding:2px 10px; font-size:8pt; }"
+            )
+            self._qr_btn.clicked.connect(lambda: self._show_qr(url))
+            sb.addPermanentWidget(self._qr_btn)
+
+    def _toggle_server(self):
+        """切换嵌入式服务启停"""
+        if not hasattr(self, "_server_thread") or self._server_thread is None:
+            return
+        if self._server_thread.isRunning():
+            self._server_thread.stop()
+        else:
+            self._server_thread.start()
+
+    def _show_qr(self, url: str):
+        """显示局域网地址二维码弹窗"""
+        import qrcode
+        from PyQt5.QtGui import QPixmap
+
+        img = qrcode.make(url)
+        img.save("/tmp/edu_qr.png")
+        dlg = QDialog(self)
+        dlg.setWindowTitle("局域网访问二维码")
+        lay = QVBoxLayout(dlg)
+        pix = QPixmap("/tmp/edu_qr.png")
+        lbl = QLabel()
+        lbl.setPixmap(pix.scaled(220, 220))
+        lay.addWidget(lbl)
+        tip = QLabel(f"手机扫码访问: {url}")
+        tip.setAlignment(Qt.AlignHCenter)
+        lay.addWidget(tip)
+        dlg.exec_()
 
     def _on_db_ready(self, result):
         """DB 初始化完成回调"""
