@@ -18,8 +18,10 @@ def isolate_qsettings(tmp_path):
     """隔离 QSettings，避免污染用户真实主题配置"""
     s = QSettings("edu_system", "theme")
     s.remove("mode")
+    s.remove("density")
     yield
     s.remove("mode")
+    s.remove("density")
 
 
 def _mk_manager():
@@ -94,3 +96,51 @@ class TestApplyTemplate:
         qss = "color: {text}; background: {bg_light};"
         rendered = m.apply_to(qss)
         assert rendered == f"color: {tm.DARK['text']}; background: {tm.DARK['bg_light']};"
+
+
+class TestDensity:
+    """密度切换（D3）：QSettings 持久化 + 循环切换 + 信号广播"""
+
+    def test_default_normal(self):
+        m = _mk_manager()
+        assert m.density == "normal"
+        assert m.density_factor == 1.0
+
+    def test_set_density_valid(self):
+        m = _mk_manager()
+        m.set_density("compact")
+        assert m.density == "compact"
+        assert m.density_factor == 0.85
+        m.set_density("comfortable")
+        assert m.density == "comfortable"
+        assert m.density_factor == 1.2
+
+    def test_invalid_density_rejected(self):
+        m = _mk_manager()
+        with pytest.raises(ValueError):
+            m.set_density("huge")
+
+    def test_persistence(self, tmp_path):
+        """密度持久化到 QSettings，新实例读取"""
+        m1 = _mk_manager()
+        m1.set_density("compact")
+        m2 = _mk_manager()
+        assert m2.density == "compact"
+
+    def test_cycle_density(self):
+        m = _mk_manager()
+        m.set_density("normal")  # 显式复位，避免持久化污染
+        # dict 顺序 compact→normal→comfortable，normal(1) → comfortable(2) → compact(0)
+        assert m.cycle_density() == "comfortable"
+        assert m.cycle_density() == "compact"
+        assert m.cycle_density() == "normal"
+
+    def test_density_changed_signal(self):
+        m = _mk_manager()
+        seen = []
+        m.density_changed.connect(seen.append)
+        m.set_density("compact")
+        assert seen == ["compact"]
+        # 相同档位不重复广播
+        m.set_density("compact")
+        assert seen == ["compact"]
