@@ -65,10 +65,22 @@ def session():
 def isolate_qsettings():
     """隔离登录 QSettings，避免污染真实配置"""
     s = QSettings("edu_system", "login")
-    for k in ("remember_username", "last_username", "auto_login"):
+    for k in (
+        "remember_username",
+        "last_username",
+        "remember_password",
+        "last_password",
+        "auto_login",
+    ):
         s.remove(k)
     yield
-    for k in ("remember_username", "last_username", "auto_login"):
+    for k in (
+        "remember_username",
+        "last_username",
+        "remember_password",
+        "last_password",
+        "auto_login",
+    ):
         s.remove(k)
 
 
@@ -140,9 +152,10 @@ class TestRememberMe:
         dlg2.close()
 
     def test_auto_login_preference(self, dialog, session, monkeypatch):
-        """勾选自动登录 → has_auto_login 为 True"""
+        """勾选自动登录（含记住密码）→ has_auto_login 为 True"""
         monkeypatch.setattr(dialog, "accept", lambda: None)
         dialog.remember_cb.setChecked(True)
+        dialog.remember_password_cb.setChecked(True)
         dialog.autologin_cb.setChecked(True)
         dialog.username_edit.setText("admin")
         dialog.password_edit.setText("admin123")
@@ -153,6 +166,50 @@ class TestRememberMe:
         dlg2 = LoginDialog(session)
         assert dlg2.has_auto_login() is True
         dlg2.close()
+
+    def test_remember_password_saves(self, dialog, session, monkeypatch):
+        """勾选记住密码 → QSettings 保存密码，重开预填"""
+        monkeypatch.setattr(dialog, "accept", lambda: None)
+        dialog.remember_cb.setChecked(True)
+        dialog.remember_password_cb.setChecked(True)
+        dialog.username_edit.setText("admin")
+        dialog.password_edit.setText("admin123")
+        dialog._on_login()
+
+        s = QSettings("edu_system", "login")
+        assert s.value("remember_password", False, type=bool) is True
+        assert s.value("last_password", "", type=str) == "admin123"
+
+        from edu_system.gui.dialogs.login import LoginDialog
+
+        dlg2 = LoginDialog(session)
+        assert dlg2.password_edit.text() == "admin123"
+        assert dlg2.remember_password_cb.isChecked() is True
+        dlg2.close()
+
+    def test_try_auto_login_success(self, dialog, session, monkeypatch):
+        """try_auto_login：凭记住的凭据直接登录成功"""
+        monkeypatch.setattr(dialog, "accept", lambda: None)
+        dialog.remember_cb.setChecked(True)
+        dialog.remember_password_cb.setChecked(True)
+        dialog.autologin_cb.setChecked(True)
+        dialog.username_edit.setText("admin")
+        dialog.password_edit.setText("admin123")
+        dialog._on_login()
+
+        # 新对话框尝试自动登录
+        from edu_system.gui.dialogs.login import LoginDialog
+
+        dlg2 = LoginDialog(session)
+        monkeypatch.setattr(dlg2, "accept", lambda: None)
+        ok = dlg2.try_auto_login()
+        assert ok is True
+        assert dlg2.get_user() is not None
+        dlg2.close()
+
+    def test_try_auto_login_no_credentials(self, dialog):
+        """无记住凭据时 try_auto_login 返回 False"""
+        assert dialog.try_auto_login() is False
 
 
 class TestLoginLogic:

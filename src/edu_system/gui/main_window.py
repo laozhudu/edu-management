@@ -444,6 +444,13 @@ class MainWindow(QMainWindow):
         from edu_system.gui.dialogs import LoginDialog
 
         login_dlg = LoginDialog(self.session, parent=self)
+        # 自动登录：记住用户名+密码+勾选自动登录 → 凭凭据直接登录（免弹框）
+        if login_dlg.try_auto_login():
+            user = login_dlg.get_user()
+            if user is not None:
+                set_current_user(user)
+                self._enter_main(user)
+                return
         if login_dlg.exec_() == LoginDialog.Accepted:
             user = login_dlg.get_user()
             set_current_user(user)
