@@ -30,7 +30,21 @@ from edu_system.models import (
     User,
 )
 
-router = APIRouter(prefix="/attendance", tags=["考勤管理"])
+router = APIRouter(prefix="/attendance", tags=["考勤"])
+
+
+def _resolve_semester(db: Session) -> int:
+    """解析有效学期：线程局部优先，无效（0/不存在）时回退 DB 激活学期"""
+    from edu_system.database import get_active_semester
+    from edu_system.models import Semester
+
+    sid = get_active_semester()
+    if sid and db.query(Semester).get(sid):
+        return sid
+    active = (
+        db.query(Semester).filter(Semester.is_active == True).order_by(Semester.id).first()  # noqa: E712
+    )
+    return active.id if active else 0
 
 
 # ===== Pydantic 模型 =====
@@ -170,9 +184,7 @@ def checkin(
         raise HTTPException(status_code=404, detail="学生不存在")
 
     # 获取活跃学期
-    from edu_system.database import get_active_semester
-
-    semester_id = get_active_semester()
+    semester_id = _resolve_semester(db)
     if not semester_id:
         raise HTTPException(status_code=400, detail="无活跃学期")
 
@@ -280,9 +292,7 @@ def _push_checkin_event(attendance, status, student_name: str):
                 "date": attendance.date.isoformat() if attendance.date else None,
                 "attendance_type": attendance.attendance_type,
                 "status": str(status),
-                "check_time": attendance.check_time.isoformat()
-                if attendance.check_time
-                else None,
+                "check_time": attendance.check_time.isoformat() if attendance.check_time else None,
             },
         }
         # 尽力推送：有运行事件循环用 create_task，否则同步等待
@@ -311,9 +321,7 @@ def list_attendance(
     current_user: User = Depends(get_current_user),
 ):
     """考勤记录列表查询（分页/筛选）"""
-    from edu_system.database import get_active_semester
-
-    semester_id = get_active_semester()
+    semester_id = _resolve_semester(db)
 
     query = db.query(Attendance).filter(Attendance.semester_id == semester_id)
 
@@ -367,9 +375,7 @@ def list_leave_applications(
     current_user: User = Depends(get_current_user),
 ):
     """请假申请列表查询"""
-    from edu_system.database import get_active_semester
-
-    semester_id = get_active_semester()
+    semester_id = _resolve_semester(db)
 
     query = db.query(LeaveApplication).filter(LeaveApplication.semester_id == semester_id)
 
@@ -416,9 +422,7 @@ def create_leave_application(
     if not student:
         raise HTTPException(status_code=404, detail="学生不存在")
 
-    from edu_system.database import get_active_semester
-
-    semester_id = get_active_semester()
+    semester_id = _resolve_semester(db)
 
     # 验证日期
     if leave_data.end_date < leave_data.start_date:
@@ -485,9 +489,7 @@ def attendance_stats(
     current_user: User = Depends(require_permission(Permission.ATTENDANCE_STATS)),
 ):
     """考勤统计（个人/班级/年级/全校）"""
-    from edu_system.database import get_active_semester
-
-    semester_id = get_active_semester()
+    semester_id = _resolve_semester(db)
 
     query = db.query(Attendance).filter(Attendance.semester_id == semester_id)
 
@@ -557,9 +559,7 @@ def export_attendance(
     from fastapi.responses import StreamingResponse
     from openpyxl import Workbook
 
-    from edu_system.database import get_active_semester
-
-    semester_id = get_active_semester()
+    semester_id = _resolve_semester(db)
 
     query = (
         db.query(Attendance).join(Student).join(Class).filter(Attendance.semester_id == semester_id)
@@ -647,9 +647,7 @@ def attendance_alerts(
     current_user: User = Depends(require_permission(Permission.ATTENDANCE_VIEW)),
 ):
     """异常打卡告警（迟到/早退/旷课）"""
-    from edu_system.database import get_active_semester
-
-    semester_id = get_active_semester()
+    semester_id = _resolve_semester(db)
 
     if not date:
         date = datetime.now().date()

@@ -510,6 +510,10 @@ def serialize_test_dataset(dataset: TestDataSet) -> dict:
             return obj
 
     flat_data = serialize(dataset)
+    # 顶层补 semesters（serialize 排除了嵌套，这里显式收集）
+    # 加载器按依赖顺序加载 semesters，teachers/classes 等引用 semester_id
+    if dataset.semesters:
+        flat_data["semesters"] = [serialize(s) for s in dataset.semesters]
     if dataset.all_teachers:
         all_teachers = []
         for sem in dataset.semesters:

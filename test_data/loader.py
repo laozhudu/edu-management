@@ -11,6 +11,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+from sqlalchemy import text
+
 from edu_system.database import get_session, init_db_with_defaults
 from edu_system.models import (
     AcademicYear,
@@ -54,6 +56,7 @@ class DataLoader:
         role: str | None = None,
         dry_run: bool = False,
         verify_only: bool = False,
+        dataset_override: dict | None = None,
     ) -> dict:
         """
         加载指定版本的测试数据
@@ -77,17 +80,21 @@ class DataLoader:
 
         # 2. 读取数据集（dataset.json 为生成物，公开仓库不保留隐私数据；
         #    缺失时用 generate.py 以固定种子在内存生成，结果一致可复现）
-        dataset_path = self.base_dir / f"v{version}" / "dataset.json"
-        if dataset_path.exists():
-            with open(dataset_path) as f:
-                raw_data = json.load(f)
+        #    dataset_override: 调用方传入预生成数据（测试隔离复用，避免重复生成）
+        if dataset_override is not None:
+            raw_data = dataset_override
         else:
-            self.log("⚠️ dataset.json 不存在，使用生成器内存生成（种子复现）")
-            from test_data.generate import TestDataGenerator, serialize_test_dataset
+            dataset_path = self.base_dir / f"v{version}" / "dataset.json"
+            if dataset_path.exists():
+                with open(dataset_path) as f:
+                    raw_data = json.load(f)
+            else:
+                self.log("⚠️ dataset.json 不存在，使用生成器内存生成（种子复现）")
+                from test_data.generate import TestDataGenerator, serialize_test_dataset
 
-            gen = TestDataGenerator(seed=42)
-            dataset_obj = gen.generate()
-            raw_data = serialize_test_dataset(dataset_obj)
+                gen = TestDataGenerator(seed=42)
+                dataset_obj = gen.generate()
+                raw_data = serialize_test_dataset(dataset_obj)
 
         # 3. 校验清单
         if not verify_only:
@@ -240,6 +247,14 @@ class DataLoader:
                 ("data_locks", DataLock),
             ]
 
+            # 展开嵌套 semesters（academic_years[].semesters → 顶层 dataset["semesters"]）
+            # 生成数据把 semesters 嵌套在学年下，加载器需展开才能按依赖顺序加载
+            nested_sems = []
+            for ay in dataset.get("academic_years", []):
+                nested_sems.extend(ay.get("semesters", []))
+            if nested_sems and not dataset.get("semesters"):
+                dataset["semesters"] = nested_sems
+
             for key, model in load_order:
                 if key in dataset and dataset[key]:
                     count = self._load_model(model, dataset[key])
@@ -283,6 +298,12 @@ class DataLoader:
                 self.session.query(model).delete()
             except:
                 pass
+        # 重置自增计数：保证重新加载的 id 从 1 开始
+        # （生成数据的关联引用按 1..N 固定 id，加载器依赖此约定）
+        try:
+            self.session.execute(text("DELETE FROM sqlite_sequence"))
+        except Exception:
+            pass
         self.session.commit()
 
     def _load_model(self, model, data_list: list[dict]) -> int:

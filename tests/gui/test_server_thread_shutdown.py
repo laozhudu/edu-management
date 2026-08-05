@@ -16,17 +16,25 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtWidgets import QApplication
 
 from edu_system.gui.server_thread import ServerThread
 
-# 必须显式创建 QCoreApplication（无 GUI 环境）
-_app = QCoreApplication.instance() or QCoreApplication([])
+
+@pytest.fixture(scope="module", autouse=True)
+def qapp():
+    """QApplication（与 pytest-qt 一致的类型，避免 QCoreApplication 冲突崩溃）"""
+    app = QApplication.instance() or QApplication([])
+    yield app
 
 
 @pytest.fixture()
 def server_thread():
-    st = ServerThread(port=0)  # 自动选端口
+    # 用轻量 app（不触发 edu_system 完整初始化/DB），避免与 GUI 测试冲突
+    st = ServerThread(
+        port=0,  # 自动选端口
+        app_module="tests.gui._mini_app:app",
+    )
     # 用临时 PID 路径避免污染真实 data/
     st._pid_file = Path(tempfile.mkdtemp()) / "server.pid"
     yield st
