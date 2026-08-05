@@ -3,7 +3,7 @@
 
 背景：score.py 顶部硬依赖 PyQt5.QtChart（成绩统计图表），
 缺 PyQtChart 包时点开成绩管理直接 ModuleNotFoundError 崩溃
-（~.edu_system/crash.log 记录）。
+（crash.log 记录）。
 
 本测试确保：
 - score 视图模块可导入（QtChart 已装）

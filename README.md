@@ -85,17 +85,16 @@ QT_QPA_PLATFORM=offscreen ./venv/bin/pytest -q -p no:cacheprovider
 
 | 文档 | 内容 |
 |------|------|
-| `REQUIREMENTS.md` | 需求清单（源头） |
-| `DEV_PLAN_v3.md` | 开发计划（里程碑 / 需求绑定 / 纪律） |
-| `REFACTOR_PLAN.md` | 重构执行路线 |
-| `EDU_REVIEW.md` | 教务审视（小型学校剪裁定案） |
-| `DEV_STANDARDS.md` | 工程规范 |
-| `SECURITY_CHECKLIST.md` | 安全清单 |
+| `CHANGELOG.md` | 版本变更日志 |
 | `THIRD_PARTY.md` | 第三方依赖许可证说明 |
+
+> 开发规划与内部文档（开发计划/需求清单/重构路线等）仅保留本地，不随仓库分发。
 
 ## 🗺️ 路线图
 
-见 `DEV_PLAN_v3.md`：M0-M4 已达成（含公开上线），M5 补齐待办（学期上下文 / 统计预计算 / 配置继承与锁定 / 桌面补全 / Web 前端），M6 后续 Sprint（考试管理 / 学期 UI / Win 打包签名）。
+- M0-M4：公开上线（已完成：CI 门禁、语义化版本、安全清洗）
+- M5：待办补齐（学期上下文 / 统计预计算 / 配置继承与锁定 / 桌面补全 / 业务 API / 服务管理 / Web 前端）
+- M6：后续 Sprint（考试管理 / 学期 UI / Win 打包签名）
 
 ## 📄 License
 
