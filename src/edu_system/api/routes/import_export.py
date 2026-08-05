@@ -99,7 +99,7 @@ def download_template(
     csv_data = "\ufeff" + buf.getvalue()
 
     return Response(
-        content=csv_data.encode("utf-8"),
+        content=csv_data.encode(),
         media_type="text/csv",
         headers={"Content-Disposition": f'attachment; filename="{entity}_template.csv"'},
     )

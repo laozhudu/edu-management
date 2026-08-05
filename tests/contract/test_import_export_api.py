@@ -56,7 +56,7 @@ class TestImportExportContract:
 
     def test_preview_csv(self):
         """预览：上传 CSV 返回质量报告"""
-        csv_data = "姓名,性别,座号\n张三,男,001\n李四,女,002\n".encode("utf-8")
+        csv_data = "姓名,性别,座号\n张三,男,001\n李四,女,002\n".encode()
         response = self.client.post(
             "/api/import/preview",
             files={"file": ("students.csv", io.BytesIO(csv_data), "text/csv")},
