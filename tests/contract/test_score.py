@@ -158,6 +158,58 @@ class TestScoreContract:
         )
         assert response.status_code in (200, 404, 400, 403)
 
+    # ===== M5-E1 成绩录入增强 =====
+
+    def test_paste_scores_creates(self):
+        """粘贴录入：TSV 文本批量创建成绩"""
+        response = self.client.post(
+            "/api/score/paste",
+            json={
+                "exam_id": 1,
+                "text": "学号\t科目\t成绩\n20240001\t语文\t88\n20240002\t数学\t92",
+            },
+            headers=self.headers,
+        )
+        # 粘贴成功或权限不足都接受（契约校验返回结构）
+        assert response.status_code in (200, 403)
+        if response.status_code == 200:
+            data = response.json()
+            assert "created" in data
+            assert "updated" in data
+            assert "errors" in data
+            assert isinstance(data["errors"], list)
+
+    def test_paste_scores_header_skipped(self):
+        """粘贴录入：首行表头自动跳过，不含表头时正常解析"""
+        response = self.client.post(
+            "/api/score/paste",
+            json={
+                "exam_id": 1,
+                "text": "20240001\t语文\t85.5\n20240002\t数学\t90",
+            },
+            headers=self.headers,
+        )
+        assert response.status_code in (200, 403)
+        if response.status_code == 200:
+            data = response.json()
+            assert data["total_rows"] == 2
+
+    def test_paste_scores_invalid_student(self):
+        """粘贴录入：不存在的学号收集到 errors，不影响其他行"""
+        response = self.client.post(
+            "/api/score/paste",
+            json={
+                "exam_id": 1,
+                "text": "NO_SUCH_STUDENT\t语文\t88\n20240001\t数学\t91",
+            },
+            headers=self.headers,
+        )
+        assert response.status_code in (200, 403)
+        if response.status_code == 200:
+            data = response.json()
+            assert len(data["errors"]) == 1
+            assert "学号不存在" in data["errors"][0]["error"]
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-x", "-v"])
