@@ -99,6 +99,7 @@ def create_app() -> FastAPI:
     app.include_router(scheduler.router, prefix="/api")
     from edu_system.api.routes import (
         attendance,
+        audit,
         auth,
         config,
         exam,
@@ -114,6 +115,7 @@ def create_app() -> FastAPI:
     app.include_router(semester_inherit.router, prefix="/api")
     app.include_router(locks.router, prefix="/api")
     app.include_router(import_export.router, prefix="/api")
+    app.include_router(audit.router, prefix="/api")
     app.include_router(auth.router, prefix="/api")
     app.include_router(score.router, prefix="/api")
     app.include_router(attendance.router, prefix="/api")

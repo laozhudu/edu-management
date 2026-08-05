@@ -8,6 +8,7 @@ from PyQt5.QtCore import Qt, QThread, QTimer, pyqtSignal
 from PyQt5.QtGui import QFont, QPixmap
 from PyQt5.QtWidgets import (
     QCheckBox,
+    QDialog,
     QFormLayout,
     QFrame,
     QGroupBox,
@@ -298,8 +299,47 @@ class SystemConfigView(BaseView):
         )
 
     def _view_service_logs(self, service_code: str):
-        """查看服务访问日志"""
-        QMessageBox.information(self, "日志", f"服务 {service_code} 的访问日志查看功能开发中...")
+        """查看服务访问日志（M5-F1：真实查询 audit_logs）"""
+        success, data = self._api_call_sync(
+            "GET",
+            "/api/audit/logs",
+            params={"service": service_code, "limit": 100},
+        )
+        if not success:
+            QMessageBox.warning(self, "失败", str(data))
+            return
+
+        logs = data.get("logs", []) if isinstance(data, dict) else []
+        dlg = QDialog(self)
+        dlg.setWindowTitle(f"服务日志 — {service_code}（共 {data.get('total', len(logs))} 条）")
+        dlg.resize(760, 480)
+        layout = QVBoxLayout(dlg)
+
+        table = QTableWidget()
+        table.setColumnCount(5)
+        table.setHorizontalHeaderLabels(["时间", "方法", "路径", "状态", "耗时(ms)"])
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        table.setRowCount(len(logs))
+        for row, log in enumerate(logs):
+            created = (log.get("created_at") or "")[:19]
+            items = [
+                created,
+                log.get("method", ""),
+                log.get("path", ""),
+                str(log.get("status", "")),
+                str(log.get("duration_ms", "")),
+            ]
+            for col, val in enumerate(items):
+                table.setItem(row, col, QTableWidgetItem(val))
+        layout.addWidget(table)
+
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        btn_close = QPushButton("关闭")
+        btn_close.clicked.connect(dlg.accept)
+        btn_row.addWidget(btn_close)
+        layout.addLayout(btn_row)
+        dlg.exec_()
 
     # ===== 2. 定时任务标签页 =====
     def _create_scheduler_tab(self):
