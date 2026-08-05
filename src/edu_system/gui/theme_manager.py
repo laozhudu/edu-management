@@ -72,7 +72,15 @@ THEMES = {"light": LIGHT, "dark": DARK}
 class ThemeManager(QObject):
     """主题管理：切换/持久化/系统跟随"""
 
-    theme_changed = pyqtSignal(str)  # "light" / "dark"
+    theme_changed = pyqtSignal(str)
+    density_changed = pyqtSignal(str)
+
+    # 密度档位（行高倍率，UI 消费方据此调整 spacing/padding/行高）
+    DENSITIES = {
+        "compact": 0.85,
+        "normal": 1.0,
+        "comfortable": 1.2,
+    }
 
     def __init__(self):
         super().__init__()
@@ -80,6 +88,10 @@ class ThemeManager(QObject):
         # 模式: light / dark / system
         self._mode = self._settings.value("mode", "system", type=str)
         self._theme = self._current_theme()
+        # 密度: compact / normal / comfortable
+        self._density = self._settings.value("density", "normal", type=str)
+        if self._density not in self.DENSITIES:
+            self._density = "normal"
 
     # ── 查询 ──
     @property
@@ -116,6 +128,33 @@ class ThemeManager(QObject):
         except Exception:
             result = "light"
         return result
+
+    # ── 密度 ──
+    @property
+    def density(self) -> str:
+        """当前密度档位: compact / normal / comfortable"""
+        return self._density
+
+    @property
+    def density_factor(self) -> float:
+        """当前密度行高倍率"""
+        return self.DENSITIES[self._density]
+
+    def set_density(self, density: str) -> str:
+        """设置密度档位，持久化并广播"""
+        if density not in self.DENSITIES:
+            raise ValueError(f"无效密度档位: {density}")
+        if density != self._density:
+            self._density = density
+            self._settings.setValue("density", density)
+            self.density_changed.emit(density)
+        return density
+
+    def cycle_density(self) -> str:
+        """循环切换密度（compact → normal → comfortable），返回新档位"""
+        order = list(self.DENSITIES)
+        idx = order.index(self._density)
+        return self.set_density(order[(idx + 1) % len(order)])
 
     # ── 切换 ──
     def set_mode(self, mode: str):
