@@ -1,0 +1,163 @@
+<!-- 学生信息页（M5-G 双端一致：Web 端） -->
+{% extends "index.html" %}
+
+{% block title %}学生信息 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="card" x-data="studentList()">
+    <!-- 工具栏：搜索 + 筛选 + 刷新 -->
+    <div class="card-body border-b border-gray-200 dark:border-gray-700">
+        <div class="flex flex-wrap gap-3 items-end">
+            <div class="flex-1 min-w-[200px]">
+                <label class="label" for="keyword">关键字</label>
+                <input id="keyword" type="text" class="input" placeholder="姓名 / 学号"
+                       x-model="filters.keyword"
+                       @keydown.enter="load(1)">
+            </div>
+            <div>
+                <label class="label" for="grade">年级</label>
+                <select id="grade" class="select w-32" x-model="filters.grade" @change="load(1)">
+                    <option value="">全部</option>
+                    <option value="初一级">初一级</option>
+                    <option value="初二级">初二级</option>
+                    <option value="初三级">初三级</option>
+                </select>
+            </div>
+            <div>
+                <label class="label" for="status">学籍状态</label>
+                <select id="status" class="select w-32" x-model="filters.status" @change="load(1)">
+                    <option value="">全部</option>
+                    <option value="在校">在校</option>
+                    <option value="休学">休学</option>
+                    <option value="转学">转学</option>
+                    <option value="毕业">毕业</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" @click="load(1)">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                查询
+            </button>
+            <button class="btn btn-secondary" @click="resetFilters()">重置</button>
+        </div>
+    </div>
+
+    <!-- 数据表 -->
+    <div class="overflow-x-auto">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>学号</th>
+                    <th>姓名</th>
+                    <th>性别</th>
+                    <th>班级</th>
+                    <th>入学年份</th>
+                    <th>学籍状态</th>
+                    <th>座号</th>
+                </tr>
+            </thead>
+            <tbody>
+                <template x-for="s in list" :key="s.id">
+                    <tr>
+                        <td x-text="s.student_no"></td>
+                        <td class="font-medium" x-text="s.name"></td>
+                        <td x-text="s.gender || '—'"></td>
+                        <td x-text="s.class_name || '—'"></td>
+                        <td x-text="s.enroll_year || '—'"></td>
+                        <td>
+                            <span class="badge"
+                                  :class="statusClass(s.status)"
+                                  x-text="s.status || '—'"></span>
+                        </td>
+                        <td x-text="s.seat_no || '—'"></td>
+                    </tr>
+                </template>
+                <tr x-show="!loading && list.length === 0">
+                    <td colspan="7" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                        暂无学生数据
+                    </td>
+                </tr>
+                <tr x-show="loading">
+                    <td colspan="7" class="py-8">
+                        <div class="skeleton-text w-2/3 mx-auto"></div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 分页 -->
+    <div class="card-footer flex items-center justify-between">
+        <div class="text-sm text-gray-500 dark:text-gray-400">
+            共 <span x-text="total"></span> 条 · 第 <span x-text="page"></span>/<span x-text="totalPages()"></span> 页
+        </div>
+        <div class="pagination">
+            <button class="pagination-btn" :disabled="page <= 1" @click="load(page-1)">上一页</button>
+            <button class="pagination-btn" :disabled="page >= totalPages()" @click="load(page+1)">下一页</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function studentList() {
+        return {
+            list: [],
+            total: 0,
+            page: 1,
+            pageSize: 20,
+            loading: false,
+            filters: { keyword: '', grade: '', status: '' },
+            
+            async load(p) {
+                this.page = p || 1;
+                this.loading = true;
+                try {
+                    const params = new URLSearchParams({
+                        page: this.page,
+                        page_size: this.pageSize,
+                        ...this.filters
+                    });
+                    const resp = await fetch('/api/students?' + params, {
+                        credentials: 'include',
+                        headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        const d = await resp.json();
+                        this.list = d.items || [];
+                        this.total = d.total || 0;
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载学生列表失败:', e);
+                } finally {
+                    this.loading = false;
+                }
+            },
+            
+            resetFilters() {
+                this.filters = { keyword: '', grade: '', status: '' };
+                this.load(1);
+            },
+            
+            totalPages() {
+                return Math.max(1, Math.ceil(this.total / this.pageSize));
+            },
+            
+            statusClass(st) {
+                return {
+                    '在校': 'badge-success',
+                    '休学': 'badge-warning',
+                    '转学': 'badge-gray',
+                    '毕业': 'badge-gray',
+                }[st] || 'badge-gray';
+            },
+            
+            init() {
+                this.load(1);
+            }
+        };
+    }
+</script>
+{% endblock %}

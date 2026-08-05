@@ -106,3 +106,49 @@ class TestPagePlaceholder:
         r = client.get("/page/students/student_list", follow_redirects=False)
         assert r.status_code == 307
         assert r.headers["location"] == "/login"
+
+
+class TestStudentListAPI:
+    def test_list_200(self, client, auth_headers):
+        r = client.get("/api/students", headers=auth_headers, params={"page": 1, "page_size": 10})
+        assert r.status_code == 200
+        data = r.json()
+        assert "items" in data
+        assert "total" in data
+        assert data["page"] == 1
+        assert data["page_size"] == 10
+
+    def test_list_requires_auth(self, client):
+        r = client.get("/api/students")
+        assert r.status_code in (401, 403)
+
+    def test_list_search_keyword(self, client, auth_headers):
+        """关键字搜索：命中至少 1 条（种子数据含 '1080' 学号）"""
+        r = client.get("/api/students", headers=auth_headers, params={"keyword": "1080"})
+        assert r.status_code == 200
+        data = r.json()
+        assert data["total"] >= 1
+
+    def test_list_filter_grade(self, client, auth_headers):
+        r = client.get("/api/students", headers=auth_headers, params={"grade": "初一级"})
+        assert r.status_code == 200
+        for item in r.json()["items"]:
+            assert item["class_name"].startswith("1")
+
+    def test_list_items_have_key_fields(self, client, auth_headers):
+        r = client.get("/api/students", headers=auth_headers, params={"page_size": 5})
+        assert r.status_code == 200
+        items = r.json()["items"]
+        if items:
+            first = items[0]
+            for key in ("id", "student_no", "name", "class_id", "class_name", "status"):
+                assert key in first
+
+
+class TestStudentListPage:
+    def test_page_renders_specific_template(self, client, auth_headers):
+        """/page/students/student_list 应渲染 student_list.html（含 studentList 组件）"""
+        r = client.get("/page/students/student_list", headers=auth_headers)
+        assert r.status_code == 200
+        assert "studentList" in r.text
+        assert "/api/students" in r.text

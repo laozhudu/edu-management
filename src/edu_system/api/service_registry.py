@@ -89,6 +89,16 @@ class ServiceRegistry:
                 "rate_limit": 100,
                 "rate_limit_window": 60,
             },
+            "students": {
+                "name": "学生管理",
+                "description": "学生信息列表、搜索、筛选、分页",
+                "api_prefix": "/api/students",
+                "enabled": True,
+                "required_permissions": ["student:view"],
+                "allowed_roles": ["teacher", "director", "admin"],
+                "rate_limit": 200,
+                "rate_limit_window": 60,
+            },
             "report_export": {
                 "name": "报表导出",
                 "description": "成绩单、统计报表、Excel/PDF 导出",
@@ -172,6 +182,7 @@ class ServiceRegistry:
                     "exam",
                     "meta",
                     "class_roster",
+                    "students",
                     "report_export",
                     "admin_api",
                     "parent_notify",
@@ -267,6 +278,16 @@ class ServiceRegistry:
                 "rate_limit": 100,
                 "rate_limit_window": 60,
             },
+            "students": {
+                "name": "学生管理",
+                "description": "学生信息列表、搜索、筛选、分页",
+                "api_prefix": "/api/students",
+                "enabled": True,
+                "required_permissions": ["student:view"],
+                "allowed_roles": ["teacher", "director", "admin"],
+                "rate_limit": 200,
+                "rate_limit_window": 60,
+            },
             "report_export": {
                 "name": "报表导出",
                 "description": "成绩单、统计报表、Excel/PDF 导出",
@@ -311,7 +332,19 @@ class ServiceRegistry:
         return defaults.get(code)
 
     def _sync_to_db(self, session: Session, code: str, config: dict):
-        """同步配置到数据库"""
+        """同步配置到数据库（同时更新内存 _services，保证网关立即生效）"""
+        # 同步更新内存（新增默认服务时网关可立即识别）
+        self._services[code] = {
+            "service_code": code,
+            "name": config["name"],
+            "description": config["description"],
+            "api_prefix": config["api_prefix"],
+            "enabled": config["enabled"],
+            "required_permissions": config.get("required_permissions", []),
+            "allowed_roles": config.get("allowed_roles", []),
+            "rate_limit": config.get("rate_limit", 100),
+            "rate_limit_window": config.get("rate_limit_window", 60),
+        }
         try:
             cfg = ServiceConfig(
                 service_code=code,

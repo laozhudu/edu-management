@@ -196,9 +196,7 @@ def class_roster(
     query = db.query(Student).filter(Student.class_id == class_id)
     if search:
         like = f"%{search}%"
-        query = query.filter(
-            (Student.name.like(like)) | (Student.student_no.like(like))
-        )
+        query = query.filter((Student.name.like(like)) | (Student.student_no.like(like)))
     students = query.order_by(Student.student_no).all()
 
     return ClassRosterResponse(
@@ -254,4 +252,75 @@ def class_roster_export(
         iter([buf.getvalue()]),
         media_type="text/csv",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# ===== M5-G 学生列表分页（Web 功能页） =====
+
+
+class StudentListResponse(BaseModel):
+    items: list[dict]
+    total: int
+    page: int
+    page_size: int
+
+
+@router.get("", response_model=StudentListResponse)
+def student_list(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=200),
+    keyword: str = Query("", description="姓名/学号关键字"),
+    grade: str = Query("", description="年级：初一级/初二级/初三级"),
+    class_name: str = Query("", description="班级名"),
+    status: str = Query("", description="学籍状态"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """学生列表分页（M5-G）：搜索/筛选/分页，供 Web 学生信息页调用"""
+    from sqlalchemy import or_
+
+    q = db.query(Student).join(Student.class_)
+
+    # 年级 → 班级名前缀
+    if grade:
+        prefix = {"初一级": "1", "初二级": "2", "初三级": "3"}.get(grade, "")
+        if prefix:
+            q = q.filter(Class.name.like(f"{prefix}%"))
+
+    if class_name:
+        q = q.filter(Class.name == class_name)
+
+    if status:
+        q = q.filter(Student.status == status)
+
+    if keyword:
+        kw = f"%{keyword}%"
+        q = q.filter(or_(Student.name.like(kw), Student.student_no.like(kw)))
+
+    total = q.count()
+    items = (
+        q.order_by(Class.name, Student.student_no)
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+
+    return StudentListResponse(
+        items=[
+            {
+                "id": s.id,
+                "student_no": s.student_no,
+                "name": s.name,
+                "gender": getattr(s, "gender", None),
+                "class_id": s.class_id,
+                "class_name": s.class_.name if s.class_ else None,
+                "status": s.status,
+                "enroll_year": getattr(s, "enroll_year", None),
+                "seat_no": getattr(s, "seat_no", None),
+            }
+            for s in items
+        ],
+        total=total,
+        page=page,
+        page_size=page_size,
     )
