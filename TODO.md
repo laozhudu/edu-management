@@ -113,8 +113,8 @@
 
 - [x] M5-C2 配置版本回滚 + 软删除（history 快照表，4 单测，本地全量 346 passed）
 - [ ] M5-C1 继承向导 UI（依赖 C2 版本机制，四色预览 GUI 测试）
-- [ ] M5-C3 锁定 UI（权限控制 GUI 测试）
+- [x] M5-C3 锁定工具栏 UI（LockToolbar + 权限控制，5 GUI 测试，PR #7 合并）
 - [x] M5-C4 典型锁定场景自动加锁（4 单测 + 修复 _is_entity_locked bug，PR #6 合并）
 - [x] M5-C1 继承配置向导 UI（四色预览，4 GUI 测试，PR #5 合并）
-- [ ] M5-C3 锁定 UI（权限控制 GUI 测试）
+- [x] M5-C3 锁定工具栏 UI（LockToolbar + 权限控制，5 GUI 测试，PR #7 合并）
 - [x] M5-C4 典型锁定场景自动加锁（4 单测 + 修复 _is_entity_locked bug，PR #6 合并）
