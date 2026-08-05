@@ -42,7 +42,8 @@ def session():
     Base.metadata.create_all(engine)
     s = sessionmaker(bind=engine)()
     admin_role = Role(
-        name="admin", description="管理员",
+        name="admin",
+        description="管理员",
         permissions=",".join([p.value for p in Permission]),
     )
     s.add(admin_role)
