@@ -126,5 +126,9 @@
 - [x] M5-D6 批量生成 Worker（7 单测，500 份 0.3s 基准，PR #10 合并）
 - [x] M5-D1 LoginDialog 记住我/自动登录（9 GUI 测试，PR #11 合并）
 - [x] 学期显示统一样式（2024-2025学年度第一学期，8 单测，PR #14 合并）
+- [x] 登录框系列（PR #15/#16/#17 合并）：记住密码/自动登录、Carbon 业界规范重构、
+      多用户下拉、删标题行/整体居中/行高修复
+- [x] 登录框零代码 UI 可配置化：LoginDialogConfig（ui_config.json login 节），
+      窗口/边距/间距/字号/高度/圆角全部 json 可调，改配置不用改代码（G4 路径）
 - [x] M5-D4 状态栏局域网（7 GUI 测试，PR #12 合并）
 - [x] M5-D2 导入向导 UI（8+3 GUI 测试 + xlsx 数字列修复 + requirements.lock 补 PyQtChart，PR #13 合并）
