@@ -21,9 +21,11 @@ from edu_system.services.report_worker import run_batch_render
 
 def _fake_render(out_dir):
     """生成一个假文件（模拟渲染产物）"""
+
     def _render(item):
         p = Path(out_dir) / f"report_{item}.txt"
         p.write_text(f"content {item}", encoding="utf-8")
+
     return _render
 
 
