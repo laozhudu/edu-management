@@ -1,0 +1,260 @@
+<!-- 考试管理页（M5-G 双端一致：Web 端） -->
+{% extends "index.html" %}
+
+{% block title %}考试管理 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="space-y-4" x-data="examManage()">
+    <!-- 工具栏 -->
+    <div class="card">
+        <div class="card-body flex flex-wrap gap-3 items-end">
+            <div class="min-w-[200px] flex-1">
+                <label class="label" for="exam-kw">关键字</label>
+                <input id="exam-kw" type="text" class="input" placeholder="考试名称"
+                       x-model="filters.keyword" @keydown.enter="load(1)">
+            </div>
+            <button class="btn btn-primary" @click="load(1)">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                查询
+            </button>
+            <button class="btn btn-success" @click="openCreate()">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                新建考试
+            </button>
+        </div>
+    </div>
+
+    <!-- 考试列表 -->
+    <div class="card">
+        <div class="overflow-x-auto">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>考试名称</th>
+                        <th>类型</th>
+                        <th>开始日期</th>
+                        <th>结束日期</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="e in list" :key="e.id">
+                        <tr>
+                            <td class="font-medium" x-text="e.name"></td>
+                            <td><span class="badge badge-primary" x-text="typeLabel(e.exam_type)"></span></td>
+                            <td x-text="e.start_date"></td>
+                            <td x-text="e.end_date || '—'"></td>
+                            <td>
+                                <button class="btn btn-ghost btn-sm" @click="viewDetail(e)">详情</button>
+                            </td>
+                        </tr>
+                    </template>
+                    <tr x-show="!loading && list.length === 0">
+                        <td colspan="5" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                            暂无考试数据
+                        </td>
+                    </tr>
+                    <tr x-show="loading">
+                        <td colspan="5" class="py-8"><div class="skeleton-text w-2/3 mx-auto"></div></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer flex items-center justify-between">
+            <div class="text-sm text-gray-500 dark:text-gray-400">
+                共 <span x-text="total"></span> 条 · 第 <span x-text="page"></span>/<span x-text="totalPages()"></span> 页
+            </div>
+            <div class="pagination">
+                <button class="pagination-btn" :disabled="page <= 1" @click="load(page-1)">上一页</button>
+                <button class="pagination-btn" :disabled="page >= totalPages()" @click="load(page+1)">下一页</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新建考试模态框 -->
+    <div class="modal-overlay" x-show="showCreate" @click.self="showCreate = false" x-cloak>
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="text-lg font-semibold">新建考试</h3>
+                <button class="btn btn-ghost btn-sm" @click="showCreate = false">×</button>
+            </div>
+            <div class="modal-body space-y-4">
+                <div>
+                    <label class="label label-required">考试名称</label>
+                    <input type="text" class="input" x-model="form.name" placeholder="如：2024-2025 第1学期 期中考试">
+                </div>
+                <div class="form-row">
+                    <div>
+                        <label class="label">类型</label>
+                        <select class="select" x-model="form.exam_type">
+                            <option value="midterm">期中</option>
+                            <option value="final">期末</option>
+                            <option value="monthly">月考</option>
+                            <option value="mock">模拟考</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label label-required">开始日期</label>
+                        <input type="date" class="input" x-model="form.start_date">
+                    </div>
+                </div>
+                <div>
+                    <label class="label">结束日期</label>
+                    <input type="date" class="input" x-model="form.end_date">
+                </div>
+                <div>
+                    <label class="label">备注</label>
+                    <input type="text" class="input" x-model="form.note" placeholder="选填">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <span class="text-sm text-red-500" x-text="formError"></span>
+                <button class="btn btn-secondary" @click="showCreate = false">取消</button>
+                <button class="btn btn-primary" @click="createExam()" :disabled="creating">
+                    <span x-show="!creating">保存</span>
+                    <span x-show="creating">保存中...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 详情模态框 -->
+    <div class="modal-overlay" x-show="detail" @click.self="detail = null" x-cloak>
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="text-lg font-semibold" x-text="detail?.name"></h3>
+                <button class="btn btn-ghost btn-sm" @click="detail = null">×</button>
+            </div>
+            <div class="modal-body space-y-3 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-gray-500 dark:text-gray-400">类型</span>
+                    <span x-text="typeLabel(detail?.exam_type)"></span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-500 dark:text-gray-400">开始日期</span>
+                    <span x-text="detail?.start_date"></span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-500 dark:text-gray-400">结束日期</span>
+                    <span x-text="detail?.end_date || '—'"></span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-500 dark:text-gray-400">学期</span>
+                    <span x-text="detail?.semester_id ?? '—'"></span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-500 dark:text-gray-400">备注</span>
+                    <span x-text="detail?.note || '—'"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @click="detail = null">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function examManage() {
+        return {
+            list: [],
+            total: 0,
+            page: 1,
+            pageSize: 20,
+            loading: false,
+            filters: { keyword: '' },
+            showCreate: false,
+            creating: false,
+            formError: '',
+            form: { name: '', exam_type: 'midterm', start_date: '', end_date: '', note: '' },
+            detail: null,
+            
+            async load(p) {
+                this.page = p || 1;
+                this.loading = true;
+                try {
+                    const params = new URLSearchParams({ page: this.page, page_size: this.pageSize });
+                    if (this.filters.keyword) params.set('keyword', this.filters.keyword);
+                    const resp = await fetch('/api/exam?' + params, {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        const d = await resp.json();
+                        this.list = d.items || [];
+                        this.total = d.total || 0;
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载考试列表失败:', e);
+                } finally {
+                    this.loading = false;
+                }
+            },
+            
+            totalPages() {
+                return Math.max(1, Math.ceil(this.total / this.pageSize));
+            },
+            
+            typeLabel(t) {
+                return { midterm: '期中', final: '期末', monthly: '月考', mock: '模拟考' }[t] || t || '—';
+            },
+            
+            openCreate() {
+                this.form = { name: '', exam_type: 'midterm', start_date: '', end_date: '', note: '' };
+                this.formError = '';
+                this.showCreate = true;
+            },
+            
+            async createExam() {
+                if (!this.form.name.trim() || !this.form.start_date) {
+                    this.formError = '考试名称和开始日期必填';
+                    return;
+                }
+                this.creating = true;
+                this.formError = '';
+                try {
+                    const resp = await fetch('/api/exam', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                        body: JSON.stringify(this.form)
+                    });
+                    if (resp.ok) {
+                        this.showCreate = false;
+                        this.load(1);
+                    } else {
+                        const d = await resp.json();
+                        this.formError = d.detail || d.error || '创建失败';
+                    }
+                } catch (e) {
+                    this.formError = '请求失败: ' + e.message;
+                } finally {
+                    this.creating = false;
+                }
+            },
+            
+            async viewDetail(e) {
+                try {
+                    const resp = await fetch('/api/exam/' + e.id, {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        this.detail = await resp.json();
+                    }
+                } catch (err) {
+                    console.error('加载考试详情失败:', err);
+                }
+            },
+            
+            init() {
+                this.load(1);
+            }
+        };
+    }
+</script>
+{% endblock %}

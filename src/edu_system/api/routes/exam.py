@@ -121,6 +121,18 @@ def create_exam(
 
         semester_id = get_active_semester()
         if not semester_id:
+            # 回退：DB 激活学期（Web 请求无线程上下文时）
+            from edu_system.models import Semester
+
+            sem = (
+                db.query(Semester)
+                .filter(Semester.is_active.is_(True))
+                .order_by(Semester.id)
+                .first()
+            )
+            if sem:
+                semester_id = sem.id
+        if not semester_id:
             raise HTTPException(status_code=400, detail="无活跃学期")
 
     exam = Exam(

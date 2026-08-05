@@ -199,3 +199,48 @@ class TestScoreEntryPage:
         data = rp.json()
         # 首次 created=1；模块级 fixture 重复执行时可能 updated=1（幂等更新）
         assert data["created"] + data.get("updated", 0) >= 1
+
+
+class TestExamManagePage:
+    def test_page_renders_exam_manage(self, client, auth_headers):
+        """/page/exams/exam_manage 应渲染 exam_manage.html（含 examManage 组件）"""
+        r = client.get("/page/exams/exam_manage", headers=auth_headers)
+        assert r.status_code == 200
+        assert "examManage" in r.text
+        assert "/api/exam" in r.text
+
+    def test_create_exam_uses_active_semester_fallback(self, client, auth_headers):
+        """新建考试：Web 请求无线程学期上下文时回退 DB 激活学期"""
+        rp = client.post(
+            "/api/exam",
+            headers=auth_headers,
+            json={
+                "name": "契约测试考试",
+                "exam_type": "monthly",
+                "start_date": "2025-03-10",
+                "end_date": "2025-03-11",
+            },
+        )
+        assert rp.status_code in (200, 201)
+        data = rp.json()
+        assert data["name"] == "契约测试考试"
+        assert data["semester_id"] >= 1
+
+    def test_exam_detail_flow(self, client, auth_headers):
+        """创建 → 列表 → 详情 闭环"""
+        # 创建
+        rp = client.post(
+            "/api/exam",
+            headers=auth_headers,
+            json={"name": "详情测试考试", "exam_type": "midterm", "start_date": "2025-04-01", "end_date": "2025-04-02"},
+        )
+        assert rp.status_code in (200, 201)
+        eid = rp.json()["id"]
+        # 详情
+        rd = client.get(f"/api/exam/{eid}", headers=auth_headers)
+        assert rd.status_code == 200
+        assert rd.json()["name"] == "详情测试考试"
+        # 列表包含
+        rl = client.get("/api/exam", headers=auth_headers, params={"page_size": 50})
+        names = [e["name"] for e in rl.json()["items"]]
+        assert "详情测试考试" in names
