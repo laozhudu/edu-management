@@ -152,3 +152,50 @@ class TestStudentListPage:
         assert r.status_code == 200
         assert "studentList" in r.text
         assert "/api/students" in r.text
+
+
+class TestScoreEntryPage:
+    def test_page_renders_score_entry(self, client, auth_headers):
+        """/page/scores/score_entry 应渲染 score_entry.html（含 scoreEntry 组件）"""
+        r = client.get("/page/scores/score_entry", headers=auth_headers)
+        assert r.status_code == 200
+        assert "scoreEntry" in r.text
+        assert "/api/score" in r.text
+
+    def test_exam_list_available(self, client, auth_headers):
+        """考试列表 API（成绩录入页下拉数据源）"""
+        r = client.get("/api/exam", headers=auth_headers, params={"page_size": 5})
+        assert r.status_code == 200
+        data = r.json()
+        assert "items" in data
+        assert data["total"] >= 1
+
+    def test_score_paste_flow(self, client, auth_headers):
+        """粘贴录入：选考试 + 学生学号 → POST /api/score/paste 成功
+
+        测试数据集无科目，先通过 API 层直接造一个 Subject 再粘贴。
+        """
+        # 取第一个考试
+        re = client.get("/api/exam", headers=auth_headers, params={"page_size": 1})
+        exam = re.json()["items"][0]
+        # 取一个学生学号
+        rs = client.get("/api/students", headers=auth_headers, params={"page_size": 1})
+        student = rs.json()["items"][0]
+        # 造科目（测试数据集无科目数据）
+        from edu_system.database import get_session
+        from edu_system.models import Subject
+
+        with get_session() as db:
+            if not db.query(Subject).filter_by(name="语文").first():
+                db.add(Subject(name="语文", full_mark=120, sort_order=1))
+                db.commit()
+        # 粘贴录入
+        rp = client.post(
+            "/api/score/paste",
+            headers=auth_headers,
+            json={"exam_id": exam["id"], "text": f"{student['student_no']}\t语文\t88"},
+        )
+        assert rp.status_code == 200
+        data = rp.json()
+        # 首次 created=1；模块级 fixture 重复执行时可能 updated=1（幂等更新）
+        assert data["created"] + data.get("updated", 0) >= 1

@@ -1,0 +1,185 @@
+<!-- 成绩录入页（M5-G 双端一致：Web 端） -->
+{% extends "index.html" %}
+
+{% block title %}成绩录入 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="space-y-4" x-data="scoreEntry()">
+    <!-- 工具栏：考试选择 -->
+    <div class="card">
+        <div class="card-body flex flex-wrap gap-3 items-end">
+            <div class="min-w-[240px] flex-1">
+                <label class="label" for="exam">考试</label>
+                <select id="exam" class="select" x-model="examId" @change="loadScores()">
+                    <option value="">请选择考试...</option>
+                    <template x-for="e in exams" :key="e.id">
+                        <option :value="e.id" x-text="e.name + '（' + (e.exam_date || '') + '）'"></option>
+                    </template>
+                </select>
+            </div>
+            <button class="btn btn-secondary" @click="loadExams()">刷新考试</button>
+        </div>
+    </div>
+
+    <!-- 成绩列表 -->
+    <div class="card" x-show="examId">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">成绩明细</h2>
+            <div class="flex gap-2">
+                <button class="btn btn-secondary btn-sm" @click="showPaste = !showPaste">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    粘贴录入
+                </button>
+            </div>
+        </div>
+
+        <!-- 粘贴录入区 -->
+        <div class="card-body border-b border-gray-200 dark:border-gray-700" x-show="showPaste" x-cloak>
+            <label class="label">Excel 粘贴（每行：学号 Tab 科目名 Tab 成绩）</label>
+            <textarea class="input h-32 font-mono text-sm" x-model="pasteText"
+                      placeholder="学号&#9;科目&#9;成绩&#10;1080&#9;语文&#9;95"></textarea>
+            <div class="flex gap-2 mt-3">
+                <button class="btn btn-primary btn-sm" @click="pasteSubmit()" :disabled="pasteLoading">
+                    <span x-show="!pasteLoading">提交录入</span>
+                    <span x-show="pasteLoading">提交中...</span>
+                </button>
+                <span class="text-sm text-gray-500 dark:text-gray-400 self-center" x-text="pasteMsg"></span>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>学号</th>
+                        <th>学生</th>
+                        <th>科目</th>
+                        <th>成绩</th>
+                        <th>折算分</th>
+                        <th>补考</th>
+                        <th>发布</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="s in scores" :key="s.id">
+                        <tr>
+                            <td x-text="s.student_no || '—'"></td>
+                            <td x-text="s.student_name || '—'"></td>
+                            <td x-text="s.subject_name || s.subject_id || '—'"></td>
+                            <td class="font-medium" x-text="s.score"></td>
+                            <td x-text="s.converted_score ?? '—'"></td>
+                            <td>
+                                <span class="badge" :class="s.is_makeup ? 'badge-warning' : 'badge-gray'"
+                                      x-text="s.is_makeup ? '补考' : '正常'"></span>
+                            </td>
+                            <td>
+                                <span class="badge" :class="s.is_published ? 'badge-success' : 'badge-gray'"
+                                      x-text="s.is_published ? '已发布' : '未发布'"></span>
+                            </td>
+                        </tr>
+                    </template>
+                    <tr x-show="!loading && scores.length === 0">
+                        <td colspan="7" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                            暂无成绩数据，可点击右上角「粘贴录入」
+                        </td>
+                    </tr>
+                    <tr x-show="loading">
+                        <td colspan="7" class="py-8">
+                            <div class="skeleton-text w-2/3 mx-auto"></div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function scoreEntry() {
+        return {
+            exams: [],
+            examId: '',
+            scores: [],
+            loading: false,
+            showPaste: false,
+            pasteText: '',
+            pasteMsg: '',
+            pasteLoading: false,
+            
+            async loadExams() {
+                try {
+                    const resp = await fetch('/api/exam?page_size=100', {
+                        credentials: 'include',
+                        headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        const d = await resp.json();
+                        this.exams = d.items || [];
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载考试列表失败:', e);
+                }
+            },
+            
+            async loadScores() {
+                if (!this.examId) return;
+                this.loading = true;
+                this.scores = [];
+                try {
+                    const resp = await fetch('/api/score?exam_id=' + this.examId + '&page_size=200', {
+                        credentials: 'include',
+                        headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        const d = await resp.json();
+                        this.scores = d.items || [];
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载成绩失败:', e);
+                } finally {
+                    this.loading = false;
+                }
+            },
+            
+            async pasteSubmit() {
+                if (!this.examId || !this.pasteText.trim()) {
+                    this.pasteMsg = '请选择考试并粘贴内容';
+                    return;
+                }
+                this.pasteLoading = true;
+                this.pasteMsg = '';
+                try {
+                    const resp = await fetch('/api/score/paste', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                        body: JSON.stringify({ exam_id: parseInt(this.examId), text: this.pasteText })
+                    });
+                    const d = await resp.json();
+                    if (resp.ok) {
+                        this.pasteMsg = '成功录入 ' + (d.saved || d.count || 0) + ' 条';
+                        this.pasteText = '';
+                        this.loadScores();
+                    } else {
+                        this.pasteMsg = '失败: ' + (d.detail || d.error || resp.statusText);
+                    }
+                } catch (e) {
+                    this.pasteMsg = '请求失败: ' + e.message;
+                } finally {
+                    this.pasteLoading = false;
+                }
+            },
+            
+            init() {
+                this.loadExams();
+            }
+        };
+    }
+</script>
+{% endblock %}

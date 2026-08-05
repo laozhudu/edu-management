@@ -208,6 +208,16 @@ class ServiceRegistry:
     def _get_default_service(self, code: str) -> dict | None:
         """获取默认服务配置"""
         defaults = {
+            "score": {
+                "name": "成绩管理",
+                "description": "成绩录入、查询、排名、发布",
+                "api_prefix": "/api/score",
+                "enabled": True,
+                "required_permissions": ["score:entry"],
+                "allowed_roles": ["teacher", "director", "admin"],
+                "rate_limit": 200,
+                "rate_limit_window": 60,
+            },
             "score_entry": {
                 "name": "成绩录入",
                 "description": "教师录入成绩、Excel导入、排名计算",
