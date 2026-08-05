@@ -470,14 +470,17 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("就绪", 3000)
 
     def _update_semester_display(self):
-        """更新顶部栏学期显示（从数据库读取当前激活学期）"""
+        """更新顶部栏学期显示（从数据库读取当前激活学期，统一格式）"""
         if self.session is None:
             return
-        from edu_system.services.semester import SemesterService
+        from edu_system.services.semester import SemesterService, format_semester_label
+
         svc = SemesterService(self.session)
         current = svc.get_active()
         if current:
-            self.topbar.set_semester(current.label)
+            # 统一样式：2024-2025学年度第一学期（不依赖存储 label，兼容存量）
+            ay_name = current.academic_year.name if current.academic_year else ""
+            self.topbar.set_semester(format_semester_label(ay_name, current.semester))
         else:
             self.topbar.set_semester("未设置当前学期")
 

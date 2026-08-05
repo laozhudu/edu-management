@@ -86,6 +86,13 @@ class Semester(Base):
     classrooms = relationship("Classroom", back_populates="semester")
     classes = relationship("Class", back_populates="semester")
 
+    @property
+    def display_label(self) -> str:
+        """统一显示样式：2024-2025学年度第一学期（不依赖存储 label，兼容存量）"""
+        ay_name = self.academic_year.name if self.academic_year else f"{self.year_start}-{self.year_start + 1}"
+        cn = {"1": "一", "2": "二", "3": "三", "4": "四"}.get(str(self.semester), str(self.semester))
+        return f"{ay_name}学年度第{cn}学期"
+
 
 class Subject(Base):
     __tablename__ = "subjects"
