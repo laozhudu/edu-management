@@ -933,6 +933,29 @@ class FieldDefinition(Base):
     __table_args__ = (UniqueConstraint("entity_type", "field_key", name="uq_field_definition"),)
 
 
+class ReportTemplate(Base):
+    """报表模板（M5-D5）：名称/类型/文件路径/版本/变量列表"""
+
+    __tablename__ = "report_templates"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(100), nullable=False, comment="模板名称")
+    template_type = Column(
+        String(20), nullable=False, default="excel", comment="excel/word/certificate"
+    )
+    file_path = Column(String(300), nullable=False, comment="模板文件相对路径")
+    version = Column(Integer, nullable=False, default=1, comment="版本号（每次更新+1）")
+    variables = Column(Text, nullable=True, comment="变量列表，JSON 数组 [{key,label}]")
+    description = Column(String(300), nullable=True, default="")
+    is_active = Column(Boolean, default=True, comment="是否启用")
+    created_by = Column(String(50), nullable=True, default="")
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    __table_args__ = (
+        UniqueConstraint("name", "version", name="uq_report_template_version"),
+        Index("idx_report_template_name", "name"),
+    )
+
+
 # 通用扩展列混入：各业务表加 ext_json 存自定义字段（SQLite JSON1 支持 json_extract 查询）
 def _ext_json_column() -> Column:
     """返回通用 ext_json 扩展列定义（JSON 文本）"""
