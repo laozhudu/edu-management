@@ -232,7 +232,12 @@ class TestExamManagePage:
         rp = client.post(
             "/api/exam",
             headers=auth_headers,
-            json={"name": "详情测试考试", "exam_type": "midterm", "start_date": "2025-04-01", "end_date": "2025-04-02"},
+            json={
+                "name": "详情测试考试",
+                "exam_type": "midterm",
+                "start_date": "2025-04-01",
+                "end_date": "2025-04-02",
+            },
         )
         assert rp.status_code in (200, 201)
         eid = rp.json()["id"]
@@ -272,3 +277,38 @@ class TestSystemConfigPage:
         data = r.json()
         assert "total" in data
         assert "logs" in data
+
+
+class TestTeacherListPage:
+    def test_page_renders_teacher_list(self, client, auth_headers):
+        """/page/teachers/teacher_list 应渲染 teacher_list.html（含 teacherManage 组件）"""
+        r = client.get("/page/teachers/teacher_list", headers=auth_headers)
+        assert r.status_code == 200
+        assert "teacherManage" in r.text
+        assert "/api/teachers" in r.text
+
+    def test_teachers_list_api(self, client, auth_headers):
+        """教师列表 API（分页/搜索/职称筛选）"""
+        r = client.get("/api/teachers", headers=auth_headers, params={"page": 1, "page_size": 10})
+        assert r.status_code == 200
+        data = r.json()
+        assert "items" in data
+        assert "total" in data
+        assert data["page"] == 1
+
+    def test_teachers_filter_title(self, client, auth_headers):
+        """按职称筛选"""
+        r = client.get("/api/teachers", headers=auth_headers, params={"title": "高级"})
+        assert r.status_code == 200
+        for item in r.json()["items"]:
+            assert item["title"] == "高级"
+
+    def test_teachers_assignments_flow(self, client, auth_headers):
+        """教师任课安排 API"""
+        r = client.get("/api/teachers", headers=auth_headers, params={"page_size": 1})
+        teacher = r.json()["items"][0]
+        ra = client.get(f"/api/teachers/{teacher['id']}/assignments", headers=auth_headers)
+        assert ra.status_code == 200
+        data = ra.json()
+        assert data["teacher_id"] == teacher["id"]
+        assert "assignments" in data

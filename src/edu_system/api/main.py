@@ -110,9 +110,11 @@ def create_app() -> FastAPI:
         score,
         semester_inherit,
         students,
+        teachers,
     )
 
     app.include_router(students.router, prefix="/api")
+    app.include_router(teachers.router, prefix="/api")
     app.include_router(semester_inherit.router, prefix="/api")
     app.include_router(locks.router, prefix="/api")
     app.include_router(import_export.router, prefix="/api")

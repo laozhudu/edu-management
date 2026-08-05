@@ -149,6 +149,16 @@ class ServiceRegistry:
                 "rate_limit": 200,
                 "rate_limit_window": 60,
             },
+            "teachers": {
+                "name": "教师管理",
+                "description": "教师档案、任课安排、排课",
+                "api_prefix": "/api/teachers",
+                "enabled": True,
+                "required_permissions": ["teacher:view"],
+                "allowed_roles": ["teacher", "director", "admin"],
+                "rate_limit": 100,
+                "rate_limit_window": 60,
+            },
         }
 
         for code, config in default_services.items():
@@ -197,6 +207,7 @@ class ServiceRegistry:
                     "admin_api",
                     "audit",
                     "parent_notify",
+                    "teachers",
                     "stats",
                 ]
             )
@@ -357,6 +368,16 @@ class ServiceRegistry:
                 "required_permissions": ["stats:view"],
                 "allowed_roles": ["teacher", "director", "admin", "student", "parent"],
                 "rate_limit": 200,
+                "rate_limit_window": 60,
+            },
+            "teachers": {
+                "name": "教师管理",
+                "description": "教师档案、任课安排、排课",
+                "api_prefix": "/api/teachers",
+                "enabled": True,
+                "required_permissions": ["teacher:view"],
+                "allowed_roles": ["teacher", "director", "admin"],
+                "rate_limit": 100,
                 "rate_limit_window": 60,
             },
         }
