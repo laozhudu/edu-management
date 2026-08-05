@@ -125,5 +125,6 @@
 - [x] M5-D5 报表模板管理服务（13 单测，PR #9）
 - [x] M5-D6 批量生成 Worker（7 单测，500 份 0.3s 基准，PR #10 合并）
 - [x] M5-D1 LoginDialog 记住我/自动登录（9 GUI 测试，PR #11 合并）
+- [x] 学期显示统一样式（2024-2025学年度第一学期，8 单测，PR #14 合并）
 - [x] M5-D4 状态栏局域网（7 GUI 测试，PR #12 合并）
-- [ ] M5-D2 导入向导 UI（8+3 GUI 测试，PR #13 待合并）
+- [x] M5-D2 导入向导 UI（8+3 GUI 测试 + xlsx 数字列修复 + requirements.lock 补 PyQtChart，PR #13 合并）
