@@ -65,8 +65,8 @@ class LoginDialog(QDialog):
         self._session = session
         self._user = None
         self._settings = QSettings(_SETTINGS_ORG, _SETTINGS_APP)
-        self.setWindowTitle("登录 — 教务管理系统")
-        self.setFixedSize(420, 420)
+        self.setWindowTitle("登录")
+        self.setFixedSize(400, 400)
         self.setModal(True)
         self._build_ui()
         self._load_remembered()
@@ -75,35 +75,24 @@ class LoginDialog(QDialog):
     # ── UI ──
     def _build_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(40, 30, 40, 24)
+        layout.setContentsMargins(44, 36, 44, 30)
         layout.setSpacing(12)
 
-        # 标题（居中）
-        title = QLabel("登  录")
-        title.setFont(font(15, True))
-        title.setAlignment(Qt.AlignHCenter)
-        layout.addWidget(title)
-
-        subtitle = QLabel("教务管理系统")
-        subtitle.setFont(font(9))
-        subtitle.setStyleSheet(f"color: {C['text_light']};")
-        subtitle.setAlignment(Qt.AlignHCenter)
-        layout.addWidget(subtitle)
-
-        layout.addSpacing(18)
+        # 整体垂直居中：上下各留弹性空间
+        layout.addStretch(1)
 
         # 用户名（可编辑下拉：记住的多用户直接选择）
         layout.addWidget(self._label("用户名"))
         self.username_combo = QComboBox()
         self.username_combo.setEditable(True)
         self.username_combo.setFont(font(10))
-        self.username_combo.setMinimumHeight(42)
+        self.username_combo.setMinimumHeight(46)
         self.username_combo.lineEdit().setPlaceholderText("请输入用户名")
         self.username_combo.setStyleSheet(
             f"""
             QComboBox {{
-                border: 1px solid {C["line"]}; border-radius: 5px;
-                padding: 0 10px; font-size: 10pt; background: {C["white"]};
+                border: 1px solid {C["line"]}; border-radius: 6px;
+                padding: 6px 10px; font-size: 10pt; background: {C["white"]};
             }}
             QComboBox:focus {{ border: 1px solid {C["accent_blue"]}; }}
             """
@@ -112,7 +101,7 @@ class LoginDialog(QDialog):
         layout.addWidget(self.username_combo)
 
         # 密码
-        layout.addSpacing(6)
+        layout.addSpacing(8)
         layout.addWidget(self._label("密码"))
         self.password_edit = QLineEdit()
         self.password_edit.setPlaceholderText("请输入密码")
@@ -201,6 +190,9 @@ class LoginDialog(QDialog):
         cancel_btn.clicked.connect(self.reject)
         layout.addWidget(cancel_btn)
 
+        # 整体垂直居中：底部弹性空间（与顶部对称）
+        layout.addStretch(1)
+
         # Enter 触发登录
         self.password_edit.returnPressed.connect(self._on_login)
         self.username_combo.lineEdit().returnPressed.connect(
@@ -223,12 +215,12 @@ class LoginDialog(QDialog):
     def _style_input(self, edit: QLineEdit):
         edit.setFont(font(10))
         edit.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-        edit.setMinimumHeight(42)
+        edit.setMinimumHeight(46)
         edit.setStyleSheet(
             f"""
             QLineEdit {{
-                border: 1px solid {C["line"]}; border-radius: 5px;
-                padding: 0 12px; font-size: 10pt; background: {C["white"]};
+                border: 1px solid {C["line"]}; border-radius: 6px;
+                padding: 6px 12px; font-size: 10pt; background: {C["white"]};
             }}
             QLineEdit:focus {{ border: 1px solid {C["accent_blue"]}; }}
             """
