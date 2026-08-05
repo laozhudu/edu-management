@@ -13,7 +13,7 @@ from datetime import date
 
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import Query, Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import NullPool
 
 from edu_system.config import settings
 from edu_system.core.audit import audit_init
@@ -32,7 +32,9 @@ def _create_engine():
     engine = create_engine(
         settings.DATABASE_URL,
         echo=False,
-        poolclass=StaticPool,  # 单连接池，避免多连接锁竞争
+        # 并发访问：每 session 独立连接（SQLite 多连接 + WAL 并发写）
+        # StaticPool 单连接仅适合单线程桌面；API 服务需多连接
+        poolclass=NullPool,  # 每操作新连接，避免连接复用竞争
         connect_args={
             "check_same_thread": False,
             "timeout": 30,
