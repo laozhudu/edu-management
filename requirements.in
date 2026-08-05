@@ -1,5 +1,6 @@
 # Core dependencies
 PyQt5==5.15.11
+PyQt-Fluent-Widgets==1.8.0
 
 # FastAPI & API
 fastapi==0.115.0
@@ -64,3 +65,6 @@ prometheus-client==0.20.0
 
 # Security
 cryptography==43.0.1
+
+# Frontend Build (for future use)
+# tailwindcss and other frontend deps are CDN-based
