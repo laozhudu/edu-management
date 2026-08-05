@@ -139,3 +139,11 @@ def semester_current_stats(db=Depends(get_db)):
         "teachers": db.query(Teacher).filter(Teacher.semester_id == semester_id).count(),
         "exams": db.query(Exam).filter(Exam.semester_id == semester_id).count(),
     }
+
+
+@router.get("/api/meta/services")
+def services_status():
+    """服务列表（启停状态，供系统设置页展示）"""
+    from edu_system.api.service_registry import service_registry
+
+    return {"services": service_registry.list_services()}

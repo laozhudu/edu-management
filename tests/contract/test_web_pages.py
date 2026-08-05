@@ -244,3 +244,31 @@ class TestExamManagePage:
         rl = client.get("/api/exam", headers=auth_headers, params={"page_size": 50})
         names = [e["name"] for e in rl.json()["items"]]
         assert "详情测试考试" in names
+
+
+class TestSystemConfigPage:
+    def test_page_renders_system_config(self, client, auth_headers):
+        """/page/system/system_config 应渲染 system_config.html（含 systemConfig 组件）"""
+        r = client.get("/page/system/system_config", headers=auth_headers)
+        assert r.status_code == 200
+        assert "systemConfig" in r.text
+        assert "/api/meta/services" in r.text
+
+    def test_services_list_api(self, client, auth_headers):
+        """服务列表 API（系统设置页数据源）"""
+        r = client.get("/api/meta/services", headers=auth_headers)
+        assert r.status_code == 200
+        services = r.json()["services"]
+        assert len(services) >= 10
+        codes = [s["service_code"] for s in services]
+        assert "score" in codes
+        assert "students" in codes
+        assert "audit" in codes
+
+    def test_audit_logs_api(self, client, auth_headers):
+        """审计日志 API（系统设置页数据源）"""
+        r = client.get("/api/audit/logs", headers=auth_headers, params={"limit": 5})
+        assert r.status_code == 200
+        data = r.json()
+        assert "total" in data
+        assert "logs" in data

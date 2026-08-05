@@ -119,6 +119,16 @@ class ServiceRegistry:
                 "rate_limit": 50,
                 "rate_limit_window": 60,
             },
+            "audit": {
+                "name": "审计日志",
+                "description": "服务访问日志查询",
+                "api_prefix": "/api/audit",
+                "enabled": True,
+                "required_permissions": ["system:audit"],
+                "allowed_roles": ["admin", "director"],
+                "rate_limit": 100,
+                "rate_limit_window": 60,
+            },
             "parent_notify": {
                 "name": "家长通知",
                 "description": "成绩单推送、通知发送、回执追踪",
@@ -185,6 +195,7 @@ class ServiceRegistry:
                     "students",
                     "report_export",
                     "admin_api",
+                    "audit",
                     "parent_notify",
                     "stats",
                 ]
@@ -316,6 +327,16 @@ class ServiceRegistry:
                 "required_permissions": ["system:admin"],
                 "allowed_roles": ["admin"],
                 "rate_limit": 50,
+                "rate_limit_window": 60,
+            },
+            "audit": {
+                "name": "审计日志",
+                "description": "服务访问日志查询",
+                "api_prefix": "/api/audit",
+                "enabled": True,
+                "required_permissions": ["system:audit"],
+                "allowed_roles": ["admin", "director"],
+                "rate_limit": 100,
                 "rate_limit_window": 60,
             },
             "parent_notify": {

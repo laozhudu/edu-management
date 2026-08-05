@@ -1,0 +1,120 @@
+<!-- 系统设置页（M5-G 双端一致：Web 端） -->
+{% extends "index.html" %}
+
+{% block title %}系统设置 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="space-y-4" x-data="systemConfig()">
+    <!-- 服务状态 -->
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">服务状态</h2>
+            <button class="btn btn-secondary btn-sm" @click="loadServices()">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                刷新
+            </button>
+        </div>
+        <div class="card-body grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <template x-for="s in services" :key="s.service_code">
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg flex items-center justify-between">
+                    <div>
+                        <div class="font-medium" x-text="s.name"></div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5" x-text="s.description"></div>
+                    </div>
+                    <span class="badge" :class="s.enabled ? 'badge-success' : 'badge-danger'" x-text="s.enabled ? '启用' : '停用'"></span>
+                </div>
+            </template>
+            <div class="text-center py-4 col-span-full" x-show="!services.length && !loadingServices">
+                <span class="skeleton-text"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 审计日志 -->
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">最近服务访问日志</h2>
+            <button class="btn btn-secondary btn-sm" @click="loadAudit()">刷新</button>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>时间</th>
+                        <th>服务</th>
+                        <th>方法</th>
+                        <th>路径</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="log in auditLogs" :key="log.id">
+                        <tr>
+                            <td class="whitespace-nowrap" x-text="log.created_at || '—'"></td>
+                            <td><span class="badge badge-primary" x-text="log.service_code || '—'"></span></td>
+                            <td x-text="log.method || '—'"></td>
+                            <td class="max-w-[300px] truncate" x-text="log.path || '—'"></td>
+                        </tr>
+                    </template>
+                    <tr x-show="!loadingAudit && auditLogs.length === 0">
+                        <td colspan="4" class="text-center py-8 text-gray-500 dark:text-gray-400">暂无审计日志</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function systemConfig() {
+        return {
+            services: [],
+            loadingServices: false,
+            auditLogs: [],
+            loadingAudit: false,
+            
+            async loadServices() {
+                this.loadingServices = true;
+                try {
+                    const resp = await fetch('/api/meta/services', {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        this.services = (await resp.json()).services || [];
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载服务状态失败:', e);
+                } finally {
+                    this.loadingServices = false;
+                }
+            },
+            
+            async loadAudit() {
+                this.loadingAudit = true;
+                try {
+                    const resp = await fetch('/api/audit/logs?limit=50', {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        this.auditLogs = resp.json().logs || [];
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载审计日志失败:', e);
+                } finally {
+                    this.loadingAudit = false;
+                }
+            },
+            
+            init() {
+                this.loadServices();
+                this.loadAudit();
+            }
+        };
+    }
+</script>
+{% endblock %}
