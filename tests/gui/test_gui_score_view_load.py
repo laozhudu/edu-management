@@ -50,7 +50,8 @@ def session():
     Base.metadata.create_all(engine)
     s = sessionmaker(bind=engine)()
     admin_role = Role(
-        name="admin", description="管理员",
+        name="admin",
+        description="管理员",
         permissions=",".join([p.value for p in Permission]),
     )
     s.add(admin_role)
@@ -61,9 +62,14 @@ def session():
     s.add(ay)
     s.flush()
     sem = Semester(
-        academic_year_id=ay.id, year_start=2024, semester="1",
-        label="2024-2025 第1学期", sort_order=1, is_active=True,
-        status=SemesterStatus.active, start_date=date(2024, 9, 1),
+        academic_year_id=ay.id,
+        year_start=2024,
+        semester="1",
+        label="2024-2025 第1学期",
+        sort_order=1,
+        is_active=True,
+        status=SemesterStatus.active,
+        start_date=date(2024, 9, 1),
         end_date=date(2025, 1, 15),
     )
     s.add(sem)
@@ -92,9 +98,7 @@ class TestScoreViewLoad:
         from edu_system.gui.views.registry import VIEW_REGISTRY, build_view
 
         # 找 score 模块对应的 view_id（score_entry 等）
-        score_ids = [
-            vid for vid, (mod, cls, _) in VIEW_REGISTRY.items() if mod.endswith("score")
-        ]
+        score_ids = [vid for vid, (mod, cls, _) in VIEW_REGISTRY.items() if mod.endswith("score")]
         if not score_ids:
             pytest.skip("registry 无成绩视图")
         view = build_view(score_ids[0], session)
