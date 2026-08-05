@@ -4,7 +4,20 @@
 
 from sqlalchemy.orm import Session
 
-from edu_system.models import Semester, SemesterStatus
+from edu_system.models import AcademicYear, Semester, SemesterStatus
+
+# 学期数字 → 中文（统一样式「2024-2025学年度第一学期」）
+_SEMESTER_CN = {"1": "一", "2": "二", "3": "三", "4": "四"}
+
+
+def format_semester_label(ay_name: str, semester_no: str | int) -> str:
+    """统一学期显示样式：2024-2025学年度第一学期
+
+    ay_name: 学年度名（如 2024-2025）
+    semester_no: 学期数字（1/2）
+    """
+    cn = _SEMESTER_CN.get(str(semester_no), str(semester_no))
+    return f"{ay_name}学年度第{cn}学期"
 
 
 class SemesterService:
@@ -47,7 +60,7 @@ class SemesterService:
         if not label:
             ay = self.session.query(AcademicYear).get(academic_year_id)
             if ay:
-                label = f"{ay.name} 第{semester}学期"
+                label = format_semester_label(ay.name, semester)
             else:
                 label = f"学期 {semester}"
         existing = (

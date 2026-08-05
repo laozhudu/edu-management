@@ -275,7 +275,7 @@ class SettingsView(QWidget):
             if hasattr(m, "_update_semester_display"):
                 m._update_semester_display()
             QMessageBox.information(
-                self, "完成", f"学期已创建: {sem.label}\n现在可以导入学生数据了。"
+                self, "完成", f"学期已创建: {sem.display_label}\n现在可以导入学生数据了。"
             )
             self._rebuild()
 
