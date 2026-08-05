@@ -78,6 +78,41 @@ class TestStudentScoresContract:
         )
         assert response.status_code in (200, 404, 403)
 
+    # ===== M5-E4 班级名单 =====
+
+    def test_class_roster(self):
+        """班级名单：只读列表（存在或不存在都返回合理状态）"""
+        response = self.client.get(
+            "/api/students/classes/1/students",
+            headers=self.headers,
+        )
+        assert response.status_code in (200, 404, 403)
+        if response.status_code == 200:
+            data = response.json()
+            assert "class_id" in data
+            assert "class_name" in data
+            assert "students" in data
+            assert "total" in data
+
+    def test_class_roster_search(self):
+        """班级名单搜索参数可接受"""
+        response = self.client.get(
+            "/api/students/classes/1/students",
+            params={"search": "张"},
+            headers=self.headers,
+        )
+        assert response.status_code in (200, 404, 403)
+
+    def test_class_roster_export(self):
+        """班级名单导出 CSV"""
+        response = self.client.get(
+            "/api/students/classes/1/students/export",
+            headers=self.headers,
+        )
+        assert response.status_code in (200, 404, 403)
+        if response.status_code == 200:
+            assert "text/csv" in response.headers.get("content-type", "")
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-x", "-v"])

@@ -10,12 +10,12 @@ from __future__ import annotations
 
 import time
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from edu_system.api.deps import get_current_user, get_db
-from edu_system.models import Exam, Score, Student, User
+from edu_system.models import Class, Exam, Score, Student, User
 
 router = APIRouter(prefix="/students", tags=["学生"])
 
@@ -153,3 +153,105 @@ def my_scores(
 def clear_score_cache() -> None:
     """清空缓存（测试/数据变更时调用）"""
     _cache.clear()
+
+
+# ===== M5-E4 班级名单 =====
+
+
+class ClassStudentItem(BaseModel):
+    id: int
+    student_no: str
+    name: str
+    gender: str | None
+    enroll_year: int | None
+    seat_no: str | None
+    phone: str | None
+
+
+class ClassRosterResponse(BaseModel):
+    class_id: int
+    class_name: str
+    grade_name: str
+    head_teacher: str
+    total: int
+    students: list[ClassStudentItem]
+
+
+@router.get("/classes/{class_id}/students", response_model=ClassRosterResponse)
+def class_roster(
+    class_id: int,
+    search: str | None = Query(None, description="按姓名/学号搜索"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """班级名单（M5-E4）：只读 + 搜索 + 可导出
+
+    返回指定班级学生列表，支持按姓名/学号模糊搜索。
+    导出走 /export?class_id= 端点（CSV）。
+    """
+    cls = db.query(Class).get(class_id)
+    if not cls:
+        raise HTTPException(status_code=404, detail="班级不存在")
+
+    query = db.query(Student).filter(Student.class_id == class_id)
+    if search:
+        like = f"%{search}%"
+        query = query.filter(
+            (Student.name.like(like)) | (Student.student_no.like(like))
+        )
+    students = query.order_by(Student.student_no).all()
+
+    return ClassRosterResponse(
+        class_id=cls.id,
+        class_name=cls.name or f"{cls.id}班",
+        grade_name=cls.grade.name if cls.grade else "",
+        head_teacher=cls.head_teacher or "",
+        total=len(students),
+        students=[
+            ClassStudentItem(
+                id=s.id,
+                student_no=s.student_no or "",
+                name=s.name,
+                gender=getattr(s, "gender", None),
+                enroll_year=getattr(s, "enroll_year", None),
+                seat_no=getattr(s, "seat_no", None),
+                phone=getattr(s, "phone", None),
+            )
+            for s in students
+        ],
+    )
+
+
+@router.get("/classes/{class_id}/students/export")
+def class_roster_export(
+    class_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """班级名单导出（M5-E4）：CSV 下载"""
+    from io import StringIO
+
+    from fastapi.responses import StreamingResponse
+
+    cls = db.query(Class).get(class_id)
+    if not cls:
+        raise HTTPException(status_code=404, detail="班级不存在")
+
+    students = (
+        db.query(Student).filter(Student.class_id == class_id).order_by(Student.student_no).all()
+    )
+    buf = StringIO()
+    buf.write("学号,姓名,性别,入学年份,座号\n")
+    for s in students:
+        buf.write(
+            f"{s.student_no or ''},{s.name},{getattr(s, 'gender', '') or ''},"
+            f"{getattr(s, 'enroll_year', '') or ''},{getattr(s, 'seat_no', '') or ''}\n"
+        )
+    buf.seek(0)
+
+    filename = f"class_{class_id}_roster.csv"
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
