@@ -49,7 +49,7 @@ def _make_dialog(session, username: str, password: str):
     from edu_system.gui.dialogs import LoginDialog
 
     dlg = LoginDialog(session)
-    dlg.username_edit.setText(username)
+    dlg.username_combo.setEditText(username)
     dlg.password_edit.setText(password)
     return dlg
 
@@ -76,7 +76,7 @@ def test_first_login_shows_default_hint(qapp, session):
     from edu_system.gui.dialogs import DEFAULT_ADMIN, DEFAULT_PASSWORD, LoginDialog
 
     dlg = LoginDialog(session)
-    assert dlg.username_edit.text() == DEFAULT_ADMIN
+    assert dlg.username_combo.currentText() == DEFAULT_ADMIN
     assert dlg.password_edit.text() == DEFAULT_PASSWORD
     assert DEFAULT_ADMIN in dlg.hint_label.text()
     assert DEFAULT_PASSWORD in dlg.hint_label.text()
@@ -115,7 +115,7 @@ def test_unknown_user_rejected(qapp, session):
     dlg = _make_dialog(session, "nobody", "x")
     dlg._on_login()
     assert dlg.result() != dlg.Accepted
-    assert "用户不存在" in dlg.error_label.text()
+    assert "用户名或密码错误" in dlg.error_label.text()
 
 
 def test_empty_input_rejected(qapp, session):
