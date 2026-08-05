@@ -65,8 +65,12 @@ class LoginDialog(QDialog):
         self._session = session
         self._user = None
         self._settings = QSettings(_SETTINGS_ORG, _SETTINGS_APP)
+        # 零代码 UI 配置：样式全部来自 config/ui_config.json 的 login 节
+        from edu_system.config.ui_config import get_config
+
+        self.cfg = get_config().login
         self.setWindowTitle("登录")
-        self.setFixedSize(400, 400)
+        self.setFixedSize(self.cfg.window_width, self.cfg.window_height)
         self.setModal(True)
         self._build_ui()
         self._load_remembered()
@@ -74,9 +78,11 @@ class LoginDialog(QDialog):
 
     # ── UI ──
     def _build_ui(self):
+        cfg = self.cfg
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(44, 36, 44, 30)
-        layout.setSpacing(12)
+        margins = tuple(int(x) for x in cfg.margins.split(","))
+        layout.setContentsMargins(*margins)
+        layout.setSpacing(cfg.spacing)
 
         # 整体垂直居中：上下各留弹性空间
         layout.addStretch(1)
@@ -85,14 +91,15 @@ class LoginDialog(QDialog):
         layout.addWidget(self._label("用户名"))
         self.username_combo = QComboBox()
         self.username_combo.setEditable(True)
-        self.username_combo.setFont(font(10))
-        self.username_combo.setMinimumHeight(46)
+        self.username_combo.setFont(font(cfg.input_font_size))
+        self.username_combo.setMinimumHeight(cfg.input_height)
         self.username_combo.lineEdit().setPlaceholderText("请输入用户名")
         self.username_combo.setStyleSheet(
             f"""
             QComboBox {{
-                border: 1px solid {C["line"]}; border-radius: 6px;
-                padding: 6px 10px; font-size: 10pt; background: {C["white"]};
+                border: 1px solid {C["line"]}; border-radius: {cfg.input_radius}px;
+                padding: 6px 10px; font-size: {cfg.input_font_size}pt;
+                background: {C["white"]};
             }}
             QComboBox:focus {{ border: 1px solid {C["accent_blue"]}; }}
             """
@@ -111,7 +118,7 @@ class LoginDialog(QDialog):
 
         # 首次使用提示（占位不挤压）
         self.hint_label = QLabel("")
-        self.hint_label.setFont(font(8))
+        self.hint_label.setFont(font(cfg.hint_font_size))
         self.hint_label.setStyleSheet(f"color: {C['accent_orange']};")
         self.hint_label.setAlignment(Qt.AlignHCenter)
         self.hint_label.setMinimumHeight(16)
@@ -121,18 +128,18 @@ class LoginDialog(QDialog):
 
         # 记住选项（居中一行，大间距避免挤压）
         row = QHBoxLayout()
-        row.setSpacing(20)
+        row.setSpacing(cfg.checkbox_spacing)
         self.remember_cb = QCheckBox("记住我")
-        self.remember_cb.setFont(font(9))
+        self.remember_cb.setFont(font(cfg.checkbox_font_size))
         self.remember_cb.setToolTip("记住用户名，下次自动填充（多用户可切换）")
         self.remember_cb.toggled.connect(self._on_remember_toggled)
         row.addWidget(self.remember_cb)
         self.remember_password_cb = QCheckBox("记住密码")
-        self.remember_password_cb.setFont(font(9))
+        self.remember_password_cb.setFont(font(cfg.checkbox_font_size))
         self.remember_password_cb.setToolTip("本机保存密码（自动登录需要）")
         row.addWidget(self.remember_password_cb)
         self.autologin_cb = QCheckBox("自动登录")
-        self.autologin_cb.setFont(font(9))
+        self.autologin_cb.setFont(font(cfg.checkbox_font_size))
         self.autologin_cb.setToolTip("下次启动免输入直接登录（需记住用户名+密码）")
         row.addWidget(self.autologin_cb)
         # 整体居中
@@ -146,15 +153,15 @@ class LoginDialog(QDialog):
 
         # 登录按钮（主按钮，紧随输入区）
         self.login_btn = QPushButton("登  录")
-        self.login_btn.setFont(font(11, True))
+        self.login_btn.setFont(font(cfg.login_font_size, True))
         self.login_btn.setCursor(Qt.PointingHandCursor)
-        self.login_btn.setMinimumHeight(42)
+        self.login_btn.setMinimumHeight(cfg.login_height)
         self.login_btn.setStyleSheet(
             f"""
             QPushButton {{
                 background: {C["accent_blue"]}; color: white;
-                border: none; border-radius: 6px;
-                padding: 0 0; font-size: 11pt;
+                border: none; border-radius: {cfg.login_radius}px;
+                padding: 0 0; font-size: {cfg.login_font_size}pt;
             }}
             QPushButton:hover {{ background: #2f89c9; }}
             QPushButton:pressed {{ background: #2471a3; }}
@@ -166,7 +173,7 @@ class LoginDialog(QDialog):
 
         # 错误提示（内联，主按钮下，占位不挤压）
         self.error_label = QLabel("")
-        self.error_label.setFont(font(9))
+        self.error_label.setFont(font(cfg.error_font_size))
         self.error_label.setStyleSheet(f"color: {C['accent_red']};")
         self.error_label.setAlignment(Qt.AlignHCenter)
         self.error_label.setMinimumHeight(20)
@@ -176,13 +183,13 @@ class LoginDialog(QDialog):
         layout.addSpacing(8)
         cancel_btn = QPushButton("取 消")
         cancel_btn.setCursor(Qt.PointingHandCursor)
-        cancel_btn.setFont(font(9))
-        cancel_btn.setMinimumHeight(30)
+        cancel_btn.setFont(font(cfg.cancel_font_size))
+        cancel_btn.setMinimumHeight(cfg.cancel_height)
         cancel_btn.setStyleSheet(
             f"""
             QPushButton {{
                 background: transparent; color: {C["text_light"]};
-                border: none; padding: 0 0; font-size: 9pt;
+                border: none; padding: 0 0; font-size: {cfg.cancel_font_size}pt;
             }}
             QPushButton:hover {{ color: {C["text"]}; }}
             """
@@ -205,22 +212,25 @@ class LoginDialog(QDialog):
         combo.view().setMinimumWidth(combo.width())
 
     def _label(self, text: str) -> QLabel:
+        cfg = self.cfg
         lbl = QLabel(text)
-        lbl.setFont(font(10, True))
+        lbl.setFont(font(cfg.label_font_size, cfg.label_bold))
         lbl.setStyleSheet(f"color: {C['text']};")
         lbl.setAlignment(Qt.Alignment(Qt.AlignHCenter | Qt.AlignVCenter))
         lbl.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         return lbl
 
     def _style_input(self, edit: QLineEdit):
-        edit.setFont(font(10))
+        cfg = self.cfg
+        edit.setFont(font(cfg.input_font_size))
         edit.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-        edit.setMinimumHeight(46)
+        edit.setMinimumHeight(cfg.input_height)
         edit.setStyleSheet(
             f"""
             QLineEdit {{
-                border: 1px solid {C["line"]}; border-radius: 6px;
-                padding: 6px 12px; font-size: 10pt; background: {C["white"]};
+                border: 1px solid {C["line"]}; border-radius: {cfg.input_radius}px;
+                padding: 6px 12px; font-size: {cfg.input_font_size}pt;
+                background: {C["white"]};
             }}
             QLineEdit:focus {{ border: 1px solid {C["accent_blue"]}; }}
             """

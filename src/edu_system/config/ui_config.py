@@ -87,12 +87,40 @@ class StatusBarConfig(BaseModel):
     right: list[dict[str, str]] = Field(default_factory=list)
 
 
+class LoginDialogConfig(BaseModel):
+    """登录框样式配置（零代码 UI 可配置）
+
+    所有可见元素样式集中在此，改 config/ui_config.json 即可调 UI，
+    无需改代码（G4 快捷验收路径）。
+    """
+
+    window_width: int = 400
+    window_height: int = 400
+    margins: str = "44, 36, 44, 30"  # 左, 上, 右, 下
+    spacing: int = 12
+    label_font_size: int = 10
+    label_bold: bool = True
+    input_font_size: int = 10
+    input_height: int = 46
+    input_radius: int = 6
+    checkbox_font_size: int = 9
+    checkbox_spacing: int = 20
+    login_font_size: int = 11
+    login_height: int = 42
+    login_radius: int = 6
+    cancel_font_size: int = 9
+    cancel_height: int = 30
+    hint_font_size: int = 8
+    error_font_size: int = 9
+
+
 class UIConfig(BaseModel):
     """顶级 UI 配置"""
 
     app: Any = None
     topbar: Any = None
     theme: Any = None
+    login: Any = None
     domains: list[dict[str, Any]] = Field(default_factory=list)
     statusbar: dict[str, list[dict[str, str]]] = Field(default_factory=dict)
 
@@ -101,11 +129,18 @@ class UIConfig(BaseModel):
 
     def model_post_init(self, __context: Any) -> None:
         # 延迟实例化子配置对象，避免循环导入
-        from .ui_config import AppConfig, StatusBarConfig, ThemeConfig, TopBarConfig
+        from .ui_config import (
+            AppConfig,
+            LoginDialogConfig,
+            StatusBarConfig,
+            ThemeConfig,
+            TopBarConfig,
+        )
 
         object.__setattr__(self, "app", AppConfig(**(self.app or {})))
         object.__setattr__(self, "topbar", TopBarConfig(**(self.topbar or {})))
         object.__setattr__(self, "theme", ThemeConfig(**(self.theme or {})))
+        object.__setattr__(self, "login", LoginDialogConfig(**(self.login or {})))
         object.__setattr__(self, "statusbar", StatusBarConfig(**(self.statusbar or {})))
         self._build_template_vars()
 
