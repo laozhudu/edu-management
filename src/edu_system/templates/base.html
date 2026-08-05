@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{% block title %}{{ config.get('app', {}).get('school_name', '教务管理系统') }}{% endblock %}</title>
+    
+    <!-- 预加载关键资源 -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+    
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                    },
+                },
+            },
+        }
+    </script>
+    
+    <!-- Alpine.js (轻量级响应式框架) -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Tabulator (高性能表格库) -->
+    <link href="https://unpkg.com/tabulator-tables@6.2/dist/css/tabulator_simple.min.css" rel="stylesheet">
+    <script type="module">
+        import { Tabulator } from 'https://unpkg.com/tabulator-tables@6.2/dist/js/tabulator_esm.min.js';
+        window.Tabulator = Tabulator;
+    </script>
+    
+    <!-- ECharts (图表库) -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    
+    <!-- 自定义样式 -->
+    <link rel="stylesheet" href="/static/css/base.css">
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-50 text-gray-900 antialiased" x-data="appInit()">
+    {% block body %}
+    {% endblock %}
+    
+    <!-- Alpine.js 初始化 -->
+    <script>
+        function appInit() {
+            return {
+                // 全局状态
+                sidebarOpen: false,
+                theme: 'light',
+                user: null,
+                semester: null,
+                services: {},
+                
+                // 初始化
+                init() {
+                    this.loadUser();
+                    this.loadSemester();
+                    this.loadServices();
+                    this.initTheme();
+                    this.initKeyboardShortcuts();
+                },
+                
+                async loadUser() {
+                    try {
+                        const resp = await fetch('/api/auth/me', {
+                            credentials: 'include'
+                        });
+                        if (resp.ok) {
+                            this.user = await resp.json();
+                        }
+                    } catch (e) {
+                        console.warn('Failed to load user:', e);
+                    }
+                },
+                
+                async loadSemester() {
+                    try {
+                        const resp = await fetch('/api/meta/semester/active', {
+                            credentials: 'include'
+                        });
+                        if (resp.ok) {
+                            this.semester = await resp.json();
+                        }
+                    } catch (e) {
+                        console.warn('Failed to load semester:', e);
+                    }
+                },
+                
+                async loadServices() {
+                    try {
+                        const resp = await fetch('/api/services', {
+                            credentials: 'include'
+                        });
+                        if (resp.ok) {
+                            this.services = await resp.json();
+                        }
+                    } catch (e) {
+                        console.warn('Failed to load services:', e);
+                    }
+                },
+                
+                initTheme() {
+                    const saved = localStorage.getItem('theme');
+                    if (saved) {
+                        this.theme = saved;
+                    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                        this.theme = 'dark';
+                    }
+                    this.applyTheme();
+                },
+                
+                applyTheme() {
+                    document.documentElement.classList.toggle('dark', this.theme === 'dark');
+                    localStorage.setItem('theme', this.theme);
+                },
+                
+                toggleTheme() {
+                    this.theme = this.theme === 'light' ? 'dark' : 'light';
+                    this.applyTheme();
+                },
+                
+                toggleSidebar() {
+                    this.sidebarOpen = !this.sidebarOpen;
+                },
+                
+                initKeyboardShortcuts() {
+                    document.addEventListener('keydown', (e) => {
+                        // Cmd/Ctrl + K: 命令面板
+                        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                            e.preventDefault();
+                            this.openCommandPalette();
+                        }
+                        // Escape: 关闭模态框/侧边栏
+                        if (e.key === 'Escape') {
+                            this.sidebarOpen = false;
+                            this.closeModals();
+                        }
+                    });
+                },
+                
+                openCommandPalette() {
+                    this.$dispatch('open-command-palette');
+                },
+                
+                closeModals() {
+                    this.$dispatch('close-modals');
+                },
+                
+                // 权限检查
+                hasPermission(perm) {
+                    return this.user?.permissions?.includes(perm) ?? false;
+                },
+                
+                // 格式化工具
+                formatDate(dateStr) {
+                    if (!dateStr) return '';
+                    return new Date(dateStr).toLocaleDateString('zh-CN');
+                },
+                
+                formatDateTime(dateStr) {
+                    if (!dateStr) return '';
+                    return new Date(dateStr).toLocaleString('zh-CN');
+                },
+                
+                // 通知
+                notify(message, type = 'info') {
+                    this.$dispatch('notify', { message, type });
+                },
+            };
+        }
+    </script>
+    
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
