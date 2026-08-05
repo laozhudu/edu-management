@@ -97,8 +97,17 @@ def create_app() -> FastAPI:
     # 注册路由
     app.include_router(stats.router, prefix="/api")
     app.include_router(scheduler.router, prefix="/api")
-    from edu_system.api.routes import attendance, auth, config, exam, meta, score
+    from edu_system.api.routes import (
+        attendance,
+        auth,
+        config,
+        exam,
+        meta,
+        score,
+        students,
+    )
 
+    app.include_router(students.router, prefix="/api")
     app.include_router(auth.router, prefix="/api")
     app.include_router(score.router, prefix="/api")
     app.include_router(attendance.router, prefix="/api")
