@@ -10,9 +10,11 @@
 
 from __future__ import annotations
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QSettings, Qt
 from PyQt5.QtWidgets import (
+    QCheckBox,
     QDialog,
+    QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
@@ -28,18 +30,32 @@ from edu_system.gui.theme import C, font
 DEFAULT_ADMIN = "admin"
 DEFAULT_PASSWORD = "admin123"
 
+# QSettings 存储键（记住我/自动登录）
+_SETTINGS_ORG = "edu_system"
+_SETTINGS_APP = "login"
+_KEY_REMEMBER = "remember_username"
+_KEY_USERNAME = "last_username"
+_KEY_AUTOLOGIN = "auto_login"
+
 
 class LoginDialog(QDialog):
-    """登录对话框：验证用户名/密码，成功后注入当前用户"""
+    """登录对话框：验证用户名/密码，成功后注入当前用户
+
+    - 记住我：QSettings 保存用户名，下次预填
+    - 自动登录：记住凭据后跳过对话框直接登录
+    - 键盘全流程：Tab 顺序 用户名→密码→记住我→登录，Enter 触发
+    """
 
     def __init__(self, session, parent=None):
         super().__init__(parent)
         self._session = session
         self._user = None
+        self._settings = QSettings(_SETTINGS_ORG, _SETTINGS_APP)
         self.setWindowTitle("登录 — 教务管理系统")
-        self.setFixedSize(420, 330)
+        self.setFixedSize(420, 380)
         self.setModal(True)
         self._build_ui()
+        self._load_remembered()
         self._ensure_default_admin()
 
     # ── UI ──
@@ -114,6 +130,19 @@ class LoginDialog(QDialog):
         cancel_btn.clicked.connect(self.reject)
         layout.addWidget(cancel_btn)
 
+        # 记住我/自动登录（QSettings 持久化）
+        row = QHBoxLayout()
+        row.setSpacing(6)
+        self.remember_cb = QCheckBox("记住用户名")
+        self.remember_cb.setFont(font(9))
+        self.remember_cb.toggled.connect(self._on_remember_toggled)
+        row.addWidget(self.remember_cb)
+        self.autologin_cb = QCheckBox("自动登录")
+        self.autologin_cb.setFont(font(9))
+        row.addWidget(self.autologin_cb)
+        row.addStretch()
+        layout.addLayout(row)
+
         # 错误提示（占位，不挤占布局）
         self.error_label = QLabel("")
         self.error_label.setFont(font(9))
@@ -151,6 +180,44 @@ class LoginDialog(QDialog):
         )
 
     # ── 逻辑 ──
+    def _load_remembered(self):
+        """加载记住的用户名与自动登录标记"""
+        remembered = self._settings.value(_KEY_REMEMBER, False, type=bool)
+        username = self._settings.value(_KEY_USERNAME, "", type=str)
+        auto = self._settings.value(_KEY_AUTOLOGIN, False, type=bool)
+        self.remember_cb.setChecked(remembered)
+        if remembered and username:
+            self.username_edit.setText(username)
+            self.password_edit.setFocus()
+        if auto:
+            self.autologin_cb.setChecked(True)
+
+    def _on_remember_toggled(self, checked: bool):
+        """记住我切换：勾选时立即保存用户名"""
+        if checked:
+            self._settings.setValue(_KEY_USERNAME, self.username_edit.text().strip())
+
+    def _save_remembered(self, username: str):
+        """登录成功后保存记住状态"""
+        if self.remember_cb.isChecked():
+            self._settings.setValue(_KEY_REMEMBER, True)
+            self._settings.setValue(_KEY_USERNAME, username)
+        else:
+            self._settings.setValue(_KEY_REMEMBER, False)
+            self._settings.setValue(_KEY_USERNAME, "")
+        self._settings.setValue(_KEY_AUTOLOGIN, self.autologin_cb.isChecked())
+
+    def has_auto_login(self) -> bool:
+        """是否有自动登录偏好（记住用户名 + 勾选自动登录）
+
+        密码不明文存储（安全），自动登录 = 预填用户名 + 聚焦密码框，
+        用户 Enter 即登录（键盘全流程可达）。
+        """
+        return (
+            self._settings.value(_KEY_AUTOLOGIN, False, type=bool)
+            and bool(self._settings.value(_KEY_USERNAME, "", type=str))
+        )
+
     def _ensure_default_admin(self):
         """确保 admin 有密码：无密码时用默认密码初始化（首次启动）"""
         from edu_system.models import User
@@ -191,6 +258,7 @@ class LoginDialog(QDialog):
         # 认证成功：注入当前用户
         set_current_user(user)
         self._user = user
+        self._save_remembered(username)
         self.accept()
 
     def _show_error(self, msg: str):
