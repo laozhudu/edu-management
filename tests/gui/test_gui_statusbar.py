@@ -61,18 +61,28 @@ def session():
     s.flush()
 
     sem1 = Semester(
-        academic_year_id=ay.id, year_start=2024, semester="1",
-        label="2024-2025 第1学期", sort_order=1, is_active=True,
-        status=SemesterStatus.active, start_date=date(2024, 9, 1),
+        academic_year_id=ay.id,
+        year_start=2024,
+        semester="1",
+        label="2024-2025 第1学期",
+        sort_order=1,
+        is_active=True,
+        status=SemesterStatus.active,
+        start_date=date(2024, 9, 1),
         end_date=date(2025, 1, 15),
     )
     s.add(sem1)
     s.flush()
 
     sem2 = Semester(
-        academic_year_id=ay.id, year_start=2024, semester="2",
-        label="2024-2025 第2学期", sort_order=2, is_active=False,
-        status=SemesterStatus.draft, start_date=date(2025, 2, 15),
+        academic_year_id=ay.id,
+        year_start=2024,
+        semester="2",
+        label="2024-2025 第2学期",
+        sort_order=2,
+        is_active=False,
+        status=SemesterStatus.draft,
+        start_date=date(2025, 2, 15),
         end_date=date(2025, 7, 15),
     )
     s.add(sem2)
@@ -147,6 +157,7 @@ class TestStatusBarNetwork:
 
     def test_toggle_server_starts_when_stopped(self, main_window, monkeypatch):
         """服务未运行：切换触发 start"""
+
         class FakeThread:
             def __init__(self):
                 self.calls = []
@@ -171,6 +182,7 @@ class TestStatusBarNetwork:
 
     def test_toggle_server_stops_when_running(self, main_window):
         """服务运行中：切换触发 stop"""
+
         class FakeThread:
             def __init__(self):
                 self.calls = []
