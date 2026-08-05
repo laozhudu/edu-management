@@ -34,8 +34,8 @@ document.addEventListener('alpine:init', () => {
                 
                 // 登录成功，保存 token
                 if (data.access_token) {
-                    // Token 会通过 HttpOnly Cookie 自动存储
-                    // 这里可以存储用户信息到 localStorage
+                    // Token 存 localStorage（页面 fetch 时通过 Authorization header 携带）
+                    localStorage.setItem('access_token', data.access_token);
                     if (data.user) {
                         localStorage.setItem('user', JSON.stringify(data.user));
                     }

@@ -80,7 +80,8 @@
                 async loadUser() {
                     try {
                         const resp = await fetch('/api/auth/me', {
-                            credentials: 'include'
+                            credentials: 'include',
+                            headers: authHeaders()
                         });
                         if (resp.ok) {
                             this.user = await resp.json();
@@ -93,7 +94,8 @@
                 async loadSemester() {
                     try {
                         const resp = await fetch('/api/meta/semester/active', {
-                            credentials: 'include'
+                            credentials: 'include',
+                            headers: authHeaders()
                         });
                         if (resp.ok) {
                             this.semester = await resp.json();
@@ -106,7 +108,8 @@
                 async loadServices() {
                     try {
                         const resp = await fetch('/api/services', {
-                            credentials: 'include'
+                            credentials: 'include',
+                            headers: authHeaders()
                         });
                         if (resp.ok) {
                             this.services = await resp.json();
@@ -166,6 +169,12 @@
                 // 权限检查
                 hasPermission(perm) {
                     return this.user?.permissions?.includes(perm) ?? false;
+                },
+                
+                // 认证头（从 localStorage 读 token）
+                authHeaders() {
+                    const token = localStorage.getItem('access_token');
+                    return token ? { 'Authorization': 'Bearer ' + token } : {};
                 },
                 
                 // 格式化工具
