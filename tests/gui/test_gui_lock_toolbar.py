@@ -50,9 +50,14 @@ def session():
     s.add(ay)
     s.flush()
     sem = Semester(
-        academic_year_id=ay.id, year_start=2024, semester="1",
-        label="2024-2025 第1学期", sort_order=1, is_active=True,
-        status=SemesterStatus.active, start_date=date(2024, 9, 1),
+        academic_year_id=ay.id,
+        year_start=2024,
+        semester="1",
+        label="2024-2025 第1学期",
+        sort_order=1,
+        is_active=True,
+        status=SemesterStatus.active,
+        start_date=date(2024, 9, 1),
         end_date=date(2025, 1, 15),
     )
     s.add(sem)
@@ -112,7 +117,8 @@ class TestLockToolbar:
         from edu_system.models import Role, User
 
         admin_role = Role(
-            name="admin", description="管理员",
+            name="admin",
+            description="管理员",
             permissions=",".join([p.value for p in Permission]),
         )
         session.add(admin_role)
@@ -139,7 +145,8 @@ class TestLockToolbar:
         from edu_system.services.locks import LockLevel
 
         admin_role = Role(
-            name="admin", description="管理员",
+            name="admin",
+            description="管理员",
             permissions=",".join([p.value for p in Permission]),
         )
         session.add(admin_role)
@@ -171,9 +178,7 @@ class TestLockToolbar:
         # 解锁后清空
         _fill(toolbar, etype="student", ids="1,2,3", level="hard", reason="批量测试")
         toolbar.unlock_btn.click()
-        remaining = (
-            session.query(DataLock).filter(DataLock.entity_type == "student").count()
-        )
+        remaining = session.query(DataLock).filter(DataLock.entity_type == "student").count()
         assert remaining == 0, f"解锁后应无锁，实际 {remaining}"
 
         session.rollback()
