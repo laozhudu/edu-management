@@ -102,6 +102,8 @@ def create_app() -> FastAPI:
         auth,
         config,
         exam,
+        import_export,
+        locks,
         meta,
         score,
         semester_inherit,
@@ -110,6 +112,8 @@ def create_app() -> FastAPI:
 
     app.include_router(students.router, prefix="/api")
     app.include_router(semester_inherit.router, prefix="/api")
+    app.include_router(locks.router, prefix="/api")
+    app.include_router(import_export.router, prefix="/api")
     app.include_router(auth.router, prefix="/api")
     app.include_router(score.router, prefix="/api")
     app.include_router(attendance.router, prefix="/api")
