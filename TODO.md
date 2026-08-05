@@ -124,6 +124,6 @@
 - [x] M5-D3 密度切换 + QSettings 持久化（6 单测，PR #8）
 - [x] M5-D5 报表模板管理服务（13 单测，PR #9）
 - [x] M5-D6 批量生成 Worker（7 单测，500 份 0.3s 基准，PR #10 合并）
-- [ ] M5-D1 LoginDialog（GUI 测试）
+- [x] M5-D1 LoginDialog 记住我/自动登录（9 GUI 测试，PR #11 合并）
 - [ ] M5-D4 状态栏局域网（GUI 测试）
 - [ ] M5-D2 导入向导 UI（最大任务）
