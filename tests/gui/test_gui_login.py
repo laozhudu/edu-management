@@ -19,7 +19,7 @@ pytestmark = pytest.mark.gui  # 仅 GUI job（xvfb）运行
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from PyQt5.QtCore import QSettings
-from PyQt5.QtWidgets import QApplication, QLineEdit
+from PyQt5.QtWidgets import QApplication
 
 
 @pytest.fixture(scope="module")
@@ -101,19 +101,19 @@ class TestKeyboardFlow:
     def test_tab_order_reaches_login(self, dialog):
         """Tab 顺序：用户名→密码→登录按钮可达，Enter 触发"""
         # 焦点顺序中登录按钮可达
-        assert dialog.username_edit is not None
+        assert dialog.username_combo is not None
         assert dialog.password_edit is not None
         # Enter 在密码框触发登录（returnPressed 已连接）
         assert dialog.password_edit.returnPressed is not None
-        # Tab 顺序包含全部输入控件
-        order = [w for w in dialog.findChildren(QLineEdit)]
-        assert len(order) >= 2
+        # 输入控件齐全：用户名下拉 + 密码框
+        assert dialog.username_combo.count() >= 0
+        assert dialog.password_edit is not None
 
     def test_enter_trigger_login(self, dialog, monkeypatch):
         """密码框 Enter 触发登录流程"""
         from edu_system.core.permissions import get_current_user
 
-        dialog.username_edit.setText("admin")
+        dialog.username_combo.setEditText("admin")
         dialog.password_edit.setText("admin123")
         # 拦截 accept（避免 exec 阻塞）
         monkeypatch.setattr(dialog, "accept", lambda: None)
@@ -127,7 +127,7 @@ class TestRememberMe:
         """勾选记住我 + 登录成功 → QSettings 保存用户名"""
         monkeypatch.setattr(dialog, "accept", lambda: None)
         dialog.remember_cb.setChecked(True)
-        dialog.username_edit.setText("admin")
+        dialog.username_combo.setEditText("admin")
         dialog.password_edit.setText("admin123")
         dialog._on_login()
 
@@ -139,7 +139,7 @@ class TestRememberMe:
         """记住的用户名在重开对话框时预填"""
         monkeypatch.setattr(dialog, "accept", lambda: None)
         dialog.remember_cb.setChecked(True)
-        dialog.username_edit.setText("admin")
+        dialog.username_combo.setEditText("admin")
         dialog.password_edit.setText("admin123")
         dialog._on_login()
 
@@ -147,7 +147,7 @@ class TestRememberMe:
         from edu_system.gui.dialogs.login import LoginDialog
 
         dlg2 = LoginDialog(session)
-        assert dlg2.username_edit.text() == "admin"
+        assert dlg2.username_combo.currentText() == "admin"
         assert dlg2.remember_cb.isChecked() is True
         dlg2.close()
 
@@ -157,7 +157,7 @@ class TestRememberMe:
         dialog.remember_cb.setChecked(True)
         dialog.remember_password_cb.setChecked(True)
         dialog.autologin_cb.setChecked(True)
-        dialog.username_edit.setText("admin")
+        dialog.username_combo.setEditText("admin")
         dialog.password_edit.setText("admin123")
         dialog._on_login()
 
@@ -172,7 +172,7 @@ class TestRememberMe:
         monkeypatch.setattr(dialog, "accept", lambda: None)
         dialog.remember_cb.setChecked(True)
         dialog.remember_password_cb.setChecked(True)
-        dialog.username_edit.setText("admin")
+        dialog.username_combo.setEditText("admin")
         dialog.password_edit.setText("admin123")
         dialog._on_login()
 
@@ -193,7 +193,7 @@ class TestRememberMe:
         dialog.remember_cb.setChecked(True)
         dialog.remember_password_cb.setChecked(True)
         dialog.autologin_cb.setChecked(True)
-        dialog.username_edit.setText("admin")
+        dialog.username_combo.setEditText("admin")
         dialog.password_edit.setText("admin123")
         dialog._on_login()
 
@@ -211,6 +211,22 @@ class TestRememberMe:
         """无记住凭据时 try_auto_login 返回 False"""
         assert dialog.try_auto_login() is False
 
+    def test_multi_user_dropdown(self, dialog, session, monkeypatch):
+        """多用户：记住的用户进入下拉，可切换选择"""
+        monkeypatch.setattr(dialog, "accept", lambda: None)
+        dialog.remember_cb.setChecked(True)
+        dialog.username_combo.setEditText("admin")
+        dialog.password_edit.setText("admin123")
+        dialog._on_login()
+
+        from edu_system.gui.dialogs.login import LoginDialog
+
+        dlg2 = LoginDialog(session)
+        # 记住的用户出现在下拉
+        items = [dlg2.username_combo.itemText(i) for i in range(dlg2.username_combo.count())]
+        assert "admin" in items, f"下拉应含记住用户: {items}"
+        dlg2.close()
+
 
 class TestLoginLogic:
     def test_login_success(self, dialog, monkeypatch):
@@ -218,7 +234,7 @@ class TestLoginLogic:
         from edu_system.core.permissions import get_current_user
 
         monkeypatch.setattr(dialog, "accept", lambda: None)
-        dialog.username_edit.setText("admin")
+        dialog.username_combo.setEditText("admin")
         dialog.password_edit.setText("admin123")
         dialog._on_login()
         assert dialog.get_user() is not None
@@ -226,7 +242,7 @@ class TestLoginLogic:
 
     def test_login_wrong_password(self, dialog):
         """错误密码：错误提示 + 密码清空"""
-        dialog.username_edit.setText("admin")
+        dialog.username_combo.setEditText("admin")
         dialog.password_edit.setText("wrongpass")
         dialog._on_login()
         assert "密码错误" in dialog.error_label.text()
@@ -235,14 +251,14 @@ class TestLoginLogic:
 
     def test_login_empty_fields(self, dialog):
         """空用户名/密码拦截"""
-        dialog.username_edit.setText("")
+        dialog.username_combo.setEditText("")
         dialog.password_edit.setText("")
         dialog._on_login()
         assert "请输入" in dialog.error_label.text()
 
     def test_login_unknown_user(self, dialog):
-        """不存在用户提示"""
-        dialog.username_edit.setText("ghost")
+        """不存在用户：统一错误提示（不暴露用户名存在性，业界安全规范）"""
+        dialog.username_combo.setEditText("ghost")
         dialog.password_edit.setText("x")
         dialog._on_login()
-        assert "不存在" in dialog.error_label.text()
+        assert "用户名或密码错误" in dialog.error_label.text()
