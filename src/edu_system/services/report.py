@@ -62,7 +62,7 @@ class ReportService:
         if not exam:
             raise ValueError(f"考试不存在: exam_id={exam_id}")
 
-        semester_label = exam.semester.label if exam.semester else ""
+        semester_label = exam.semester.display_label if exam.semester else ""
         grade_name = exam.grade.name if exam.grade else ""
 
         classes = sorted(set(s["class_name"] for s in ranked))
@@ -290,7 +290,7 @@ class ReportService:
         if not exam:
             raise ValueError(f"考试不存在: exam_id={exam_id}")
 
-        semester_label = exam.semester.label if exam.semester else ""
+        semester_label = exam.semester.display_label if exam.semester else ""
         grade_name = exam.grade.name if exam.grade else ""
 
         # 按班级分组
@@ -502,7 +502,7 @@ class ReportService:
         if not exam:
             raise ValueError(f"考试不存在: exam_id={exam_id}")
 
-        semester_label = exam.semester.label if exam.semester else ""
+        semester_label = exam.semester.display_label if exam.semester else ""
         grade_name = exam.grade.name if exam.grade else ""
 
         by_class = defaultdict(list)

@@ -160,11 +160,11 @@ class TestTopBar:
         """顶部栏仅显示当前学年学期（无搜索框/面包屑等其他字样）"""
         topbar = main_window.topbar
         texts = [lbl.text() for lbl in topbar.findChildren(QLabel) if lbl.text()]
-        assert texts == ["2024-2025 第1学期"], f"顶部栏应只有学期字样，实际: {texts}"
+        assert texts == ["2024-2025学年度第一学期"], f"顶部栏应只有学期字样，实际: {texts}"
 
     def test_semester_standard_format(self, main_window):
-        """学年度使用标准写法：2024-2025 第1学期"""
-        assert main_window.topbar.semester_label.text() == "2024-2025 第1学期"
+        """学年度使用统一写法：2024-2025学年度第一学期"""
+        assert main_window.topbar.semester_label.text() == "2024-2025学年度第一学期"
 
     def test_semester_not_green(self, main_window):
         """学期标签不使用绿色强调（业界审美：浅灰普通样式）"""

@@ -93,7 +93,7 @@ class SemesterView(QWidget):
         cl = QVBoxLayout(card)
         cl.setSpacing(3)
         if cur:
-            cl.addWidget(QLabel(f"当前学期: {cur.label}"))
+            cl.addWidget(QLabel(f"当前学期: {cur.display_label}"))
             # 直接统计在校生总数（不按semester_id，因为导入数据可能不匹配）
             total = self.session.query(Student).filter(Student.status == "在校").count()
             cl.addWidget(QLabel(f"在校学生: {total}人"))
@@ -187,7 +187,7 @@ class SemesterView(QWidget):
     def _edit_semester(self, sem):
         """编辑学期日期（不改变学年/学期名）"""
         dlg = QDialog(self)
-        dlg.setWindowTitle(f"编辑 - {sem.label}")
+        dlg.setWindowTitle(f"编辑 - {sem.display_label}")
         fl = QFormLayout(dlg)
         ds = QDateEdit(QDate(sem.start_date) if sem.start_date else QDate.currentDate())
         ds.setCalendarPopup(True)
@@ -210,7 +210,7 @@ class SemesterView(QWidget):
         ans = QMessageBox.question(
             self,
             "确认归档",
-            f"归档 '{sem.label}'？\n归档后该学期不再出现在活跃列表中，但所有数据保留。",
+            f"归档 '{sem.display_label}'？\n归档后该学期不再出现在活跃列表中，但所有数据保留。",
         )
         if ans == QMessageBox.Yes:
             sem.status = SemesterStatus.archived
@@ -285,7 +285,7 @@ class SemesterView(QWidget):
             g2l.setSpacing(4)
             g2l.addWidget(
                 QLabel(
-                    f"当前: {cur.label}  ({cur.semester})\n"
+                    f"当前: {cur.display_label}  ({cur.semester})\n"
                     f"新建第二学期 → 同学年，不升年级\n"
                     f"新建第一学期 → 跨学年，自动提示升年级"
                 )
@@ -318,14 +318,14 @@ class SemesterView(QWidget):
         row.addWidget(QLabel("源学期:"))
         src_cb = QComboBox()
         for s in sems:
-            src_cb.addItem(f"{s.label}", s.id)
+            src_cb.addItem(f"{s.display_label}", s.id)
         src_cb.setFont(font(9))
         src_cb.setMinimumWidth(160)
         row.addWidget(src_cb)
         row.addWidget(QLabel("→ 目标学期:"))
         tgt_cb = QComboBox()
         for s in sems:
-            tgt_cb.addItem(f"{s.label}", s.id)
+            tgt_cb.addItem(f"{s.display_label}", s.id)
         tgt_cb.setFont(font(9))
         tgt_cb.setMinimumWidth(160)
         row.addWidget(tgt_cb)
@@ -464,7 +464,7 @@ class SemesterView(QWidget):
                 QMessageBox.information(
                     self,
                     "初始学期",
-                    f"第一个学期: {sem.label}\n请依次操作: 导入学生 → 分配教师任课 → 配置教室",
+                    f"第一个学期: {sem.display_label}\n请依次操作: 导入学生 → 分配教师任课 → 配置教室",
                 )
 
             m = self.window()
@@ -505,7 +505,7 @@ class SemesterView(QWidget):
 
             msg = (
                 f"══ 跨学年人员变动总览 ══\n"
-                f"{old.label} → {sem.label}\n\n"
+                f"{old.display_label} → {sem.display_label}\n\n"
                 f"当前学生: {' / '.join(grade_counts)}\n"
                 f"已分配教师任课: {teacher_cs}条\n"
                 f"已配置教室: {classroom_cs}间\n\n"
@@ -564,7 +564,7 @@ class SemesterView(QWidget):
 
             msg = (
                 f"══ 同学年人员变动 ══\n"
-                f"{old.label} → {sem.label}\n\n"
+                f"{old.display_label} → {sem.display_label}\n\n"
                 f"当前学生: {' / '.join(grade_counts)}\n"
                 f"本学期学籍变动: {mvs}条\n"
                 f"教师任课: {teacher_cs}条(保留)\n"
