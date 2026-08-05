@@ -4,8 +4,12 @@
 
 from PyQt5.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDialog,
     QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
     QPushButton,
     QScrollArea,
     QTabWidget,
@@ -14,11 +18,204 @@ from PyQt5.QtWidgets import (
 )
 from sqlalchemy.orm import Session
 
+from edu_system.core.permissions import Permission, has_permission
+
 
 class BaseView(QWidget):
     def __init__(self, session: Session):
         super().__init__()
         self.session = session
+
+
+class LockToolbar(QWidget):
+    """数据锁定工具栏（C3）：锁定/解锁/批量/理由必填 + 权限控制
+
+    供 BaseView 派生视图复用：add_lock_toolbar() 挂载到工具栏区。
+    无 DATA_UNLOCK 权限时按钮全部禁用（权限控制）。
+    """
+
+    # 实体类型候选（与数据锁定 API 对齐）
+    ENTITY_TYPES = [
+        "student", "class", "score", "exam", "exam_scores",
+        "student_movement", "exam_numbers", "semester", "teacher",
+    ]
+
+    def __init__(self, session: Session, parent=None):
+        super().__init__(parent)
+        self.session = session
+        self._build_ui()
+        self._apply_permission()
+
+    def _build_ui(self):
+        lay = QHBoxLayout(self)
+        lay.setContentsMargins(4, 2, 4, 2)
+        lay.setSpacing(4)
+
+        lay.addWidget(QLabel("锁定:"))
+        self.type_cb = QComboBox()
+        self.type_cb.addItems(self.ENTITY_TYPES)
+        self.type_cb.setMaximumWidth(130)
+        lay.addWidget(self.type_cb)
+
+        lay.addWidget(QLabel("ID:"))
+        self.id_edit = QLineEdit()
+        self.id_edit.setPlaceholderText("实体ID（批量逗号分隔）")
+        self.id_edit.setMaximumWidth(140)
+        lay.addWidget(self.id_edit)
+
+        lay.addWidget(QLabel("级别:"))
+        self.level_cb = QComboBox()
+        self.level_cb.addItems(["hard", "soft", "semester"])
+        self.level_cb.setMaximumWidth(80)
+        lay.addWidget(self.level_cb)
+
+        lay.addWidget(QLabel("理由:"))
+        self.reason_edit = QLineEdit()
+        self.reason_edit.setPlaceholderText("锁定理由（必填）")
+        self.reason_edit.setMinimumWidth(150)
+        lay.addWidget(self.reason_edit)
+
+        self.lock_btn = QPushButton("加锁")
+        self.lock_btn.clicked.connect(self._do_lock)
+        lay.addWidget(self.lock_btn)
+
+        self.unlock_btn = QPushButton("解锁")
+        self.unlock_btn.clicked.connect(self._do_unlock)
+        lay.addWidget(self.unlock_btn)
+
+        self.status_btn = QPushButton("锁状态")
+        self.status_btn.clicked.connect(self._do_status)
+        lay.addWidget(self.status_btn)
+
+        lay.addStretch()
+
+    # ===== 权限控制 =====
+
+    def _apply_permission(self):
+        """无 DATA_UNLOCK 权限：禁用锁定/解锁操作（权限控制按钮）"""
+        allowed = has_permission(Permission.DATA_UNLOCK)
+        for btn in (self.lock_btn, self.unlock_btn):
+            btn.setEnabled(allowed)
+            if not allowed:
+                btn.setToolTip("需要 DATA_UNLOCK 权限")
+
+    # ===== 操作 =====
+
+    def _get_args(self) -> tuple | None:
+        """解析参数，返回 (entity_type, ids, level) 或 None"""
+        entity_type = self.type_cb.currentText()
+        raw = self.id_edit.text().strip()
+        if not raw:
+            QMessageBox.warning(self, "参数缺失", "请输入实体ID")
+            return None
+        try:
+            ids = [int(x.strip()) for x in raw.split(",") if x.strip()]
+        except ValueError:
+            QMessageBox.warning(self, "参数错误", "实体ID必须为数字，批量用逗号分隔")
+            return None
+        if not ids:
+            QMessageBox.warning(self, "参数缺失", "请输入有效实体ID")
+            return None
+        level = self.level_cb.currentText()
+        return entity_type, ids, level
+
+    def _get_reason(self) -> str | None:
+        """理由必填校验"""
+        reason = self.reason_edit.text().strip()
+        if not reason:
+            QMessageBox.warning(self, "理由必填", "请填写锁定理由")
+            return None
+        return reason
+
+    def _get_semester_id(self) -> int:
+        """取当前激活学期（锁定记录按学期隔离）"""
+        from edu_system.database import get_active_semester
+
+        sid = get_active_semester()
+        return sid or 0
+
+    def _do_lock(self):
+        from edu_system.services.locks import DataLockService, LockLevel
+
+        parsed = self._get_args()
+        if not parsed:
+            return
+        entity_type, ids, level = parsed
+        reason = self._get_reason()
+        if reason is None:
+            return
+
+        svc = DataLockService(self.session)
+        lock_level = LockLevel(level)
+        semester_id = self._get_semester_id()
+        # 从登录用户取操作人
+        from edu_system.core.permissions import get_current_user
+
+        user = get_current_user()
+        operator = user.username if user else "system"
+
+        created = 0
+        for eid in ids:
+            svc.lock(
+                semester_id=semester_id,
+                entity_type=entity_type,
+                entity_id=eid,
+                lock_level=lock_level,
+                locked_by=operator,
+                reason=reason,
+            )
+            created += 1
+        self.session.commit()
+        QMessageBox.information(self, "加锁完成", f"已锁定 {created} 个实体（{entity_type}）")
+
+    def _do_unlock(self):
+        from edu_system.services.locks import DataLockService
+
+        parsed = self._get_args()
+        if not parsed:
+            return
+        entity_type, ids, level = parsed
+
+        svc = DataLockService(self.session)
+        semester_id = self._get_semester_id()
+        unlocked = 0
+        for eid in ids:
+            svc.unlock(
+                semester_id=semester_id,
+                entity_type=entity_type,
+                entity_id=eid,
+                unlocker="gui",
+                force=True,
+            )
+            unlocked += 1
+        self.session.commit()
+        QMessageBox.information(self, "解锁完成", f"已解锁 {unlocked} 个实体（{entity_type}）")
+
+    def _do_status(self):
+        from edu_system.services.locks import DataLockService
+
+        parsed = self._get_args()
+        if not parsed:
+            return
+        entity_type, ids, _ = parsed
+
+        svc = DataLockService(self.session)
+        semester_id = self._get_semester_id()
+        lines = []
+        for eid in ids:
+            lock = svc.get_lock(semester_id=semester_id, entity_type=entity_type, entity_id=eid)
+            if lock:
+                lines.append(
+                    f"{entity_type}#{eid}: {lock.lock_level} | {lock.reason} | {lock.locked_by}"
+                )
+            else:
+                lines.append(f"{entity_type}#{eid}: 未锁定")
+        QMessageBox.information(self, "锁状态", "\n".join(lines) or "无锁定记录")
+
+
+def build_lock_toolbar(session: Session, parent=None) -> LockToolbar:
+    """便捷工厂：构造锁定工具栏（供各视图挂载）"""
+    return LockToolbar(session, parent)
 
 
 class ColumnSelectorDialog(QDialog):
