@@ -35,6 +35,8 @@ _SETTINGS_ORG = "edu_system"
 _SETTINGS_APP = "login"
 _KEY_REMEMBER = "remember_username"
 _KEY_USERNAME = "last_username"
+_KEY_REMEMBER_PASSWORD = "remember_password"
+_KEY_PASSWORD = "last_password"
 _KEY_AUTOLOGIN = "auto_login"
 
 
@@ -52,7 +54,7 @@ class LoginDialog(QDialog):
         self._user = None
         self._settings = QSettings(_SETTINGS_ORG, _SETTINGS_APP)
         self.setWindowTitle("登录 — 教务管理系统")
-        self.setFixedSize(420, 380)
+        self.setFixedSize(430, 430)
         self.setModal(True)
         self._build_ui()
         self._load_remembered()
@@ -61,10 +63,10 @@ class LoginDialog(QDialog):
     # ── UI ──
     def _build_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(32, 26, 32, 22)
-        layout.setSpacing(10)
+        layout.setContentsMargins(36, 28, 36, 24)
+        layout.setSpacing(12)
 
-        # 用户名
+        # 用户名（标签居中 + 输入框居中）
         layout.addWidget(self._label("用户名"))
         self.username_edit = QLineEdit()
         self.username_edit.setPlaceholderText("请输入用户名")
@@ -72,8 +74,8 @@ class LoginDialog(QDialog):
         self._style_input(self.username_edit)
         layout.addWidget(self.username_edit)
 
-        # 密码（与上方用户名框拉开间距，"密码"标签上方留白更足）
-        layout.addSpacing(22)
+        # 密码（与用户名框拉开间距）
+        layout.addSpacing(18)
         layout.addWidget(self._label("密码"))
         self.password_edit = QLineEdit()
         self.password_edit.setPlaceholderText("请输入密码")
@@ -81,23 +83,24 @@ class LoginDialog(QDialog):
         self._style_input(self.password_edit)
         layout.addWidget(self.password_edit)
 
-        # 默认账号提示（首次使用）
+        # 默认账号提示（首次使用，居中）
         self.hint_label = QLabel("")
         self.hint_label.setFont(font(9))
         self.hint_label.setStyleSheet(f"color: {C['accent_orange']};")
         self.hint_label.setAlignment(Qt.AlignHCenter)
         self.hint_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.hint_label.setMinimumHeight(20)
         layout.addWidget(self.hint_label)
 
-        layout.addSpacing(8)
+        layout.addSpacing(10)
 
-        # 登录按钮（占满整行，醒目，行高充足）
-        login_btn = QPushButton("登  录")
-        login_btn.setFont(font(11, True))
-        login_btn.setCursor(Qt.PointingHandCursor)
-        login_btn.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-        login_btn.setMinimumHeight(42)
-        login_btn.setStyleSheet(
+        # 登录按钮（占满整行，醒目，行高充足不挤压）
+        self.login_btn = QPushButton("登  录")
+        self.login_btn.setFont(font(11, True))
+        self.login_btn.setCursor(Qt.PointingHandCursor)
+        self.login_btn.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.login_btn.setMinimumHeight(42)
+        self.login_btn.setStyleSheet(
             f"""
             QPushButton {{
                 background: {C["accent_blue"]}; color: white;
@@ -108,11 +111,12 @@ class LoginDialog(QDialog):
             QPushButton:pressed {{ background: #2471a3; }}
             """
         )
-        login_btn.clicked.connect(self._on_login)
-        login_btn.setDefault(True)
-        layout.addWidget(login_btn)
+        self.login_btn.clicked.connect(self._on_login)
+        self.login_btn.setDefault(True)
+        layout.addWidget(self.login_btn)
 
-        # 取消按钮（次要，行高充足不挤压）
+        # 取消行整体下移，与登录行拉开美观间距
+        layout.addSpacing(16)
         cancel_btn = QPushButton("取 消")
         cancel_btn.setCursor(Qt.PointingHandCursor)
         cancel_btn.setFont(font(10))
@@ -130,24 +134,33 @@ class LoginDialog(QDialog):
         cancel_btn.clicked.connect(self.reject)
         layout.addWidget(cancel_btn)
 
-        # 记住我/自动登录（QSettings 持久化）
+        # 记住用户名/记住密码/自动登录（居中一行，QSettings 持久化）
+        layout.addSpacing(6)
         row = QHBoxLayout()
-        row.setSpacing(6)
+        row.setSpacing(18)
         self.remember_cb = QCheckBox("记住用户名")
         self.remember_cb.setFont(font(9))
         self.remember_cb.toggled.connect(self._on_remember_toggled)
         row.addWidget(self.remember_cb)
+        self.remember_password_cb = QCheckBox("记住密码")
+        self.remember_password_cb.setFont(font(9))
+        row.addWidget(self.remember_password_cb)
         self.autologin_cb = QCheckBox("自动登录")
         self.autologin_cb.setFont(font(9))
         row.addWidget(self.autologin_cb)
-        row.addStretch()
-        layout.addLayout(row)
+        # 整体居中（不加 stretch，靠对齐容器居中）
+        wrap = QHBoxLayout()
+        wrap.addStretch()
+        wrap.addLayout(row)
+        wrap.addStretch()
+        layout.addLayout(wrap)
 
-        # 错误提示（占位，不挤占布局）
+        # 错误提示（占位，不挤占布局，居中）
         self.error_label = QLabel("")
         self.error_label.setFont(font(9))
         self.error_label.setStyleSheet(f"color: {C['accent_red']};")
         self.error_label.setAlignment(Qt.AlignHCenter)
+        self.error_label.setMinimumHeight(18)
         layout.addWidget(self.error_label)
 
         # Enter 键触发登录
@@ -181,23 +194,32 @@ class LoginDialog(QDialog):
 
     # ── 逻辑 ──
     def _load_remembered(self):
-        """加载记住的用户名与自动登录标记"""
+        """加载记住的用户名/密码与自动登录标记"""
         remembered = self._settings.value(_KEY_REMEMBER, False, type=bool)
         username = self._settings.value(_KEY_USERNAME, "", type=str)
+        remember_pwd = self._settings.value(_KEY_REMEMBER_PASSWORD, False, type=bool)
+        password = self._settings.value(_KEY_PASSWORD, "", type=str)
         auto = self._settings.value(_KEY_AUTOLOGIN, False, type=bool)
         self.remember_cb.setChecked(remembered)
+        self.remember_password_cb.setChecked(remember_pwd)
         if remembered and username:
             self.username_edit.setText(username)
-            self.password_edit.setFocus()
+        if remember_pwd and password:
+            self.password_edit.setText(password)
         if auto:
             self.autologin_cb.setChecked(True)
+        # 焦点：有密码直接登录按钮，否则密码框
+        if remember_pwd and password:
+            self.login_btn.setFocus()
+        else:
+            self.password_edit.setFocus()
 
     def _on_remember_toggled(self, checked: bool):
-        """记住我切换：勾选时立即保存用户名"""
+        """记住用户名切换：勾选时立即保存用户名"""
         if checked:
             self._settings.setValue(_KEY_USERNAME, self.username_edit.text().strip())
 
-    def _save_remembered(self, username: str):
+    def _save_remembered(self, username: str, password: str):
         """登录成功后保存记住状态"""
         if self.remember_cb.isChecked():
             self._settings.setValue(_KEY_REMEMBER, True)
@@ -205,18 +227,35 @@ class LoginDialog(QDialog):
         else:
             self._settings.setValue(_KEY_REMEMBER, False)
             self._settings.setValue(_KEY_USERNAME, "")
+        if self.remember_password_cb.isChecked():
+            self._settings.setValue(_KEY_REMEMBER_PASSWORD, True)
+            self._settings.setValue(_KEY_PASSWORD, password)
+        else:
+            self._settings.setValue(_KEY_REMEMBER_PASSWORD, False)
+            self._settings.setValue(_KEY_PASSWORD, "")
         self._settings.setValue(_KEY_AUTOLOGIN, self.autologin_cb.isChecked())
 
     def has_auto_login(self) -> bool:
-        """是否有自动登录偏好（记住用户名 + 勾选自动登录）
-
-        密码不明文存储（安全），自动登录 = 预填用户名 + 聚焦密码框，
-        用户 Enter 即登录（键盘全流程可达）。
-        """
+        """是否有自动登录条件（记住用户名+记住密码+勾选自动登录）"""
         return (
             self._settings.value(_KEY_AUTOLOGIN, False, type=bool)
             and bool(self._settings.value(_KEY_USERNAME, "", type=str))
+            and bool(self._settings.value(_KEY_PASSWORD, "", type=str))
         )
+
+    def try_auto_login(self) -> bool:
+        """自动登录：凭记住的凭据直接登录（免弹框）
+
+        返回 True 表示自动登录成功（用户已注入），False 需手动登录。
+        """
+        if not self.has_auto_login():
+            return False
+        username = self._settings.value(_KEY_USERNAME, "", type=str)
+        password = self._settings.value(_KEY_PASSWORD, "", type=str)
+        self.username_edit.setText(username)
+        self.password_edit.setText(password)
+        self._on_login()
+        return self._user is not None
 
     def _ensure_default_admin(self):
         """确保 admin 有密码：无密码时用默认密码初始化（首次启动）"""
@@ -258,7 +297,7 @@ class LoginDialog(QDialog):
         # 认证成功：注入当前用户
         set_current_user(user)
         self._user = user
-        self._save_remembered(username)
+        self._save_remembered(username, password)
         self.accept()
 
     def _show_error(self, msg: str):
