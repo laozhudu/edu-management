@@ -4,7 +4,15 @@
 
 from datetime import date, datetime, time
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    WebSocket,
+    WebSocketDisconnect,
+    status,
+)
 from pydantic import BaseModel
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
@@ -252,7 +260,41 @@ def checkin(
     db.add(attendance)
     db.commit()
     db.refresh(attendance)
+    _push_checkin_event(attendance, status, student.name)
     return attendance
+
+
+def _push_checkin_event(attendance, status, student_name: str):
+    """打卡后推送实时事件给订阅者（同步路由内调用，离线自动入队）"""
+    try:
+        import asyncio
+
+        from edu_system.services.attendance_notifier import get_notifier
+
+        notifier = get_notifier()
+        event = {
+            "type": "attendance.checkin",
+            "data": {
+                "student_id": attendance.student_id,
+                "student_name": student_name,
+                "date": attendance.date.isoformat() if attendance.date else None,
+                "attendance_type": attendance.attendance_type,
+                "status": str(status),
+                "check_time": attendance.check_time.isoformat()
+                if attendance.check_time
+                else None,
+            },
+        }
+        # 尽力推送：有运行事件循环用 create_task，否则同步等待
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            asyncio.run(notifier.notify(event))
+        else:
+            loop.create_task(notifier.notify(event))
+    except Exception:
+        # 推送失败不影响主流程
+        pass
 
 
 @router.get("", response_model=AttendanceListResponse)
@@ -634,6 +676,33 @@ def attendance_alerts(
         "early_leave": [a for a in alerts if a.status == AttendanceStatus.early_leave],
         "absent": [a for a in alerts if a.status == AttendanceStatus.absent],
     }
+
+
+@router.websocket("/ws")
+async def attendance_ws(websocket: WebSocket):
+    """考勤实时推送（WebSocket，M5-E2）
+
+    连接后订阅考勤事件（checkin 时推送），断线重连自动补发离线期间事件。
+    鉴权：query 参数 token（?token=xxx，空 token 拒绝）。
+    """
+    from edu_system.services.attendance_notifier import get_notifier
+
+    token = websocket.query_params.get("token", "")
+    if not token:
+        await websocket.close(code=4401)
+        return
+
+    notifier = get_notifier()
+    await websocket.accept()
+    await notifier.register(websocket)
+    try:
+        while True:
+            # 保持连接；客户端心跳/消息（目前仅用于维持）
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        await notifier.unregister(websocket)
+    except Exception:
+        await notifier.unregister(websocket)
 
 
 if __name__ == "__main__":
