@@ -58,6 +58,18 @@ class BatchScoreCreate(BaseModel):
     scores: list[ScoreCreate]
 
 
+class PasteScoresRequest(BaseModel):
+    """Excel 粘贴录入：TSV/CSV 文本
+
+    每行: 学号<TAB>科目名<TAB>成绩[<TAB>是否补考(0/1)]
+    首行可含表头（自动跳过：学号/科目/成绩 关键字）
+    """
+
+    exam_id: int
+    text: str
+    delimiter: str = "\t"  # 支持 \t 或 ,
+
+
 class RankRequest(BaseModel):
     exam_id: int
     scope: str = "class"  # class/grade/school
@@ -305,6 +317,17 @@ def batch_create_scores(
     current_user: User = Depends(require_permission(Permission.SCORE_ENTRY)),
 ):
     """批量创建/更新成绩（Excel 导入）"""
+    # 锁定检查：考试级硬锁/软锁拦截批量写入（E1 验收「锁定」）
+    from edu_system.services.locks import DataLockService
+
+    exam_ids = {s.exam_id for s in batch_data.scores}
+    for eid in exam_ids:
+        lock = DataLockService.check_lock(db, "score", eid)
+        if lock and lock.lock_level.value == "hard":
+            raise HTTPException(status_code=403, detail=f"考试 {eid} 成绩已硬锁定，不可修改")
+        if lock and lock.lock_level.value == "soft" and current_user.role.name != "admin":
+            raise HTTPException(status_code=403, detail=f"考试 {eid} 成绩已软锁定，需管理员确认")
+
     results = []
     errors = []
 
@@ -352,6 +375,99 @@ def batch_create_scores(
         return {"created": len(results), "errors": errors}
 
     return results
+
+
+@router.post("/paste")
+def paste_scores(
+    request: PasteScoresRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission(Permission.SCORE_ENTRY)),
+):
+    """Excel 粘贴录入：TSV/CSV 文本 → 批量创建/更新成绩（E1）
+
+    每行: 学号<TAB>科目名<TAB>成绩[<TAB>补考(0/1)]
+    首行含表头自动跳过（学号/科目/成绩关键字）
+    返回: {created, updated, errors:[{row,error}]}
+    """
+    from edu_system.services.locks import DataLockService
+
+    delimeter = request.delimiter.replace("\\t", "\t")
+    lines = [ln.strip() for ln in request.text.strip().splitlines() if ln.strip()]
+    if not lines:
+        raise HTTPException(status_code=400, detail="粘贴内容为空")
+
+    # 跳过表头（首行含关键字）
+    head_kw = ("学号", "科目", "成绩", "姓名", "student", "subject", "score")
+    if any(k.lower() in lines[0].lower() for k in head_kw):
+        lines = lines[1:]
+
+    results, errors, updated = [], [], 0
+    for idx, line in enumerate(lines):
+        parts = [p.strip() for p in line.split(delimeter)]
+        if len(parts) < 3:
+            errors.append({"row": idx + 2, "error": f"列数不足: {len(parts)}（需 学号/科目/成绩）"})
+            continue
+        student_no, subject_name, score_str = parts[0], parts[1], parts[2]
+        is_makeup = parts[3] in ("1", "true", "是") if len(parts) > 3 else False
+
+        student = db.query(Student).filter(Student.student_no == student_no).first()
+        if not student:
+            errors.append({"row": idx + 2, "error": f"学号不存在: {student_no}"})
+            continue
+        subject = db.query(Subject).filter(Subject.name == subject_name).first()
+        if not subject:
+            errors.append({"row": idx + 2, "error": f"科目不存在: {subject_name}"})
+            continue
+        try:
+            score_val = float(score_str)
+        except ValueError:
+            errors.append({"row": idx + 2, "error": f"成绩非数字: {score_str}"})
+            continue
+
+        # 锁定检查（考试级）
+        lock = DataLockService.check_lock(db, "score", request.exam_id)
+        if lock and lock.lock_level.value == "hard":
+            errors.append({"row": idx + 2, "error": "成绩已硬锁定，不可修改"})
+            continue
+        if lock and lock.lock_level.value == "soft" and current_user.role.name != "admin":
+            errors.append({"row": idx + 2, "error": "成绩已软锁定，需管理员确认"})
+            continue
+
+        existing = (
+            db.query(Score)
+            .filter(
+                Score.exam_id == request.exam_id,
+                Score.student_id == student.id,
+                Score.subject_id == subject.id,
+            )
+            .first()
+        )
+        if existing:
+            existing.score = score_val
+            existing.is_makeup = is_makeup
+            updated += 1
+            results.append(existing)
+        else:
+            score = Score(
+                exam_id=request.exam_id,
+                student_id=student.id,
+                subject_id=subject.id,
+                score=score_val,
+                is_makeup=is_makeup,
+                is_published=False,
+            )
+            db.add(score)
+            results.append(score)
+
+    db.commit()
+    for s in results:
+        db.refresh(s)
+    return {
+        "created": len(results) - updated,
+        "updated": updated,
+        "errors": errors,
+        "total_rows": len(lines),
+    }
 
 
 @router.post("/rank")
