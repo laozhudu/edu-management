@@ -105,7 +105,12 @@ class ImportExportService:
         fmt = fmt or path.suffix.lstrip(".").lower()
         try:
             if fmt in ("xlsx", "xls"):
-                return pd.read_excel(path)
+                df = pd.read_excel(path)
+                # 数字列统一转字符串（学号等数字型标识符，质量校验要求 string）
+                for col in df.columns:
+                    if df[col].dtype in ("int64", "float64"):
+                        df[col] = df[col].astype(str)
+                return df
             if fmt == "csv":
                 return pd.read_csv(path, dtype=str)
             if fmt == "json":
