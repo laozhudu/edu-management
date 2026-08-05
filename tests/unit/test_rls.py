@@ -71,8 +71,21 @@ class TestPolicyCRUD:
 
 class TestApplyScope:
     def _seed(self, session):
+        from edu_system.models import Semester, AcademicYear
+        from datetime import date
+        
+        # 先创建学年
+        ay = AcademicYear(name="2024-2025", sort_order=0, is_active=True)
+        session.add(ay)
+        session.flush()
+        
+        # 创建学期
+        sem = Semester(academic_year_id=1, year_start=2024, semester="1", label="测试学期", sort_order=1, is_active=True, status="active")
+        session.add(sem)
+        session.flush()
+        
         for cid, name in [(1, "一班"), (2, "二班")]:
-            session.add(Student(name=name, class_id=cid, semester_id=0))
+            session.add(Student(name=name, class_id=cid, semester_id=sem.id))
         session.commit()
 
     def test_all_scope_no_filter(self, session, rls):
