@@ -1,28 +1,12 @@
 """
-报表生成服务 — 从数据库直接生成 Excel/Word 报表
+统计 API 路由 — 学期统计查询 / 缓存管理 / 幂等重算触发
 """
 
-from collections import defaultdict
 import hashlib
 import time
+from datetime import datetime
+from typing import Optional
 
-from docx import Document
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.enum.table import WD_TABLE_ALIGNMENT
-from docx.oxml.ns import qn
-from docx.shared import Pt, Cm, RGBColor
-from openpyxl import Workbook
-from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
-from sqlalchemy.orm import Session
-from typing import Any
-
-from edu_system.api.deps import require_permission
-from edu_system.core.permissions import Permission
-from edu_system.database import get_active_semester, get_session
-from edu_system.models import Exam, Semester, SemesterStatsCache
-from edu_system.services.cache import bump_cache_version, cache_service, invalidate_stats_cache
-from edu_system.services.score import ScoreService
-from edu_system.services.statistics import StatisticsWorker
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -34,8 +18,13 @@ from fastapi import (
     Response,
 )
 from fastapi.responses import StreamingResponse
-from sqlalchemy import func
 from sqlalchemy.orm import Session
+
+from edu_system.api.deps import require_permission
+from edu_system.core.permissions import Permission
+from edu_system.database import get_active_semester, get_session
+from edu_system.models import Semester, SemesterStatsCache
+from edu_system.services.cache import bump_cache_version, cache_service, invalidate_stats_cache
 
 router = APIRouter(prefix="/stats", tags=["统计数据"])
 
@@ -53,8 +42,6 @@ def get_current_semester() -> int:
 
 # ===== 幂等键存储（内存，实际可用 Redis） =====
 from collections import defaultdict
-import hashlib
-import time
 
 _idempotency_store = defaultdict(dict)
 _IDEMPOTENCY_TTL = 3600  # 1 小时
@@ -81,9 +68,6 @@ def _store_idempotency(key: str, result: dict):
 
 
 # ===== 统计重算触发接口 =====
-
-from typing import Any, Optional
-
 _worker_instance: Optional["StatisticsWorker"] = None
 
 
@@ -242,35 +226,6 @@ def get_cache(
     return stats
 
 
-# ===== 幂等键存储（内存，实际可用 Redis） =====
-from collections import defaultdict
-import hashlib
-import time
-
-_idempotency_store = defaultdict(dict)
-_IDEMPOTENCY_TTL = 3600  # 1 小时
-
-
-def _check_idempotency(key: str) -> tuple[bool, dict | None]:
-    """检查幂等键，返回 (是否已存在, 存储的结果)"""
-    now = time.time()
-    if key in _idempotency_store:
-        entry = _idempotency_store[key]
-        if now - entry["timestamp"] < _IDEMPOTENCY_TTL:
-            return True, entry["result"]
-        else:
-            del _idempotency_store[key]
-    return False, None
-
-
-def _store_idempotency(key: str, result: dict):
-    """存储幂等结果"""
-    _idempotency_store[key] = {
-        "result": result,
-        "timestamp": time.time(),
-    }
-
-
 @router.post("/recompute", status_code=200)
 def trigger_recompute_idempotent(
     request: Request,
@@ -398,192 +353,6 @@ def get_worker_status():
         "mode": worker._mode,
         "cancelled": worker._cancelled,
     }
-
-
-# ===== 缓存管理接口 =====
-
-
-@router.get("/cache/stats")
-def get_cache_statistics():
-    """获取缓存统计信息"""
-    from edu_system.services.cache import cache_service
-
-    return cache_service.get_stats()
-
-
-@router.post("/cache/bump-version")
-def bump_cache_version_api():
-    """手动递增缓存版本（使所有缓存失效）"""
-    new_version = bump_cache_version()
-    return {"message": "缓存版本已递增", "new_version": cache_service.get_version()}
-
-
-@router.post("/cache/invalidate")
-def invalidate_cache(
-    semester_id: int | None = None,
-    tags: list[str] | None = None,
-):
-    """失效统计缓存"""
-    sem_id = semester_id or get_active_semester()
-    invalidate_stats_cache(semester_id=sem_id, tags=tags)
-    return {"message": "缓存已失效", "semester_id": semester_id, "tags": tags}
-
-
-@router.get("/cache/version")
-def get_cache_version():
-    """获取当前缓存版本"""
-    from edu_system.services.cache import cache_service
-
-    return {"version": cache_service.get_version()}
-
-
-@router.get("/cache")
-def get_cache(
-    request: Request,
-    response: Response,
-):
-    """获取缓存统计（支持 ETag/304）"""
-    from edu_system.services.cache import cache_service
-
-    stats = cache_service.get_stats()
-    etag = f'W/"{cache_service.get_version()}"'
-
-    if_none_match = request.headers.get("If-None-Match")
-    if if_none_match and if_none_match == etag:
-        return Response(status_code=304, headers={"ETag": etag})
-
-    response.headers["ETag"] = etag
-    return stats
-
-
-@router.post("/recompute", status_code=200)
-def trigger_recompute_idempotent(
-    request: Request,
-    background_tasks: BackgroundTasks,
-    body: dict = Body(default={}),
-    mode: str = "full",
-    current_user: dict = Depends(require_permission(Permission.SYSTEM_ADMIN)),
-):
-    """
-    幂等重算触发（M5-B4）
-
-    - Idempotency-Key 头：相同键返回缓存结果（1 小时内）
-    - mode=full: 全量重算
-    - mode=incremental: 增量重算（需 dirty_entities）
-    - 返回: {"status": "started"|"completed", "message": "...", "task_id": "..."}
-    """
-    idempotency_key = request.headers.get("Idempotency-Key")
-    if not idempotency_key:
-        raise HTTPException(
-            status_code=400,
-            detail="缺少 Idempotency-Key 头，请提供幂等键以防止重复提交",
-        )
-
-    exists, cached_result = _check_idempotency(idempotency_key)
-    if exists and cached_result is not None:
-        cached = dict(cached_result)
-        cached["status"] = "completed"
-        cached["message"] = "幂等键已存在，返回缓存结果"
-        cached["task_id"] = idempotency_key
-        return cached
-
-    task_id = hashlib.sha256(f"{idempotency_key}:{time.time()}".encode()).hexdigest()[:16]
-
-    worker = get_worker()
-
-    dirty_entities = body.get("dirty_entities") if body else None
-
-    if mode == "full":
-        worker.start_full(
-            progress_cb=lambda p, m: None,
-            finished_cb=lambda m: invalidate_stats_cache(),
-            error_cb=lambda e: print(f"[重算错误] {e}"),
-        )
-        result = {"message": "全量重算已在后台启动", "task": "full_recompute", "task_id": task_id}
-    elif mode == "incremental":
-        if not dirty_entities:
-            raise HTTPException(status_code=400, detail="incremental 模式需要 dirty_entities")
-        worker.start_incremental(
-            dirty_entities=dirty_entities,
-            progress_cb=lambda p, m: None,
-            finished_cb=lambda m: invalidate_stats_cache(),
-            error_cb=lambda e: print(f"错误: {e}"),
-        )
-        result = {"message": "增量重算已启动", "count": len(dirty_entities), "task_id": task_id}
-    else:
-        raise HTTPException(status_code=400, detail="mode 必须是 'full' 或 'incremental'")
-
-    result["status"] = "started"
-    _store_idempotency(idempotency_key, result)
-
-    return {"status": "started", **result}
-
-
-@router.post("/recompute/full")
-def trigger_full_recompute(
-    background_tasks: BackgroundTasks,
-    current_user: dict = Depends(require_permission(Permission.SYSTEM_ADMIN)),
-):
-    """触发全量统计重算（后台任务）"""
-    worker = get_worker()
-
-    def on_finished(message: str):
-        invalidate_stats_cache()
-
-    def on_error(error: str):
-        print(f"[重算错误] {error}")
-
-    worker.start_full(
-        progress_cb=lambda p, m: None,
-        finished_cb=lambda m: invalidate_stats_cache(),
-        error_cb=lambda e: print(f"错误: {e}"),
-    )
-
-    return {"message": "全量重算已在后台启动", "task": "full_recompute"}
-
-
-@router.post("/recompute/incremental")
-def trigger_incremental_recompute(
-    dirty_entities: list[dict],
-    background_tasks: BackgroundTasks,
-    current_user: dict = Depends(require_permission(Permission.SYSTEM_ADMIN)),
-):
-    """
-    触发增量重算
-    dirty_entities 格式: [{"entity_type": "class", "entity_id": 1}, {"entity_type": "exam", "entity_id": 5, "exam_id": 3}]
-    """
-    worker = get_worker()
-
-    worker.start_incremental(
-        dirty_entities=dirty_entities,
-        progress_cb=lambda p, m: None,
-        finished_cb=lambda m: invalidate_stats_cache(),
-        error_cb=lambda e: print(f"错误: {e}"),
-    )
-
-    return {"message": "增量重算已启动", "count": len(dirty_entities)}
-
-
-@router.post("/recompute/cancel")
-def cancel_recompute():
-    """取消正在进行的重算任务"""
-    worker = get_worker()
-    worker.cancel()
-    return {"message": "已发送取消信号"}
-
-
-@router.get("/recompute/worker/status")
-def get_worker_status():
-    """获取 Worker 状态"""
-    worker = get_worker()
-    return {
-        "running": (
-            worker._thread is not None and worker._thread.isRunning() if worker._thread else False
-        ),
-        "mode": worker._mode,
-        "cancelled": worker._cancelled,
-    }
-
 
 # ===== 统计数据导出 =====
 
