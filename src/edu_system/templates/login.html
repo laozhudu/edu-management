@@ -2,9 +2,16 @@
 
 {% block title %}登录 - {% endblock %}
 
+{% block extra_head %}
+<!-- 登录页面专用样式 -->
+<style>
+    /* 登录页面特有样式 */
+</style>
+{% endblock %}
+
 {% block body %}
 <div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4 py-12">
-    <div class="max-w-md w-full space-y-8 p-8 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+    <div class="max-w-md w-full space-y-8 p-8 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700" x-data="loginForm">
         <div class="text-center">
             <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
                 {% if config.app.school_name %}{{ config.app.school_name }}{% else %}教务管理系统{% endif %}
@@ -102,7 +109,7 @@
 
 <!-- 全局错误提示 -->
 <div x-data="{ error: null }" 
-     x-init="$watch('$store.error', v => { if(v) this.error = v; })"
+     x-init="$watch('\$store.error', v => { if(v) this.error = v; })"
      x-show="error"
      class="fixed top-4 right-4 z-50 animate-slide-in"
      style="display: none;">
@@ -111,16 +118,93 @@
         <button @click="error = null" class="ml-4 text-white hover:text-gray-200">×</button>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_scripts %}
+<!-- 登录页面专用脚本 - 必须在 Alpine.js 之后加载以注册组件 -->
 <script>
+document.addEventListener('alpine:init', () => {
     // 全局错误存储
-    document.addEventListener('alpine:init', () => {
-        Alpine.store('error', null);
-        
-        // 监听全局错误事件
-        window.addEventListener('notify', (e) => {
-            Alpine.store('error', e.detail.message);
-        });
+    Alpine.store('error', null);
+    
+    // 监听全局错误事件
+    window.addEventListener('notify', (e) => {
+        Alpine.store('error', e.detail.message);
     });
+
+    // 认证头辅助函数（供全局使用）
+    window.authHeaders = function() {
+        const token = localStorage.getItem('access_token');
+        return token ? { 'Authorization': 'Bearer ' + token } : {};
+    };
+
+    Alpine.data('loginForm', () => ({
+        form: {
+            username: '',
+            password: '',
+            remember: false,
+            auto_login: false
+        },
+        loading: false,
+        error: null,
+        
+        async handleLogin(e) {
+            e.preventDefault();
+            this.error = null;
+            this.loading = true;
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify(this.form)
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.detail || '登录失败');
+                }
+                
+                // 登录成功，保存 token
+                if (data.access_token) {
+                    // Token 存 localStorage（页面 fetch 时通过 Authorization header 携带）
+                    localStorage.setItem('access_token', data.access_token);
+                    if (data.user) {
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                    }
+                }
+                
+                // 登录成功，跳转到主页
+                window.location.href = '/';
+                
+            } catch (error) {
+                this.error = error.message;
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        // 处理回车键
+        handleKeyDown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.handleLogin(new Event('submit'));
+            }
+        }
+    }));
+    
+    // 全局错误处理
+    window.addEventListener('error', (e) => {
+        console.error('Login page error:', e.error);
+    });
+    
+    window.addEventListener('unhandledrejection', (e) => {
+        console.error('Unhandled rejection:', e.reason);
+    });
+});
 </script>
 {% endblock %}

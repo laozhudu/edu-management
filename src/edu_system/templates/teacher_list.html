@@ -5,116 +5,249 @@
 
 {% block content %}
 <div class="space-y-4" x-data="teacherManage()">
-    <!-- 工具栏 -->
+    <!-- 顶部标签栏 -->
     <div class="card">
-        <div class="card-body flex flex-wrap gap-3 items-end">
-            <div class="min-w-[200px] flex-1">
-                <label class="label" for="teacher-kw">关键字</label>
-                <input id="teacher-kw" type="text" class="input" placeholder="姓名/工号"
-                       x-model="filters.keyword" @keydown.enter="load(1)">
-            </div>
-            <div>
-                <label class="label" for="title">职称</label>
-                <select id="title" class="select w-32" x-model="filters.title" @change="load(1)">
-                    <option value="">全部</option>
-                    <option value="正高级">正高级</option>
-                    <option value="高级">高级</option>
-                    <option value="中级">中级</option>
-                    <option value="初级">初级</option>
-                    <option value="无">无</option>
-                </select>
-            </div>
-            <button class="btn btn-primary" @click="load(1)">
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                </svg>
-                查询
-            </button>
-            <button class="btn btn-secondary" @click="resetFilters()">重置</button>
-        </div>
-    </div>
-
-    <!-- 教师列表 -->
-    <div class="card">
-        <div class="overflow-x-auto">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>工号</th>
-                        <th>姓名</th>
-                        <th>性别</th>
-                        <th>职称</th>
-                        <th>学历/学位</th>
-                        <th>电话</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <template x-for="t in list" :key="t.id">
-                        <tr>
-                            <td x-text="t.staff_no || '—'"></td>
-                            <td class="font-medium" x-text="t.name"></td>
-                            <td x-text="t.gender || '—'"></td>
-                            <td><span class="badge badge-primary" x-text="t.title || '—'"></span></td>
-                            <td x-text="(t.education || '') + '/' + (t.degree || '')"></td>
-                            <td x-text="t.phone || '—'"></td>
-                            <td>
-                                <button class="btn btn-ghost btn-sm" @click="viewDetail(t)">任课</button>
-                            </td>
-                        </tr>
-                    </template>
-                    <tr x-show="!loading && list.length === 0">
-                        <td colspan="7" class="text-center py-8 text-gray-500 dark:text-gray-400">
-                            暂无教师数据
-                        </td>
-                    </tr>
-                    <tr x-show="loading">
-                        <td colspan="7" class="py-8"><div class="skeleton-text w-2/3 mx-auto"></div></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        <div class="card-footer flex items-center justify-between">
-            <div class="text-sm text-gray-500 dark:text-gray-400">
-                共 <span x-text="total"></span> 条 · 第 <span x-text="page"></span>/<span x-text="totalPages()"></span> 页
-            </div>
-            <div class="pagination">
-                <button class="pagination-btn" :disabled="page <= 1" @click="load(page-1)">上一页</button>
-                <button class="pagination-btn" :disabled="page >= totalPages()" @click="load(page+1)">下一页</button>
+        <div class="card-body p-0">
+            <div class="tabs border-b border-gray-200 dark:border-gray-700" role="tablist">
+                <button role="tab" 
+                        :class="{ 'tab active': activeTab === 'list', 'tab': true }" 
+                        @click="activeTab = 'list'"
+                        aria-selected="true">教师列表</button>
+                <button role="tab" 
+                        :class="{ 'tab active': activeTab === 'assign', 'tab': true }" 
+                        @click="activeTab = 'assign'"
+                        aria-selected="false">任课分配</button>
+                <button role="tab" 
+                        :class="{ 'tab active': activeTab === 'workload', 'tab': true }" 
+                        @click="activeTab = 'workload'"
+                        aria-selected="false">工作量</button>
             </div>
         </div>
     </div>
 
-    <!-- 任课详情模态框 -->
-    <div class="modal-overlay" x-show="detail" @click.self="detail = null" x-cloak>
-        <div class="modal">
-            <div class="modal-header">
-                <h3 class="text-lg font-semibold" x-text="detail?.name + ' 的任课安排'"></h3>
-                <button class="btn btn-ghost btn-sm" @click="detail = null">×</button>
-            </div>
-            <div class="modal-body">
-                <div x-show="!detailAssignments.length">
-                    <p class="text-center py-8 text-gray-500 dark:text-gray-400">暂无任课安排</p>
+    <!-- 教师列表标签页 -->
+    <div x-show="activeTab === 'list'" x-cloak>
+        <div class="card">
+            <div class="card-body flex flex-wrap gap-3 items-end p-4">
+                <div class="min-w-[200px] flex-1">
+                    <label class="label" for="teacher-kw">关键字</label>
+                    <input id="teacher-kw" type="text" class="input" placeholder="姓名/工号"
+                           x-model="filters.keyword" @keydown.enter="loadList(1)">
                 </div>
-                <table class="table" x-show="detailAssignments.length > 0">
+                <div>
+                    <label class="label" for="title">职称</label>
+                    <select id="title" class="select w-32" x-model="filters.title" @change="loadList(1)">
+                        <option value="">全部</option>
+                        <option value="正高级">正高级</option>
+                        <option value="高级">高级</option>
+                        <option value="中级">中级</option>
+                        <option value="初级">初级</option>
+                        <option value="无">无</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" @click="loadList(1)">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    查询
+                </button>
+                <button class="btn btn-secondary" @click="resetFilters()">重置</button>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="overflow-x-auto">
+                <table class="table">
                     <thead>
                         <tr>
-                            <th>科目</th>
-                            <th>班级</th>
+                            <th>工号</th>
+                            <th>姓名</th>
+                            <th>性别</th>
+                            <th>职称</th>
+                            <th>学历/学位</th>
+                            <th>电话</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <template x-for="a in detailAssignments" :key="a.id">
+                        <template x-for="t in teacherList" :key="t.id">
                             <tr>
-                                <td x-text="a.name"></td>
-                                <td x-text="a.class_name || '—'"></td>
+                                <td x-text="t.staff_no || '—'"></td>
+                                <td class="font-medium" x-text="t.name"></td>
+                                <td x-text="t.gender || '—'"></td>
+                                <td><span class="badge badge-primary" x-text="t.title || '—'"></span></td>
+                                <td x-text="(t.education || '') + '/' + (t.degree || '')"></td>
+                                <td x-text="t.phone || '—'"></td>
                             </tr>
                         </template>
+                        <tr x-show="!loadingList && teacherList.length === 0">
+                            <td colspan="6" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                                暂无教师数据
+                            </td>
+                        </tr>
+                        <tr x-show="loadingList">
+                            <td colspan="6" class="py-8"><div class="skeleton-text w-2/3 mx-auto"></div></td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" @click="detail = null">关闭</button>
+            <div class="card-footer flex items-center justify-between">
+                <div class="text-sm text-gray-500 dark:text-gray-400">
+                    共 <span x-text="totalList"></span> 条 · 第 <span x-text="pageList"></span>/<span x-text="totalPagesList()"></span> 页
+                </div>
+                <div class="pagination">
+                    <button class="pagination-btn" :disabled="pageList <= 1" @click="loadList(pageList-1)">上一页</button>
+                    <button class="pagination-btn" :disabled="pageList >= totalPagesList()" @click="loadList(pageList+1)">下一页</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 任课分配标签页 -->
+    <div x-show="activeTab === 'assign'" x-cloak>
+        <div class="card">
+            <div class="card-body flex flex-wrap gap-3 items-end p-4">
+                <div class="min-w-[200px] flex-1">
+                    <label class="label" for="assign-kw">关键字</label>
+                    <input id="assign-kw" type="text" class="input" placeholder="教师姓名/工号/科目"
+                           x-model="assignFilters.keyword" @keydown.enter="loadAssign(1)">
+                </div>
+                <div>
+                    <label class="label" for="assign-subject">科目</label>
+                    <select id="assign-subject" class="select w-40" x-model="assignFilters.subject_id" @change="loadAssign(1)">
+                        <option value="">全部科目</option>
+                        <template x-for="s in subjects" :key="s.id">
+                            <option :value="s.id" x-text="s.name"></option>
+                        </template>
+                    </select>
+                </div>
+                <button class="btn btn-primary" @click="loadAssign(1)">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    查询
+                </button>
+                <button class="btn btn-secondary" @click="resetAssignFilters()">重置</button>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="overflow-x-auto">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>教师</th>
+                            <th>工号</th>
+                            <th>科目</th>
+                            <th>班级</th>
+                            <th>学期</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="a in assignList" :key="a.id">
+                            <tr>
+                                <td x-text="a.teacher_name"></td>
+                                <td x-text="a.teacher_no"></td>
+                                <td x-text="a.subject_name"></td>
+                                <td x-text="a.class_name"></td>
+                                <td x-text="a.semester_label"></td>
+                            </tr>
+                        </template>
+                        <tr x-show="!loadingAssign && assignList.length === 0">
+                            <td colspan="5" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                                暂无任课分配数据
+                            </td>
+                        </tr>
+                        <tr x-show="loadingAssign">
+                            <td colspan="5" class="py-8"><div class="skeleton-text w-2/3 mx-auto"></div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer flex items-center justify-between">
+                <div class="text-sm text-gray-500 dark:text-gray-400">
+                    共 <span x-text="totalAssign"></span> 条 · 第 <span x-text="pageAssign"></span>/<span x-text="totalPagesAssign()"></span> 页
+                </div>
+                <div class="pagination">
+                    <button class="pagination-btn" :disabled="pageAssign <= 1" @click="loadAssign(pageAssign-1)">上一页</button>
+                    <button class="pagination-btn" :disabled="pageAssign >= totalPagesAssign()" @click="loadAssign(pageAssign+1)">下一页</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 工作量标签页 -->
+    <div x-show="activeTab === 'workload'" x-cloak>
+        <div class="card">
+            <div class="card-body flex flex-wrap gap-3 items-end p-4">
+                <div class="min-w-[200px] flex-1">
+                    <label class="label" for="wl-kw">关键字</label>
+                    <input id="wl-kw" type="text" class="input" placeholder="教师姓名/工号"
+                           x-model="wlFilters.keyword" @keydown.enter="loadWorkload(1)">
+                </div>
+                <div>
+                    <label class="label" for="wl-semester">学期</label>
+                    <select id="wl-semester" class="select w-40" x-model="wlFilters.semester_id" @change="loadWorkload(1)">
+                        <option value="">全部学期</option>
+                        <template x-for="s in semesters" :key="s.id">
+                            <option :value="s.id" x-text="s.label"></option>
+                        </template>
+                    </select>
+                </div>
+                <button class="btn btn-primary" @click="loadWorkload(1)">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    查询
+                </button>
+                <button class="btn btn-secondary" @click="resetWlFilters()">重置</button>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="overflow-x-auto">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>教师</th>
+                            <th>工号</th>
+                            <th>职称</th>
+                            <th>任课门数</th>
+                            <th>任课班数</th>
+                            <th>总课时数</th>
+                            <th>周课时数</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="w in workloadList" :key="w.teacher_id">
+                            <tr>
+                                <td class="font-medium" x-text="w.teacher_name"></td>
+                                <td x-text="w.teacher_no"></td>
+                                <td x-text="w.title"></td>
+                                <td x-text="w.course_count"></td>
+                                <td x-text="w.class_count"></td>
+                                <td x-text="w.total_hours"></td>
+                                <td x-text="w.weekly_hours"></td>
+                            </tr>
+                        </template>
+                        <tr x-show="!loadingWl && workloadList.length === 0">
+                            <td colspan="7" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                                暂无工作量数据
+                            </td>
+                        </tr>
+                        <tr x-show="loadingWl">
+                            <td colspan="7" class="py-8"><div class="skeleton-text w-2/3 mx-auto"></div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer flex items-center justify-between">
+                <div class="text-sm text-gray-500 dark:text-gray-400">
+                    共 <span x-text="totalWl"></span> 条 · 第 <span x-text="pageWl"></span>/<span x-text="totalPagesWl()"></span> 页
+                </div>
+                <div class="pagination">
+                    <button class="pagination-btn" :disabled="pageWl <= 1" @click="loadWorkload(pageWl-1)">上一页</button>
+                    <button class="pagination-btn" :disabled="pageWl >= totalPagesWl()" @click="loadWorkload(pageWl+1)">下一页</button>
+                </div>
             </div>
         </div>
     </div>
@@ -123,68 +256,163 @@
 <script>
     function teacherManage() {
         return {
-            list: [],
-            total: 0,
-            page: 1,
-            pageSize: 20,
-            loading: false,
-            filters: { keyword: '', title: '' },
-            detail: null,
-            detailAssignments: [],
+            activeTab: 'list',  // list | assign | workload
             
-            async load(p) {
-                this.page = p || 1;
-                this.loading = true;
+            // --- 教师列表 ---
+            teacherList: [],
+            totalList: 0,
+            pageList: 1,
+            pageSizeList: 20,
+            loadingList: false,
+            listFilters: { keyword: '', title: '' },
+            
+            // --- 任课分配 ---
+            assignList: [],
+            totalAssign: 0,
+            pageAssign: 1,
+            pageSizeAssign: 20,
+            loadingAssign: false,
+            assignFilters: { keyword: '', subject_id: '' },
+            subjects: [],
+            
+            // --- 工作量 ---
+            workloadList: [],
+            totalWl: 0,
+            pageWl: 1,
+            pageSizeWl: 20,
+            loadingWl: false,
+            wlFilters: { keyword: '', semester_id: '' },
+            semesters: [],
+            
+            async loadList(p) {
+                this.pageList = p || 1;
+                this.loadingList = true;
                 try {
                     const params = new URLSearchParams({
-                        page: this.page,
-                        page_size: this.pageSize,
-                        ...this.filters
+                        page: this.pageList,
+                        page_size: this.pageSizeList,
+                        ...this.listFilters
                     });
                     const resp = await fetch('/api/teachers?' + params, {
                         credentials: 'include', headers: authHeaders()
                     });
                     if (resp.ok) {
                         const d = await resp.json();
-                        this.list = d.items || [];
-                        this.total = d.total || 0;
+                        this.teacherList = d.items || [];
+                        this.totalList = d.total || 0;
                     } else if (resp.status === 401) {
                         window.location.href = '/login';
                     }
                 } catch (e) {
                     console.error('加载教师列表失败:', e);
                 } finally {
-                    this.loading = false;
+                    this.loadingList = false;
                 }
             },
             
-            resetFilters() {
-                this.filters = { keyword: '', title: '' };
-                this.load(1);
-            },
-            
-            totalPages() {
-                return Math.max(1, Math.ceil(this.total / this.pageSize));
-            },
-            
-            async viewDetail(t) {
+            async loadAssign(p) {
+                this.pageAssign = p || 1;
+                this.loadingAssign = true;
                 try {
-                    const resp = await fetch('/api/teachers/' + t.id + '/assignments', {
+                    const params = new URLSearchParams({
+                        page: this.pageAssign,
+                        page_size: this.pageSizeAssign,
+                        ...this.assignFilters
+                    });
+                    const resp = await fetch('/api/teachers/assignments?' + params, {
                         credentials: 'include', headers: authHeaders()
                     });
                     if (resp.ok) {
-                        this.detail = t;
-                        this.detailAssignments = (await resp.json()).assignments || [];
+                        const d = await resp.json();
+                        this.assignList = d.items || [];
+                        this.totalAssign = d.total || 0;
                     } else if (resp.status === 401) {
                         window.location.href = '/login';
                     }
                 } catch (e) {
-                    console.error('加载任课失败:', e);
+                    console.error('加载任课分配失败:', e);
+                } finally {
+                    this.loadingAssign = false;
                 }
             },
             
+            async loadWorkload(p) {
+                this.pageWl = p || 1;
+                this.loadingWl = true;
+                try {
+                    const params = new URLSearchParams({
+                        page: this.pageWl,
+                        page_size: this.pageSizeWl,
+                        ...this.wlFilters
+                    });
+                    const resp = await fetch('/api/teachers/workload?' + params, {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        const d = await resp.json();
+                        this.workloadList = d.items || [];
+                        this.totalWl = d.total || 0;
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载工作量失败:', e);
+                } finally {
+                    this.loadingWl = false;
+                }
+            },
+            
+            async loadSubjects() {
+                try {
+                    const resp = await fetch('/api/subjects?page_size=100', {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        this.subjects = (await resp.json()).items || [];
+                    }
+                } catch (e) {
+                    console.error('加载科目失败:', e);
+                }
+            },
+            
+            async loadSemesters() {
+                try {
+                    const resp = await fetch('/api/semesters?page_size=100', {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        this.semesters = (await resp.json()).items || [];
+                    }
+                } catch (e) {
+                    console.error('加载学期失败:', e);
+                }
+            },
+            
+            resetFilters() {
+                this.listFilters = { keyword: '', title: '' };
+                this.loadList(1);
+            },
+            
+            resetAssignFilters() {
+                this.assignFilters = { keyword: '', subject_id: '' };
+                this.loadAssign(1);
+            },
+            
+            resetWlFilters() {
+                this.wlFilters = { keyword: '', semester_id: '' };
+                this.loadWorkload(1);
+            },
+            
+            totalPagesList() { return Math.max(1, Math.ceil(this.totalList / this.pageSizeList)); },
+            totalPagesAssign() { return Math.max(1, Math.ceil(this.totalAssign / this.pageSizeAssign)); },
+            totalPagesWl() { return Math.max(1, Math.ceil(this.totalWl / this.pageSizeWl)); },
+            
             init() {
-                this.load(1);
+                this.loadSubjects();
+                this.loadSemesters();
+                this.loadList(1);
+                this.loadAssign(1);
+                this.loadWorkload(1);
             }
         };
     }

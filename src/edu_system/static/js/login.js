@@ -1,6 +1,20 @@
 // 登录页面专用 JavaScript
 
 document.addEventListener('alpine:init', () => {
+    // 全局错误存储
+    Alpine.store('error', null);
+    
+    // 监听全局错误事件
+    window.addEventListener('notify', (e) => {
+        Alpine.store('error', e.detail.message);
+    });
+
+    // 认证头辅助函数（供全局使用）
+    window.authHeaders = function() {
+        const token = localStorage.getItem('access_token');
+        return token ? { 'Authorization': 'Bearer ' + token } : {};
+    };
+
     Alpine.data('loginForm', () => ({
         form: {
             username: '',
