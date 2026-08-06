@@ -1,0 +1,100 @@
+<!-- 学期概览页（M5-G 双端一致：Web 端 home/dashboard） -->
+{% extends "index.html" %}
+
+{% block title %}学期概览 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="space-y-4 max-w-6xl mx-auto px-4" x-data="overviewStats()">
+    <!-- 学期信息条 -->
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">当前学期</h2>
+            <span class="badge badge-primary" x-text="semester?.label || '—'"></span>
+        </div>
+        <div class="card-body grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-sm text-gray-500 dark:text-gray-400">在校学生</div>
+                <div class="text-2xl font-bold mt-1" x-text="stats.students ?? '—'"></div>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-sm text-gray-500 dark:text-gray-400">班级数</div>
+                <div class="text-2xl font-bold mt-1" x-text="stats.classes ?? '—'"></div>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-sm text-gray-500 dark:text-gray-400">教师数</div>
+                <div class="text-2xl font-bold mt-1" x-text="stats.teachers ?? '—'"></div>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-sm text-gray-500 dark:text-gray-400">考试数</div>
+                <div class="text-2xl font-bold mt-1" x-text="stats.exams ?? '—'"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 快速入口 -->
+    <div class="card">
+        <div class="card-header"><h2 class="text-lg font-semibold">快速入口</h2></div>
+        <div class="card-body grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <a href="/page/scores/score_entry" class="btn btn-primary">成绩录入</a>
+            <a href="/page/students/student_list" class="btn btn-secondary">学生管理</a>
+            <a href="/page/exams/exam_manage" class="btn btn-secondary">考试管理</a>
+            <a href="/page/students/student_register" class="btn btn-secondary">新生注册</a>
+            <a href="/page/teachers/teacher_assign" class="btn btn-secondary">任课安排</a>
+            <a href="/page/system/system_config" class="btn btn-secondary">系统设置</a>
+        </div>
+    </div>
+
+    <!-- 学期状态 -->
+    <div class="card">
+        <div class="card-header"><h2 class="text-lg font-semibold">学期状态</h2></div>
+        <div class="card-body space-y-2 text-sm">
+            <div class="flex justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
+                <span class="text-gray-500 dark:text-gray-400">学期 ID</span>
+                <span x-text="semester?.id ?? '—'"></span>
+            </div>
+            <div class="flex justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
+                <span class="text-gray-500 dark:text-gray-400">学年度</span>
+                <span x-text="semester?.year_start ? (semester.year_start + '-' + (semester.year_start + 1)) : '—'"></span>
+            </div>
+            <div class="flex justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
+                <span class="text-gray-500 dark:text-gray-400">状态</span>
+                <span class="badge" :class="semester?.is_active ? 'badge-success' : 'badge-default'" x-text="semester?.is_active ? '激活' : '非激活'"></span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-500 dark:text-gray-400">开始 / 结束</span>
+                <span x-text="semester?.start_date ? (formatDate(semester.start_date) + ' ~ ' + (semester.end_date ? formatDate(semester.end_date) : '—')) : '—'"></span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function overviewStats() {
+        return {
+            stats: {},
+            semester: null,
+            async init() {
+                await this.loadStats();
+                await this.loadSemester();
+            },
+            async loadStats() {
+                try {
+                    const resp = await fetch('/api/stats/current', { credentials: 'include', headers: authHeaders() });
+                    if (resp.ok) this.stats = await resp.json();
+                } catch (e) { console.warn('Failed to load stats:', e); }
+            },
+            async loadSemester() {
+                try {
+                    const resp = await fetch('/api/meta/semester/active', { credentials: 'include', headers: authHeaders() });
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        this.semester = data.semester || data;
+                    }
+                } catch (e) { console.warn('Failed to load semester:', e); }
+            }
+        };
+    }
+</script>
+{% endblock %}

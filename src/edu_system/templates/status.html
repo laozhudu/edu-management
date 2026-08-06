@@ -1,0 +1,132 @@
+<!-- 数据状态页（M5-G 双端一致：Web 端 home/data_status） -->
+{% extends "index.html" %}
+
+{% block title %}数据状态 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="space-y-4 max-w-6xl mx-auto px-4" x-data="dataStatus()">
+    <!-- 系统健康 -->
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">系统健康状态</h2>
+            <button class="btn btn-secondary btn-sm" @click="loadAll()">刷新</button>
+        </div>
+        <div class="card-body grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-sm text-gray-500 dark:text-gray-400">健康检查</div>
+                <div class="flex items-center gap-2 mt-1">
+                    <span class="w-2.5 h-2.5 rounded-full" :class="health?.status === 'healthy' ? 'bg-green-500' : 'bg-red-500'"></span>
+                    <span class="font-medium" x-text="health?.status || '—'"></span>
+                </div>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-sm text-gray-500 dark:text-gray-400">系统版本</div>
+                <div class="font-medium mt-1" x-text="health?.version || '—'"></div>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-sm text-gray-500 dark:text-gray-400">缓存版本</div>
+                <div class="font-medium mt-1" x-text="health?.cache_version ?? '—'"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 服务状态 -->
+    <div class="card">
+        <div class="card-header"><h2 class="text-lg font-semibold">服务状态</h2></div>
+        <div class="card-body">
+            <div x-show="!(services.services || []).length" class="text-sm text-gray-400 dark:text-gray-600">
+                暂无服务信息
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <template x-for="svc in services.services || []" :key="svc.service_code || svc.code">
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg flex items-center justify-between">
+                        <div>
+                            <div class="font-medium" x-text="svc.name || svc.service_code || svc.code"></div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400" x-text="svc.api_prefix || ''"></div>
+                        </div>
+                        <span class="badge" :class="svc.enabled ? 'badge-success' : 'badge-default'"
+                              x-text="svc.enabled ? '启用' : '停用'"></span>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <!-- 缓存统计 -->
+    <div class="card">
+        <div class="card-header"><h2 class="text-lg font-semibold">统计缓存</h2></div>
+        <div class="card-body grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-sm text-gray-500 dark:text-gray-400">缓存条目</div>
+                <div class="text-xl font-bold mt-1" x-text="cache?.entry_count ?? cache?.entries ?? '—'"></div>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-sm text-gray-500 dark:text-gray-400">缓存大小 (KB)</div>
+                <div class="text-xl font-bold mt-1" x-text="cache?.size_bytes ? Math.round(cache.size_bytes / 1024) : '—'"></div>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-sm text-gray-500 dark:text-gray-400">版本</div>
+                <div class="text-xl font-bold mt-1" x-text="cache?.version ?? '—'"></div>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-sm text-gray-500 dark:text-gray-400">目录</div>
+                <div class="text-xs font-medium mt-1 break-all" x-text="cache?.directory || '—'"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 数据库状态 -->
+    <div class="card">
+        <div class="card-header"><h2 class="text-lg font-semibold">数据库状态</h2></div>
+        <div class="card-body space-y-2 text-sm">
+            <div class="flex justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
+                <span class="text-gray-500 dark:text-gray-400">日志模式</span>
+                <span class="badge badge-success">WAL</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-500 dark:text-gray-400">同步策略</span>
+                <span x-text="db?.synchronous ?? '正常'"></span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function dataStatus() {
+        return {
+            health: {},
+            services: {},
+            cache: {},
+            db: {},
+            async init() {
+                await this.loadAll();
+            },
+            async loadAll() {
+                await this.loadHealth();
+                await this.loadServices();
+                await this.loadCache();
+            },
+            async loadHealth() {
+                try {
+                    const resp = await fetch('/healthz', { credentials: 'include' });
+                    if (resp.ok) this.health = await resp.json();
+                } catch (e) { console.warn('Failed to load health:', e); }
+            },
+            async loadServices() {
+                try {
+                    const resp = await fetch('/api/meta/services', { credentials: 'include', headers: authHeaders() });
+                    if (resp.ok) this.services = await resp.json();
+                } catch (e) { console.warn('Failed to load services:', e); }
+            },
+            async loadCache() {
+                try {
+                    const resp = await fetch('/api/stats/cache/stats', { credentials: 'include', headers: authHeaders() });
+                    if (resp.ok) this.cache = await resp.json();
+                } catch (e) { console.warn('Failed to load cache:', e); }
+            }
+        };
+    }
+</script>
+{% endblock %}

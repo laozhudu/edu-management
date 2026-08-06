@@ -1,0 +1,64 @@
+<!-- 快捷操作页（M5-G 双端一致：Web 端 home/quick_actions） -->
+{% extends "index.html" %}
+
+{% block title %}快捷操作 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="space-y-4 max-w-6xl mx-auto px-4" x-data="quickActions()">
+    <!-- 常用操作 -->
+    <div class="card">
+        <div class="card-header"><h2 class="text-lg font-semibold">常用操作</h2></div>
+        <div class="card-body grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <a href="/page/scores/score_entry" class="btn btn-primary">成绩录入</a>
+            <a href="/page/students/student_list" class="btn btn-secondary">学生信息</a>
+            <a href="/page/students/student_register" class="btn btn-secondary">新生注册</a>
+            <a href="/page/students/student_movement" class="btn btn-secondary">学籍变动</a>
+            <a href="/page/exams/exam_manage" class="btn btn-secondary">考试管理</a>
+            <a href="/page/exams/exam_rooms" class="btn btn-secondary">考场座位</a>
+            <a href="/page/scores/score_query" class="btn btn-secondary">成绩查询</a>
+            <a href="/page/scores/score_rank" class="btn btn-secondary">排名分析</a>
+            <a href="/page/teachers/teacher_assign" class="btn btn-secondary">任课安排</a>
+        </div>
+    </div>
+
+    <!-- 数据操作 -->
+    <div class="card">
+        <div class="card-header"><h2 class="text-lg font-semibold">数据操作</h2></div>
+        <div class="card-body grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <a href="/page/system/data_maintenance" class="btn btn-secondary">数据维护</a>
+            <a href="/page/system/semester" class="btn btn-secondary">学期设置</a>
+            <a href="/page/system/users" class="btn btn-secondary">用户权限</a>
+            <a href="/page/system/class_list" class="btn btn-secondary">班级科目</a>
+            <a href="/page/system/classroom_list" class="btn btn-secondary">教室位置</a>
+            <a href="/page/system/system_config" class="btn btn-secondary">系统设置</a>
+        </div>
+    </div>
+
+    <!-- 操作提示 -->
+    <div class="card">
+        <div class="card-header"><h2 class="text-lg font-semibold">操作提示</h2></div>
+        <div class="card-body space-y-2 text-sm text-gray-600 dark:text-gray-300">
+            <div class="flex items-start gap-2">
+                <span class="badge badge-primary mt-0.5">提示</span>
+                <span>成绩录入支持 Excel 粘贴、批量导入，录入后自动计算折算分与排名。</span>
+            </div>
+            <div class="flex items-start gap-2">
+                <span class="badge badge-success mt-0.5">快捷</span>
+                <span>按 Ctrl/⌘ + K 打开命令面板，快速跳转任意功能页。</span>
+            </div>
+            <div class="flex items-start gap-2">
+                <span class="badge badge-warning mt-0.5">注意</span>
+                <span>数据维护页可查看系统备份提示与缓存统计，初始化系统请谨慎操作。</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function quickActions() {
+        return {};
+    }
+</script>
+{% endblock %}
