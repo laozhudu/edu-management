@@ -4,15 +4,29 @@
 
 from datetime import datetime
 
-from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query, Request, Response
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Body,
+    Depends,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+)
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+
+from collections import defaultdict
+import hashlib
+import time
 
 from edu_system.api.deps import require_permission
 from edu_system.core.permissions import Permission
 from edu_system.database import get_active_semester, get_session
 from edu_system.models import Semester, SemesterStatsCache
 from edu_system.services.cache import bump_cache_version, cache_service, invalidate_stats_cache
+from edu_system.services.statistics import StatisticsWorker
 
 router = APIRouter(prefix="/stats", tags=["统计数据"])
 
@@ -26,6 +40,20 @@ def get_db() -> Session:
 
 def get_current_semester() -> int:
     return get_active_semester()
+
+
+# 幂等键存储（内存，实际可用 Redis）
+_idempotency_store = defaultdict(dict)
+_IDEMPOTENCY_TTL = 3600  # 1 小时
+
+_worker_instance: StatisticsWorker | None = None
+
+
+def get_worker() -> StatisticsWorker:
+    global _worker_instance
+    if _worker_instance is None:
+        _worker_instance = StatisticsWorker()
+    return _worker_instance
 
 
 # ===== 统计数据查询接口 =====
@@ -160,26 +188,75 @@ def get_cache_version():
     return {"version": cache_service.get_version()}
 
 
-# ===== 统计重算触发接口 =====
+@router.get("/cache")
+def get_cache(
+    request: Request,
+    response: Response,
+):
+    """获取缓存统计（支持 ETag/304）"""
+    from edu_system.services.cache import cache_service
 
-_worker_instance = None
+    # 生成 ETag
+    stats = cache_service.get_stats()
+    etag = f'W/"{cache_service.get_version()}"'
 
-import hashlib
-import time
-from collections import defaultdict
+    # 304 检查
+    if_none_match = request.headers.get("If-None-Match")
+    if if_none_match and if_none_match == etag:
+        return Response(status_code=304, headers={"ETag": etag})
 
-# 幂等键存储（内存，实际可用 Redis）
+    # 设置 ETag 头
+    response.headers["ETag"] = etag
+    return stats
+
+
+# ===== 幂等键存储（内存，实际可用 Redis） =====
 _idempotency_store = defaultdict(dict)
 _IDEMPOTENCY_TTL = 3600  # 1 小时
 
+_worker_instance: StatisticsWorker | None = None
 
-def get_worker():
+
+def get_worker() -> StatisticsWorker:
     global _worker_instance
     if _worker_instance is None:
-        from edu_system.services.statistics import StatisticsWorker
-
         _worker_instance = StatisticsWorker()
     return _worker_instance
+
+
+def _check_idempotency(key: str) -> tuple[bool, dict | None]:
+    """检查幂等键，返回 (是否已存在, 存储的结果)"""
+    now = time.time()
+    if key in _idempotency_store:
+        entry = _idempotency_store[key]
+        if now - entry["timestamp"] < _IDEMPOTENCY_TTL:
+            return True, entry["result"]
+        else:
+            del _idempotency_store[key]
+    return False, None
+
+
+def _store_idempotency(key: str, result: dict):
+    """存储幂等结果"""
+    _idempotency_store[key] = {
+        "result": result,
+        "timestamp": time.time(),
+    }
+
+
+# ===== 统计重算触发接口 =====
+
+
+def _clean_idempotency_store():
+    """清理过期的幂等键"""
+    now = time.time()
+    expired_keys = [
+        key
+        for key, entry in _idempotency_store.items()
+        if now - entry["timestamp"] >= _IDEMPOTENCY_TTL
+    ]
+    for key in expired_keys:
+        del _idempotency_store[key]
 
 
 @router.post("/recompute/full")
@@ -225,50 +302,6 @@ def trigger_incremental_recompute(
     )
 
     return {"message": "增量重算已启动", "count": len(dirty_entities)}
-
-
-@router.post("/cancel")
-def cancel_recompute():
-    """取消正在进行的重算任务"""
-    worker = get_worker()
-    worker.cancel()
-    return {"message": "已发送取消信号"}
-
-
-@router.get("/worker/status")
-def get_worker_status():
-    """获取 Worker 状态"""
-    worker = get_worker()
-    return {
-        "running": (
-            worker._thread is not None and worker._thread.isRunning() if worker._thread else False
-        ),
-        "mode": worker._mode,
-        "cancelled": worker._cancelled,
-    }
-
-
-# ===== 幂等重算触发接口 (M5-B4) =====
-
-
-def _check_idempotency(key: str) -> tuple[bool, dict | None]:
-    """检查幂等键，返回 (是否已存在, 存储的结果)"""
-    now = time.time()
-    if key in _idempotency_store:
-        entry = _idempotency_store[key]
-        if now - entry["timestamp"] < _IDEMPOTENCY_TTL:
-            return True, entry["result"]
-        else:
-            del _idempotency_store[key]
-    return False, None
-
-
-def _store_idempotency(key: str, result: dict):
-    """存储幂等结果"""
-    _idempotency_store[key] = {
-        "result": result,
-        "timestamp": time.time(),
-    }
 
 
 @router.post("/recompute", status_code=200)
@@ -341,6 +374,27 @@ def trigger_recompute_idempotent(
     return {"status": "started", **result}
 
 
+@router.post("/cancel")
+def cancel_recompute():
+    """取消正在进行的重算任务"""
+    worker = get_worker()
+    worker.cancel()
+    return {"message": "已发送取消信号"}
+
+
+@router.get("/worker/status")
+def get_worker_status():
+    """获取 Worker 状态"""
+    worker = get_worker()
+    return {
+        "running": (
+            worker._thread is not None and worker._thread.isRunning() if worker._thread else False
+        ),
+        "mode": worker._mode,
+        "cancelled": worker._cancelled,
+    }
+
+
 # ===== 统计数据导出 =====
 
 
@@ -382,7 +436,7 @@ def export_stats_excel(
         ws.cell(row=row, column=2, value=stat.entity_id)
         ws.cell(row=row, column=3, value=stat.metric_key)
         ws.cell(row=row, column=4, value=stat.metric_value)
-        ws.cell(row=row, column=4, value=stat.version)
+        ws.cell(row=row, column=5, value=stat.version)
         ws.cell(
             row=row,
             column=6,
@@ -396,8 +450,7 @@ def export_stats_excel(
         column = col[0].column_letter
         for cell in col:
             try:
-                if len(str(cell.value)) > max_length:
-                    max_length = len(str(cell.value))
+                max_length = max(max_length, len(str(cell.value)))
             except:
                 pass
         adjusted_width = min(max_length + 2, 50)
@@ -415,7 +468,7 @@ def export_stats_excel(
     )
 
 
-# ===== 健康检查 =====
+# ===== 统计数据健康检查 =====
 
 
 @router.get("/health")
