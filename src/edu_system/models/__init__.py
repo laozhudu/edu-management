@@ -16,6 +16,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    JSON,
     LargeBinary,
     String,
     Text,
@@ -561,6 +562,23 @@ class User(Base):
         if self.role and self.role.permissions:
             return [p.strip() for p in self.role.permissions.split(",") if p.strip()]
         return []
+
+
+class UserColumnConfig(Base):
+    """用户列配置持久化（M5-G：多端同步）"""
+    __tablename__ = "user_column_configs"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True, comment="用户ID")
+    page_id = Column(String(64), nullable=False, index=True, comment="页面标识")
+    columns = Column(JSON, default=[], comment="列配置 JSON")
+    created_at = Column(DateTime, default=datetime.utcnow, comment="创建时间")
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, comment="更新时间")
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "page_id", name="uq_user_page_config"),
+    )
+
+    user = relationship("User", backref="column_configs")
 
 
 class Classroom(Base):

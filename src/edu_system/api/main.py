@@ -102,6 +102,7 @@ def create_app() -> FastAPI:
         audit,
         auth,
         config,
+        column_config,
         exam,
         import_export,
         locks,
@@ -125,6 +126,46 @@ def create_app() -> FastAPI:
     app.include_router(exam.router, prefix="/api")
     app.include_router(meta.router, prefix="/api")
     app.include_router(config.router, prefix="/api")
+    
+    # 手动注册 column_config 路由（include_router 在此环境有问题，需手动注册）
+    # 先清除现有的同路径路由（避免重复）
+    new_routes = []
+    for route in column_config.router.routes:
+        new_path = "/api" + route.path
+        new_format = "/api" + route.path_format
+        # 重新创建 APIRoute 以正确生成 path_regex
+        from fastapi.routing import APIRoute
+        new_route = APIRoute(
+            path=new_path,
+            endpoint=route.endpoint,
+            methods=route.methods,
+            response_class=route.response_class,
+            status_code=route.status_code,
+            tags=route.tags,
+            summary=route.summary,
+            description=route.description,
+            response_description=route.response_description,
+            responses=route.responses,
+            deprecated=route.deprecated,
+            operation_id=route.operation_id,
+            response_model=route.response_model,
+            response_model_include=route.response_model_include,
+            response_model_exclude=route.response_model_exclude,
+            response_model_by_alias=route.response_model_by_alias,
+            response_model_exclude_unset=route.response_model_exclude_unset,
+            response_model_exclude_defaults=route.response_model_exclude_defaults,
+            response_model_exclude_none=route.response_model_exclude_none,
+            include_in_schema=route.include_in_schema,
+            name=route.name,
+            dependencies=route.dependencies,
+            callbacks=route.callbacks,
+            openapi_extra=route.openapi_extra,
+        )
+        new_routes.append(new_route)
+    
+    for r in new_routes:
+        app.router.routes.append(r)
+    
     app.include_router(pages.router)  # Web 页面路由（无 /api 前缀）
     # app.include_router(admin.router, prefix="/api")
     # app.include_router(class_roster.router, prefix="/api")
