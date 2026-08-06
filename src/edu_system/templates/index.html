@@ -15,9 +15,21 @@
             <h1 class="text-lg font-semibold text-gray-900 dark:text-white">
                 {% if config.app.school_name %}{{ config.app.school_name }}{% else %}教务管理系统{% endif %}
             </h1>
-            <span id="current-semester" class="hidden badge badge-primary ml-2" x-show="semester" x-text="semester?.label || ''"></span>
         </div>
         <div class="flex items-center gap-3">
+            <!-- 学期切换器 -->
+            <div class="hidden md:block" x-data="semesterSelector()">
+                <select 
+                    @change="switchSemester($event.target.value)"
+                    :value="currentSemesterId"
+                    class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
+                    aria-label="切换学期"
+                >
+                    <template x-for="s in semesters" :key="s.id">
+                        <option :value="s.id" x-text="s.display_label || s.label"></option>
+                    </template>
+                </select>
+            </div>
             <!-- 服务状态 -->
             <div id="services-status" class="hidden md:flex items-center gap-2"></div>
             <!-- 主题切换 -->
@@ -145,6 +157,62 @@
                     }
                 } catch (e) {
                     console.warn('Failed to load stats:', e);
+                }
+            }
+        };
+    }
+
+    function semesterSelector() {
+        return {
+            semesters: [],
+            currentSemesterId: null,
+            async init() {
+                await this.loadSemesters();
+                // 从当前激活学期 API 获取当前 ID
+                await this.loadActive();
+            },
+            async loadSemesters() {
+                try {
+                    const resp = await fetch('/api/semester/list', { credentials: 'include', headers: authHeaders() });
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        this.semesters = data.items || [];
+                    }
+                } catch (e) {
+                    console.warn('Failed to load semesters:', e);
+                }
+            },
+            async loadActive() {
+                try {
+                    const resp = await fetch('/api/semester/active', { credentials: 'include', headers: authHeaders() });
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        if (data.semester) {
+                            this.currentSemesterId = data.semester.id;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Failed to load active semester:', e);
+                }
+            },
+            async switchSemester(semesterId) {
+                if (!semesterId || semesterId === this.currentSemesterId) return;
+                try {
+                    const resp = await fetch('/api/semester/active', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ semester_id: parseInt(semesterId) })
+                    });
+                    if (resp.ok) {
+                        this.currentSemesterId = parseInt(semesterId);
+                        // 通知其他组件学期已切换
+                        window.dispatchEvent(new CustomEvent('semester-changed', { detail: { semesterId: this.currentSemesterId } }));
+                        // 重新加载仪表盘统计
+                        window.dispatchEvent(new CustomEvent('reload-dashboard'));
+                    }
+                } catch (e) {
+                    console.error('Failed to switch semester:', e);
                 }
             }
         };

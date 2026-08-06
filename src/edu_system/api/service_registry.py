@@ -169,6 +169,16 @@ class ServiceRegistry:
                 "rate_limit": 100,
                 "rate_limit_window": 60,
             },
+            "semester": {
+                "name": "学期管理",
+                "description": "学期列表、激活学期、学期切换",
+                "api_prefix": "/api/semester",
+                "enabled": True,
+                "required_permissions": ["semester:view"],
+                "allowed_roles": ["teacher", "director", "admin", "student", "parent"],
+                "rate_limit": 200,
+                "rate_limit_window": 60,
+            },
         }
 
         for code, config in default_services.items():
@@ -219,6 +229,7 @@ class ServiceRegistry:
                     "audit",
                     "parent_notify",
                     "teachers",
+                    "semester",
                     "stats",
                 ]
             )
@@ -399,6 +410,16 @@ class ServiceRegistry:
                 "required_permissions": ["teacher:view"],
                 "allowed_roles": ["teacher", "director", "admin"],
                 "rate_limit": 100,
+                "rate_limit_window": 60,
+            },
+            "semester": {
+                "name": "学期管理",
+                "description": "学期列表、激活学期、学期切换",
+                "api_prefix": "/api/semester",
+                "enabled": True,
+                "required_permissions": ["semester:view"],
+                "allowed_roles": ["teacher", "director", "admin", "student", "parent"],
+                "rate_limit": 200,
                 "rate_limit_window": 60,
             },
         }

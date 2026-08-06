@@ -101,14 +101,15 @@ def create_app() -> FastAPI:
         attendance,
         audit,
         auth,
-        config,
         column_config,
+        config,
         exam,
         import_export,
         locks,
         meta,
         pages,
         score,
+        semester,
         semester_inherit,
         students,
         teachers,
@@ -126,6 +127,7 @@ def create_app() -> FastAPI:
     app.include_router(exam.router, prefix="/api")
     app.include_router(meta.router, prefix="/api")
     app.include_router(config.router, prefix="/api")
+    app.include_router(semester.router, prefix="/api")
     
     # 手动注册 column_config 路由（include_router 在此环境有问题，需手动注册）
     # 先清除现有的同路径路由（避免重复）
