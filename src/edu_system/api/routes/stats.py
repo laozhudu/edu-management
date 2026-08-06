@@ -4,7 +4,7 @@
 
 from datetime import datetime
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -164,6 +164,14 @@ def get_cache_version():
 
 _worker_instance = None
 
+import hashlib
+import time
+from collections import defaultdict
+
+# 幂等键存储（内存，实际可用 Redis）
+_idempotency_store = defaultdict(dict)
+_IDEMPOTENCY_TTL = 3600  # 1 小时
+
 
 def get_worker():
     global _worker_instance
@@ -238,6 +246,99 @@ def get_worker_status():
         "mode": worker._mode,
         "cancelled": worker._cancelled,
     }
+
+
+# ===== 幂等重算触发接口 (M5-B4) =====
+
+
+def _check_idempotency(key: str) -> tuple[bool, dict | None]:
+    """检查幂等键，返回 (是否已存在, 存储的结果)"""
+    now = time.time()
+    if key in _idempotency_store:
+        entry = _idempotency_store[key]
+        if now - entry["timestamp"] < _IDEMPOTENCY_TTL:
+            return True, entry["result"]
+        else:
+            del _idempotency_store[key]
+    return False, None
+
+
+def _store_idempotency(key: str, result: dict):
+    """存储幂等结果"""
+    _idempotency_store[key] = {
+        "result": result,
+        "timestamp": time.time(),
+    }
+
+
+@router.post("/recompute", status_code=200)
+def trigger_recompute_idempotent(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    body: dict = Body(default={}),
+    mode: str = "full",  # "full" 或 "incremental"
+    current_user: dict = Depends(require_permission(Permission.SYSTEM_ADMIN)),
+):
+    """
+    幂等重算触发（M5-B4）
+
+    - Idempotency-Key 头：相同键返回缓存结果（1 小时内）
+    - mode=full: 全量重算
+    - mode=incremental: 增量重算（需 dirty_entities）
+    - 返回: {"status": "started"|"completed", "message": "...", "task_id": "..."}
+    """
+    # 获取幂等键
+    idempotency_key = request.headers.get("Idempotency-Key")
+    if not idempotency_key:
+        raise HTTPException(
+            status_code=400,
+            detail="缺少 Idempotency-Key 头，请提供幂等键以防止重复提交",
+        )
+
+    # 检查幂等键
+    exists, cached_result = _check_idempotency(idempotency_key)
+    if exists and cached_result is not None:
+        # 返回缓存结果，但标记为已完成
+        cached = dict(cached_result)
+        cached["status"] = "completed"
+        cached["message"] = "幂等键已存在，返回缓存结果"
+        cached["task_id"] = idempotency_key
+        return cached
+
+    # 生成任务 ID
+    task_id = hashlib.sha256(f"{idempotency_key}:{time.time()}".encode()).hexdigest()[:16]
+
+    worker = get_worker()
+
+    dirty_entities = body.get("dirty_entities") if body else None
+
+    if mode == "full":
+        # 全量重算
+        worker.start_full(
+            progress_cb=lambda p, m: None,
+            finished_cb=lambda m: invalidate_stats_cache(),
+            error_cb=lambda e: print(f"[重算错误] {e}"),
+        )
+        result = {"message": "全量重算已在后台启动", "task": "full_recompute", "task_id": task_id}
+    elif mode == "incremental":
+        if not dirty_entities:
+            raise HTTPException(status_code=400, detail="incremental 模式需要 dirty_entities")
+        worker.start_incremental(
+            dirty_entities=dirty_entities,
+            progress_cb=lambda p, m: None,
+            finished_cb=lambda m: invalidate_stats_cache(),
+            error_cb=lambda e: print(f"错误: {e}"),
+        )
+        result = {"message": "增量重算已启动", "count": len(dirty_entities), "task_id": task_id}
+    else:
+        raise HTTPException(status_code=400, detail="mode 必须是 'full' 或 'incremental'")
+
+    # 存储幂等结果
+    # 为幂等检查预留 status 字段
+    result["status"] = "started"
+    _store_idempotency(idempotency_key, result)
+
+    return {"status": "started", **result}
 
 
 # ===== 统计数据导出 =====
