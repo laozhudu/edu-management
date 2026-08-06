@@ -68,3 +68,54 @@ def execute_inherit_api(
     if not result.get("success", False):
         raise HTTPException(status_code=409, detail=result.get("error", "继承失败"))
     return result
+
+
+# ===== M5-C2 配置版本回滚 =====
+
+
+@router.get("/{semester_id}/versions")
+def list_versions_api(
+    semester_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """获取学期所有配置版本列表（M5-C2）"""
+    svc = SemesterConfigService(db)
+    try:
+        return svc.get_versions(semester_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/{semester_id}/versions/{version}")
+def get_version_configs_api(
+    semester_id: int,
+    version: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """获取指定版本的所有配置（M5-C2）"""
+    svc = SemesterConfigService(db)
+    try:
+        configs = svc.get_version_configs(semester_id, version)
+        return {"semester_id": semester_id, "version": version, "configs": configs}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/{semester_id}/versions/{version}/rollback")
+def rollback_version_api(
+    semester_id: int,
+    version: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """回滚到指定版本（M5-C2）"""
+    svc = SemesterConfigService(db)
+    try:
+        result = svc.rollback_to_version(semester_id, version, operator=current_user.username)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    if not result.get("success", False):
+        raise HTTPException(status_code=409, detail=result.get("error", "回滚失败"))
+    return result

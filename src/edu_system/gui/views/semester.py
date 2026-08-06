@@ -23,6 +23,7 @@ from PyQt5.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QTabWidget,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -107,6 +108,7 @@ class SemesterView(QWidget):
         tabs.addTab(self._build_list_tab(cur), "学期列表")
         tabs.addTab(self._build_create_tab(cur), "新建学期")
         tabs.addTab(self._build_inherit_tab(), "继承配置")
+        tabs.addTab(self._build_version_tab(), "版本历史")
         l.addWidget(tabs)
 
     # ═══════════════════════════════════
@@ -585,6 +587,144 @@ class SemesterView(QWidget):
         if hasattr(m, "_update_semester_display"):
             m._update_semester_display()
         self._rebuild()
+
+    # ═══════════════════════════════════
+    #  Tab 4: 版本历史 (M5-C2)
+    # ═══════════════════════════════════
+
+    def _build_version_tab(self):
+        w = QWidget()
+        l = QVBoxLayout(w)
+        l.setContentsMargins(8, 8, 8, 8)
+        l.setSpacing(8)
+
+        # 学期选择
+        row = QHBoxLayout()
+        row.setSpacing(6)
+        row.addWidget(QLabel("选择学期:"))
+        sem_cb = QComboBox()
+        semesters = (
+            self.session.query(Semester).order_by(Semester.year_start.desc(), Semester.id).all()
+        )
+        for s in semesters:
+            sem_cb.addItem(f"{s.display_label}", s.id)
+        sem_cb.setFont(font(9))
+        sem_cb.setMinimumWidth(200)
+        row.addWidget(sem_cb)
+        row.addStretch()
+        l.addLayout(row)
+
+        # 版本列表
+        t = QTableWidget(0, 5)
+        t.setHorizontalHeaderLabels(["版本", "时间", "操作者", "配置项数", "操作"])
+        t.setFont(font(9))
+        t.verticalHeader().hide()
+        t.setEditTriggers(QTableWidget.NoEditTriggers)
+        t.setAlternatingRowColors(True)
+        t.horizontalHeader().setStretchLastSection(True)
+        t.setStyleSheet(
+            """QTableWidget { font-size:9pt; border:1px solid #DDD; background:white; alternate-background-color:#EBF5FB; }
+            QHeaderView::section { background:#D9E1F2; font-weight:bold; padding:4px; border:1px solid #CCC; }"""
+        )
+        t.setMinimumHeight(200)
+        l.addWidget(t)
+
+        # 刷新按钮
+        btn_row = QHBoxLayout()
+        btn_row.setSpacing(6)
+        refresh_btn = QPushButton("刷新版本列表")
+        refresh_btn.setStyleSheet(
+            f"""
+            QPushButton {{ background: {C["accent_blue"]}; color: white; border: none;
+                border-radius: 4px; padding: 6px 16px; font-size: 9pt; }}
+            QPushButton:hover {{ background: #2E86C1; }}
+            """
+        )
+        refresh_btn.setCursor(Qt.PointingHandCursor)
+        btn_row.addWidget(refresh_btn)
+        btn_row.addStretch()
+        l.addLayout(btn_row)
+
+        # 详情区
+        detail_label = QLabel("选择版本查看配置详情")
+        detail_label.setFont(font(8))
+        detail_label.setStyleSheet("color:#666;")
+        l.addWidget(detail_label)
+
+        detail_text = QTextEdit()
+        detail_text.setFont(font(8))
+        detail_text.setReadOnly(True)
+        detail_text.setMaximumHeight(150)
+        detail_text.setStyleSheet("border:1px solid #DDD; background:#FAFAFA;")
+        l.addWidget(detail_text)
+
+        def load_versions():
+            sem_id = sem_cb.currentData()
+            if not sem_id:
+                return
+            from edu_system.services.semester_config import SemesterConfigService
+            svc = SemesterConfigService(self.session)
+            try:
+                versions = svc.get_versions(sem_id)
+                t.setRowCount(len(versions))
+                for i, v in enumerate(versions):
+                    t.setItem(i, 0, QTableWidgetItem(str(v["version"])))
+                    t.setItem(i, 1, QTableWidgetItem(v["created_at"] or ""))
+                    t.setItem(i, 2, QTableWidgetItem(v["created_by"] or ""))
+                    t.setItem(i, 3, QTableWidgetItem(str(v["config_count"])))
+
+                    # 回滚按钮
+                    rollback_btn = QPushButton("回滚")
+                    rollback_btn.setStyleSheet(
+                        "background:#E74C3C; color:white; font-size:8pt; "
+                        "border:none; border-radius:2px; padding:2px 8px;"
+                    )
+                    rollback_btn.setCursor(Qt.PointingHandCursor)
+                    rollback_btn.clicked.connect(lambda _, ver=v["version"]: do_rollback(sem_id, ver))
+                    t.setCellWidget(i, 4, rollback_btn)
+                t.setColumnWidth(0, 60)
+                t.setColumnWidth(1, 140)
+                t.setColumnWidth(2, 100)
+                t.setColumnWidth(3, 80)
+                detail_label.setText(f"共 {len(versions)} 个版本")
+                detail_text.clear()
+            except Exception as e:
+                QMessageBox.warning(self, "加载失败", str(e))
+
+        def do_rollback(sem_id, version):
+            from PyQt5.QtWidgets import QMessageBox
+            ans = QMessageBox.question(
+                self,
+                "确认回滚",
+                f"确定要回滚到版本 {version} 吗？\n这将创建一个新版本并覆盖当前配置。",
+                QMessageBox.Yes | QMessageBox.No,
+            )
+            if ans != QMessageBox.Yes:
+                return
+
+            from edu_system.services.semester_config import SemesterConfigService
+            svc = SemesterConfigService(self.session)
+            try:
+                result = svc.rollback_to_version(sem_id, version, operator="admin")
+                if result.get("success"):
+                    QMessageBox.information(
+                        self,
+                        "回滚完成",
+                        f"{result['message']}\n\n新版本: v{result['new_version']}\n配置项: {result['config_count']}",
+                    )
+                    load_versions()
+                else:
+                    QMessageBox.warning(self, "回滚失败", result.get("error", "未知错误"))
+            except Exception as e:
+                QMessageBox.warning(self, "错误", str(e))
+
+        refresh_btn.clicked.connect(lambda: load_versions())
+        sem_cb.currentIndexChanged.connect(lambda: load_versions())
+
+        # 初始加载
+        load_versions()
+
+        return w
 
     # ═══════════════════════════════════
     #  升年级已移至 PromotionView（学生管理工作台）

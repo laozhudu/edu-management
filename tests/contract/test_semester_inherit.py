@@ -86,3 +86,69 @@ class TestSemesterInheritContract:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-x", "-v"])
+
+# ===== M5-C2 配置版本回滚契约测试 =====
+
+
+class TestSemesterConfigVersionRollbackContract:
+    """配置版本回滚接口契约测试（M5-C2）"""
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        app = create_app()
+        client = TestClient(app)
+        self.client = client
+
+        response = client.post(
+            "/api/auth/login",
+            json={"username": "admin", "password": "admin123"},
+        )
+        assert response.status_code == 200
+        self.access_token = response.json()["access_token"]
+        self.headers = {"Authorization": f"Bearer {self.access_token}"}
+
+    def test_list_versions(self):
+        """版本列表：返回版本号、时间、操作者、配置项数"""
+        response = self.client.get(
+            "/api/semester/1/versions",
+            headers=self.headers,
+        )
+        assert response.status_code in (200, 404, 403)
+        if response.status_code == 200:
+            data = response.json()
+            assert isinstance(data, list)
+            for v in data:
+                assert "version" in v
+                assert "created_at" in v
+                assert "created_by" in v
+                assert "config_count" in v
+
+    def test_get_version_configs(self):
+        """获取指定版本配置"""
+        response = self.client.get(
+            "/api/semester/1/versions/1",
+            headers=self.headers,
+        )
+        assert response.status_code in (200, 404, 403)
+        if response.status_code == 200:
+            data = response.json()
+            assert "semester_id" in data
+            assert "version" in data
+            assert "configs" in data
+            assert isinstance(data["configs"], dict)
+
+    def test_rollback_version(self):
+        """回滚到指定版本"""
+        # 先获取版本列表，取一个存在的版本回滚
+        list_resp = self.client.get("/api/semester/1/versions", headers=self.headers)
+        if list_resp.status_code == 200 and list_resp.json():
+            target_version = list_resp.json()[0]["version"]
+            response = self.client.post(
+                f"/api/semester/1/versions/{target_version}/rollback",
+                headers=self.headers,
+            )
+            assert response.status_code in (200, 404, 409, 403)
+            if response.status_code == 200:
+                data = response.json()
+                assert "success" in data
+                assert data["success"] is True

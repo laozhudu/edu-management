@@ -164,6 +164,11 @@ def _inject_semester_filter(query):
     if getattr(query, "_skip_semester_filter", False):
         return query
 
+    # 已有 LIMIT/OFFSET 的查询跳过注入（.first()/.limit() 场景，
+    # 此时再 filter 会抛 "Query already has LIMIT or OFFSET applied"）
+    if query._limit_clause is not None or query._offset_clause is not None:
+        return query
+
     # 获取当前上下文
     sem_id = get_active_semester()
     sch_id = get_active_school()

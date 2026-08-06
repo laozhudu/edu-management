@@ -619,3 +619,383 @@ class ReportService:
             template_path=template_path,
             single_file=single_file,
         )
+
+
+# ═══════════════════════════════════
+# 5. 证书/奖状生成 (Word)
+# ═══════════════════════════════════
+
+    def generate_certificate(
+        self,
+        exam_id: int,
+        output_dir: str,
+        certificate_type: str = "award",  # "award" 奖状 | "certificate" 证书
+        template_path: str | None = None,
+        single_file: bool = True,
+    ) -> list[str]:
+        """
+        批量生成证书/奖状 Word 文档
+
+        Args:
+            exam_id: 考试 ID
+            output_dir: 输出目录
+            certificate_type: "award" 奖状 | "certificate" 证书
+            template_path: Word 模版路径，None 使用内置模版
+            single_file: True=合并为单个 docx，False=每人单独文件
+
+        Returns:
+            生成的文件路径列表
+        """
+        students, subjects, configs = self.score_svc.get_exam_scores(exam_id)
+        ranked = self.score_svc.calc_grade_ranks(exam_id)
+
+        exam = self.session.get(Exam, exam_id)
+        if not exam:
+            raise ValueError(f"考试不存在: exam_id={exam_id}")
+
+        semester_label = exam.semester.display_label if exam.semester else ""
+        grade_name = exam.grade.name if exam.grade else ""
+
+        # 筛选获奖学生
+        awardees = self._filter_awardees(ranked, certificate_type)
+        if not awardees:
+            return []
+
+        generated_files = []
+
+        if single_file:
+            doc = Document()
+            self._setup_doc_style(doc)
+            for i, s in enumerate(awardees):
+                if i > 0:
+                    doc.add_page_break()
+                self._add_certificate_page(
+                    doc, s, certificate_type, semester_label, grade_name, exam.name
+                )
+            output_path = f"{output_dir}/{exam.name}_{certificate_type}.docx"
+            doc.save(output_path)
+            generated_files.append(output_path)
+        else:
+            for s in awardees:
+                doc = Document()
+                self._setup_doc_style(doc)
+                self._add_certificate_page(
+                    doc, s, certificate_type, semester_label, grade_name, exam.name
+                )
+                safe_name = f"{s['class_name']}_{s['name']}".replace("/", "_")
+                output_path = f"{output_dir}/{exam.name}_{certificate_type}_{safe_name}.docx"
+                doc.save(output_path)
+                generated_files.append(output_path)
+
+        return generated_files
+
+    def _filter_awardees(self, ranked: list[dict], certificate_type: str) -> list[dict]:
+        """筛选获奖学生：奖状=班级前30%，证书=总分前20%"""
+        if certificate_type == "award":
+            by_class = defaultdict(list)
+            for s in ranked:
+                by_class[s["class_name"]].append(s)
+            awardees = []
+            for cls_students in by_class.values():
+                cutoff = max(1, len(cls_students) * 30 // 100)
+                awardees.extend(cls_students[:cutoff])
+            return awardees
+        else:
+            cutoff = max(1, len(ranked) * 20 // 100)
+            return ranked[:cutoff]
+
+    def _add_certificate_page(
+        self,
+        doc: Document,
+        student: dict,
+        certificate_type: str,
+        semester_label: str,
+        grade_name: str,
+        exam_name: str,
+    ):
+        """添加一页证书/奖状"""
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+        from docx.oxml.ns import qn
+        from docx.shared import Pt, RGBColor
+
+        title_text = "奖 状" if certificate_type == "award" else "结业证书"
+        cert_no = (
+            f"第 {student['grade_rank']:04d} 号" if certificate_type == "certificate" else ""
+        )
+
+        # 标题
+        title = doc.add_paragraph()
+        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = title.add_run(title_text)
+        run.font.size = Pt(28)
+        run.bold = True
+        run.font.color.rgb = RGBColor(0x8B, 0x00, 0x00)  # 深红
+
+        if cert_no:
+            cert_p = doc.add_paragraph()
+            cert_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            run = cert_p.add_run(cert_no)
+            run.font.size = Pt(12)
+            run.font.color.rgb = RGBColor(0x8B, 0x00, 0x00)
+
+        doc.add_paragraph()
+
+        # 正文
+        body = doc.add_paragraph()
+        body.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = body.add_run(f"兹证明 {student['name']} 同学")
+        run.font.size = Pt(18)
+        run.font.name = "宋体"
+        run._element.rPr.rFonts.set(qn("w:eastAsia"), "宋体")
+
+        if certificate_type == "award":
+            text = (
+                f"在 {exam_name} 中表现优异，位列年级第 {student['grade_rank']} 名，"
+                f"班级第 {student['class_rank']} 名，特授予此奖状以资鼓励。"
+            )
+        else:
+            text = (
+                f"在 {semester_label} {grade_name} {exam_name} 中成绩优异，"
+                f"顺利完成学业，特颁发此证书。"
+            )
+        body.add_run(text).font.size = Pt(16)
+        for run in body.runs:
+            run.font.name = "宋体"
+            run._element.rPr.rFonts.set(qn("w:eastAsia"), "宋体")
+
+        doc.add_paragraph()
+        doc.add_paragraph()
+
+        # 落款
+        footer = doc.add_paragraph()
+        footer.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        run = footer.add_run(f"{semester_label} {grade_name} {exam_name}\n颁发单位：某某学校")
+        run.font.size = Pt(14)
+        run.font.name = "宋体"
+        run._element.rPr.rFonts.set(qn("w:eastAsia"), "宋体")
+
+        # 签名线
+        sig = doc.add_paragraph()
+        sig.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        run = sig.add_run("__________________\n校长签名（盖章）")
+        run.font.size = Pt(12)
+        run.font.name = "宋体"
+        run._element.rPr.rFonts.set(qn("w:eastAsia"), "宋体")
+
+        # 日期
+        date_p = doc.add_paragraph()
+        date_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        run = date_p.add_run("二〇二四年十二月")
+        run.font.size = Pt(14)
+        run.font.name = "宋体"
+        run._element.rPr.rFonts.set(qn("w:eastAsia"), "宋体")
+
+
+# ═══════════════════════════════════
+# 6. 打印服务
+# ═══════════════════════════════════
+
+
+class PrintService:
+    """打印服务 — 负责文档的打印提交、打印机选择"""
+
+    def __init__(self, session: Session):
+        self.session = session
+
+    def print_document(
+        self,
+        file_path: str,
+        printer_name: str | None = None,
+        copies: int = 1,
+        duplex: bool = False,
+    ) -> bool:
+        """打印文档（PDF/Word/Excel）"""
+        import platform
+        import subprocess
+
+        system = platform.system()
+        try:
+            if system == "Windows":
+                import win32api
+                import win32print
+
+                printer = printer_name or win32print.GetDefaultPrinter()
+                win32api.ShellExecute(0, "print", file_path, f'/d:"{printer}"', ".", 0)
+                return True
+            elif system == "Linux":
+                cmd = ["lp"]
+                if printer_name:
+                    cmd.extend(["-d", printer_name])
+                if copies > 1:
+                    cmd.extend(["-n", str(copies)])
+                if duplex:
+                    cmd.append("-o sides=two-sided-long-edge")
+                cmd.append(file_path)
+                subprocess.run(cmd, check=True)
+                return True
+            else:
+                cmd = ["lpr"]
+                if printer_name:
+                    cmd.extend(["-P", printer_name])
+                if copies > 1:
+                    cmd.extend(["-#", str(copies)])
+                if duplex:
+                    cmd.append("-o Duplex=DuplexNoTumble")
+                cmd.append(file_path)
+                subprocess.run(cmd, check=True)
+                return True
+        except Exception as e:
+            print(f"打印失败: {e}")
+            return False
+
+    def get_printers(self) -> list[dict]:
+        """获取可用打印机列表"""
+        import platform
+
+        try:
+            if platform.system() == "Windows":
+                import win32print
+
+                printers = []
+                for p in win32print.EnumPrinters(
+                    win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS
+                ):
+                    printers.append({"name": p[2], "status": "available"})
+                return printers
+            else:
+                import subprocess
+
+                result = subprocess.run(["lpstat", "-p"], capture_output=True, text=True)
+                printers = []
+                for line in result.stdout.splitlines():
+                    if line.startswith("printer "):
+                        printers.append({"name": line.split()[1], "status": "available"})
+                return printers
+        except Exception:
+            return []
+
+    def get_default_printer(self) -> str | None:
+        """获取默认打印机"""
+        import platform
+
+        try:
+            if platform.system() == "Windows":
+                import win32print
+
+                return win32print.GetDefaultPrinter()
+            else:
+                import subprocess
+
+                result = subprocess.run(["lpstat", "-d"], capture_output=True, text=True)
+                for line in result.stdout.splitlines():
+                    if "system default destination" in line:
+                        return line.split()[-1]
+                return None
+        except Exception:
+            return None
+
+
+# ═══════════════════════════════════
+# 7. 报表工厂
+# ═══════════════════════════════════
+
+
+class ReportFactory:
+    """报表工厂 — 统一管理报表类型、格式、生成入口"""
+
+    # 内置报表类型
+    REPORT_TYPES = {
+        "exam": {
+            "name": "考试标准报表",
+            "description": "原始成绩 + 科分析 + 排名",
+            "formats": ["excel"],
+            "handler": "generate_exam_report",
+        },
+        "change": {
+            "name": "学籍变动情况表",
+            "description": "公文格式学籍变动表",
+            "formats": ["excel"],
+            "handler": "generate_change_report",
+        },
+        "report_card": {
+            "name": "成绩单",
+            "description": "Word/Excel 成绩单，支持单文件/多文件",
+            "formats": ["word", "excel"],
+            "handler": "generate_report_cards",
+        },
+        "certificate": {
+            "name": "证书/奖状",
+            "description": "奖状/证书，支持合并/单文件",
+            "formats": ["word"],
+            "handler": "generate_certificate",
+        },
+    }
+
+    def __init__(self, session: Session):
+        self.session = session
+        self.report_svc = ReportService(session)
+
+    def list_report_types(self) -> list[dict]:
+        """获取支持的报表类型列表"""
+        return [
+            {
+                "type": key,
+                "name": info["name"],
+                "description": info["description"],
+                "formats": info["formats"],
+            }
+            for key, info in self.REPORT_TYPES.items()
+        ]
+
+    def generate(
+        self,
+        report_type: str,
+        format: str,
+        **kwargs,
+    ) -> list[str]:
+        """
+        统一生成入口
+
+        Args:
+            report_type: 报表类型（exam/change/report_card/certificate）
+            format: 输出格式（excel/word）
+            **kwargs: 额外参数（exam_id, output_path/output_dir, ...）
+
+        Returns:
+            生成的文件路径列表
+        """
+        if report_type not in self.REPORT_TYPES:
+            raise ValueError(f"不支持的报表类型: {report_type}")
+
+        info = self.REPORT_TYPES[report_type]
+        if format not in info["formats"]:
+            raise ValueError(f"报表类型 {report_type} 不支持格式 {format}")
+
+        handler_name = info["handler"]
+        handler = getattr(self.report_svc, handler_name)
+
+        if report_type == "certificate":
+            result = handler(
+                exam_id=kwargs["exam_id"],
+                output_dir=kwargs["output_dir"],
+                certificate_type=kwargs.get("certificate_type", "award"),
+                template_path=kwargs.get("template_path"),
+                single_file=kwargs.get("single_file", True),
+            )
+        elif report_type == "report_card":
+            result = handler(
+                exam_id=kwargs["exam_id"],
+                output_dir=kwargs["output_dir"],
+                template_path=kwargs.get("template_path"),
+                single_file=kwargs.get("single_file", True),
+            )
+        elif report_type == "exam":
+            handler(exam_id=kwargs["exam_id"], output_path=kwargs["output_path"])
+            result = [kwargs["output_path"]]
+        elif report_type == "change":
+            handler(semester_id=kwargs["semester_id"], output_path=kwargs["output_path"])
+            result = [kwargs["output_path"]]
+        else:
+            raise ValueError(f"未实现的处理器: {handler_name}")
+
+        return {"files": result, "report_type": report_type, "format": format}

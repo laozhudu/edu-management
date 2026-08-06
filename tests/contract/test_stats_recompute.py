@@ -133,5 +133,5 @@ class TestStatsRecomputeContract:
 
     def test_worker_status_query(self):
         """worker 状态接口可查询（不报错）"""
-        resp = self.client.get("/api/stats/worker/status", headers=self.headers)
+        resp = self.client.get("/api/stats/recompute/worker/status", headers=self.headers)
         assert resp.status_code == 200

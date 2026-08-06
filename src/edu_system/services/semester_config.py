@@ -291,20 +291,23 @@ class SemesterConfigService:
 
     def get_versions(self, semester_id: int) -> list[dict]:
         """获取学期的所有配置版本（从历史快照表）"""
-        from sqlalchemy import distinct
+        from sqlalchemy import func
 
         from edu_system.models import SemesterConfigHistory
 
+        # 用 group_by 替代 distinct，避免 SQLite 生成带 LIMIT 的子查询
+        # 与 before_compile 的 semester 过滤注入钩子冲突
         versions = (
             self.session.query(
-                distinct(SemesterConfigHistory.version).label("v"),
-                SemesterConfigHistory.created_at,
-                SemesterConfigHistory.operator,
+                SemesterConfigHistory.version.label("v"),
+                func.max(SemesterConfigHistory.created_at).label("created_at"),
+                func.max(SemesterConfigHistory.operator).label("operator"),
             )
             .filter(
                 SemesterConfigHistory.semester_id == semester_id,
                 SemesterConfigHistory.version > 0,
             )
+            .group_by(SemesterConfigHistory.version)
             .order_by(SemesterConfigHistory.version.desc())
             .all()
         )
