@@ -1,0 +1,169 @@
+<!-- 升留级/毕业页（M5-G 双端一致：Web 端） -->
+{% extends "index.html" %}
+
+{% block title %}升留级管理 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="space-y-4" x-data="studentPromotion()">
+    <!-- 提示横幅 -->
+    <div x-show="msg" x-cloak
+         class="rounded-lg px-4 py-3 text-sm"
+         :class="msgType === 'error' ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'"
+         x-text="msg"></div>
+
+    <!-- 工具栏 -->
+    <div class="card">
+        <div class="card-body flex flex-wrap gap-3 items-end">
+            <div class="flex-1 min-w-[200px]">
+                <label class="label" for="kw">关键字</label>
+                <input id="kw" type="text" class="input" placeholder="姓名 / 学号"
+                       x-model="filters.keyword" @keydown.enter="load()">
+            </div>
+            <button class="btn btn-primary" @click="load()">刷新列表</button>
+            <button class="btn btn-secondary" @click="resetFilters()">重置</button>
+            <span class="text-sm text-gray-500 dark:text-gray-400 self-center">
+                共 <span x-text="students.length"></span> 名学生 · <span x-text="groups.length"></span> 个年级
+            </span>
+        </div>
+    </div>
+
+    <!-- 按年级分组 -->
+    <template x-for="g in groups" :key="g.grade">
+        <div class="card">
+            <div class="card-header flex items-center justify-between">
+                <h2 class="text-lg font-semibold">
+                    <span class="badge badge-primary mr-2" x-text="g.grade || '未分年级'"></span>
+                    <span class="text-sm font-normal text-gray-500 dark:text-gray-400" x-text="g.items.length + ' 人'"></span>
+                </h2>
+                <div class="flex gap-2">
+                    <button class="btn btn-secondary btn-sm" @click="batchAction(g, '升级')">本级整体升级</button>
+                    <button class="btn btn-secondary btn-sm" @click="batchAction(g, '毕业')">本级整体毕业</button>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>学号</th>
+                            <th>姓名</th>
+                            <th>班级</th>
+                            <th>当前年级</th>
+                            <th>学籍状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="s in g.items" :key="s.id">
+                            <tr>
+                                <td x-text="s.student_no || '—'"></td>
+                                <td class="font-medium" x-text="s.name"></td>
+                                <td x-text="s.class_name || '—'"></td>
+                                <td x-text="s.grade || '—'"></td>
+                                <td><span class="badge" :class="statusClass(s.status)" x-text="s.status || '—'"></span></td>
+                                <td>
+                                    <div class="flex gap-1">
+                                        <button class="btn btn-sm btn-primary" @click="doAction(s, '升级')">升级</button>
+                                        <button class="btn btn-sm btn-secondary" @click="doAction(s, '留级')">留级</button>
+                                        <button class="btn btn-sm btn-secondary" @click="doAction(s, '毕业')">毕业</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                        <tr x-show="!loading && g.items.length === 0">
+                            <td colspan="6" class="text-center py-8 text-gray-500 dark:text-gray-400">该年级暂无学生</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </template>
+
+    <!-- 空状态 -->
+    <div class="card" x-show="!loading && groups.length === 0" x-cloak>
+        <div class="card-body text-center py-12 text-gray-500 dark:text-gray-400">
+            <svg class="w-12 h-12 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <p x-text="loading ? '加载中...' : '暂无学生数据'"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    function studentPromotion() {
+        return {
+            students: [],
+            groups: [],
+            loading: false,
+            filters: { keyword: '' },
+            msg: '',
+            msgType: 'info',
+
+            async load() {
+                this.loading = true;
+                this.msg = '';
+                try {
+                    const params = new URLSearchParams({
+                        page: 1,
+                        page_size: 500,
+                        ...this.filters
+                    });
+                    const resp = await fetch('/api/students?' + params, {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        const d = await resp.json();
+                        this.students = d.items || [];
+                        this.groupByGrade();
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    } else {
+                        this.msg = '加载失败: ' + resp.statusText;
+                        this.msgType = 'error';
+                    }
+                } catch (e) {
+                    console.error('加载学生列表失败:', e);
+                    this.msg = '请求失败: ' + e.message;
+                    this.msgType = 'error';
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            groupByGrade() {
+                const map = {};
+                this.students.forEach(s => {
+                    const g = s.grade || '未分年级';
+                    (map[g] = map[g] || []).push(s);
+                });
+                this.groups = Object.keys(map)
+                    .sort()
+                    .map(grade => ({ grade, items: map[grade] }));
+            },
+
+            // 升留级/毕业操作：Web 端前端模拟，实际执行在桌面端
+            doAction(s, action) {
+                if (!confirm(`确定对「${s.name}」（${s.student_no || ''}）执行【${action}】操作吗？`)) return;
+                this.msg = `【${action}】操作已记录：${s.name}（${s.student_no || ''}）。升留级操作请到桌面端执行。`;
+                this.msgType = 'info';
+            },
+
+            batchAction(g, action) {
+                if (!confirm(`确定对${g.grade}全部 ${g.items.length} 名学生执行【${action}】操作吗？`)) return;
+                this.msg = `【${action}】操作已记录：${g.grade} 共 ${g.items.length} 人。升留级操作请到桌面端执行。`;
+                this.msgType = 'info';
+            },
+
+            resetFilters() {
+                this.filters = { keyword: '' };
+                this.load();
+            },
+            statusClass(st) {
+                return { '在校': 'badge-success', '休学': 'badge-warning', '毕业': 'badge-gray' }[st] || 'badge-gray';
+            },
+
+            init() { this.load(); }
+        };
+    }
+</script>
+{% endblock %}

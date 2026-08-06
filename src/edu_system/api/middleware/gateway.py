@@ -91,7 +91,9 @@ class GatewayMiddleware(BaseHTTPMiddleware):
         if self._is_health_check(request):
             return True
         # UI 配置：公开只读（品牌/导航结构），Web 登录页渲染依赖
-        if request.url.path in ("/api/config", "/api/config/"):
+        if request.url.path in ("/api/config", "/api/config/") or request.url.path.startswith(
+            "/api/config/version"
+        ):
             return True
         return False
 
@@ -113,6 +115,9 @@ class GatewayMiddleware(BaseHTTPMiddleware):
             return True
         # 所有认证相关端点跳过网关校验
         if path.startswith("/api/auth/"):
+            return True
+        # 本机 ID 端点：公开（激活授权码需先获取本机 ID）
+        if path == "/api/license/machine-id":
             return True
         return False
 

@@ -179,6 +179,36 @@ class ServiceRegistry:
                 "rate_limit": 200,
                 "rate_limit_window": 60,
             },
+            "license": {
+                "name": "授权许可",
+                "description": "安装授权码、许可状态查询",
+                "api_prefix": "/api/license",
+                "enabled": True,
+                "required_permissions": [],
+                "allowed_roles": ["admin"],
+                "rate_limit": 50,
+                "rate_limit_window": 60,
+            },
+            "config": {
+                "name": "UI 配置",
+                "description": "UI 配置查询、热加载",
+                "api_prefix": "/api/config",
+                "enabled": True,
+                "required_permissions": [],
+                "allowed_roles": ["admin"],
+                "rate_limit": 200,
+                "rate_limit_window": 60,
+            },
+            "reports": {
+                "name": "报表导出",
+                "description": "报表生成、打印、打印机查询",
+                "api_prefix": "/api/reports",
+                "enabled": True,
+                "required_permissions": [],
+                "allowed_roles": ["teacher", "director", "admin"],
+                "rate_limit": 50,
+                "rate_limit_window": 60,
+            },
         }
 
         for code, config in default_services.items():
@@ -231,6 +261,9 @@ class ServiceRegistry:
                     "teachers",
                     "semester",
                     "stats",
+                    "license",
+                    "config",
+                    "reports",
                 ]
             )
             existing_codes = set(cfg.service_code for cfg in configs)
@@ -420,6 +453,36 @@ class ServiceRegistry:
                 "required_permissions": ["semester:view"],
                 "allowed_roles": ["teacher", "director", "admin", "student", "parent"],
                 "rate_limit": 200,
+                "rate_limit_window": 60,
+            },
+            "license": {
+                "name": "授权许可",
+                "description": "安装授权码、许可状态查询",
+                "api_prefix": "/api/license",
+                "enabled": True,
+                "required_permissions": [],
+                "allowed_roles": ["admin"],
+                "rate_limit": 50,
+                "rate_limit_window": 60,
+            },
+            "config": {
+                "name": "UI 配置",
+                "description": "UI 配置查询、热加载",
+                "api_prefix": "/api/config",
+                "enabled": True,
+                "required_permissions": [],
+                "allowed_roles": ["admin"],
+                "rate_limit": 200,
+                "rate_limit_window": 60,
+            },
+            "reports": {
+                "name": "报表导出",
+                "description": "报表生成、打印、打印机查询",
+                "api_prefix": "/api/reports",
+                "enabled": True,
+                "required_permissions": [],
+                "allowed_roles": ["teacher", "director", "admin"],
+                "rate_limit": 50,
                 "rate_limit_window": 60,
             },
         }

@@ -1,0 +1,215 @@
+<!-- 新生注册页（Excel 批量导入，M5-G 双端一致：Web 端） -->
+{% extends "index.html" %}
+
+{% block title %}新生注册 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="space-y-4" x-data="studentRegister()">
+    <!-- 提示横幅 -->
+    <div x-show="msg" x-cloak
+         class="rounded-lg px-4 py-3 text-sm"
+         :class="msgType === 'error' ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300' : 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300'"
+         x-text="msg"></div>
+
+    <!-- 上传区 -->
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">新生批量注册</h2>
+            <a href="/api/import/template?entity=student"
+               class="btn btn-secondary btn-sm" target="_blank">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                下载导入模板
+            </a>
+        </div>
+        <div class="card-body">
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                请先下载模板（CSV）并按表头填写学生信息（姓名、性别、座号、入学年份、班级等），再上传文件进行预览校验。
+            </p>
+            <!-- 文件选择 -->
+            <div class="flex flex-wrap gap-3 items-center">
+                <button class="btn btn-secondary" @click="$refs.file.click()">选择文件</button>
+                <input id="file-input" type="file" x-ref="file" class="hidden" accept=".csv,.xlsx,.xls"
+                       @change="onFileChange">
+                <span class="text-sm text-gray-600 dark:text-gray-300" x-text="fileName || '未选择文件'"></span>
+                <button class="btn btn-primary" @click="preview()" :disabled="!fileName || previewing">
+                    <span x-show="!previewing">预览导入</span>
+                    <span x-show="previewing">解析中...</span>
+                </button>
+                <button class="btn btn-secondary" @click="reset()" :disabled="previewing">清空</button>
+            </div>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">支持 .csv / .xlsx / .xls 格式，最大 10MB</p>
+        </div>
+    </div>
+
+    <!-- 预览结果 -->
+    <div class="card" x-show="previewDone" x-cloak>
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">导入预览</h2>
+            <div class="text-sm text-gray-500 dark:text-gray-400">
+                共 <span class="font-medium text-gray-900 dark:text-white" x-text="totalRows"></span> 行 ·
+                可导入 <span class="font-medium text-green-600" x-text="validRows"></span> ·
+                异常 <span class="font-medium text-red-600" x-text="errorCount"></span>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>姓名</th>
+                        <th>性别</th>
+                        <th>座号/学号</th>
+                        <th>入学年份</th>
+                        <th>联系电话</th>
+                        <th>班级</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="(row, idx) in previewRows" :key="idx">
+                        <tr>
+                            <td class="font-medium" x-text="row.name ?? row['姓名'] ?? '—'"></td>
+                            <td x-text="row.gender ?? row['性别'] ?? '—'"></td>
+                            <td x-text="row.student_no ?? row['座号'] ?? '—'"></td>
+                            <td x-text="row.enroll_year ?? row['入学年份'] ?? '—'"></td>
+                            <td x-text="row.phone ?? row['联系电话'] ?? '—'"></td>
+                            <td x-text="row.class_name ?? row['班级'] ?? '—'"></td>
+                        </tr>
+                    </template>
+                    <tr x-show="!previewing && previewRows.length === 0">
+                        <td colspan="6" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                            文件无有效数据行
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer flex items-center justify-between gap-3">
+            <span class="text-xs text-gray-400 dark:text-gray-500"
+                  x-text="errorCount > 0 ? '存在异常行，请修正后重新上传再导入' : '预览为前 5 行样例，确认后按全量数据导入'"></span>
+            <button class="btn btn-primary" @click="execute()" :disabled="importing || errorCount > 0">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span x-show="!importing">确认导入</span>
+                <span x-show="importing">导入中...</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function studentRegister() {
+        return {
+            file: null,
+            fileName: '',
+            previewing: false,
+            importing: false,
+            previewDone: false,
+            previewRows: [],
+            totalRows: 0,
+            validRows: 0,
+            errorCount: 0,
+            msg: '',
+            msgType: 'success',
+
+            onFileChange() {
+                const f = this.$refs.file.files[0];
+                if (!f) return;
+                if (f.size > 10 * 1024 * 1024) {
+                    this.msg = '文件超过 10MB 限制';
+                    this.msgType = 'error';
+                    this.reset();
+                    return;
+                }
+                this.file = f;
+                this.fileName = f.name;
+                this.previewDone = false;
+                this.msg = '';
+            },
+
+            makeForm() {
+                const fd = new FormData();
+                fd.append('file', this.file);
+                fd.append('entity', 'student');
+                fd.append('entity_type', 'student');
+                return fd;
+            },
+
+            async preview() {
+                if (!this.file) { this.msg = '请先选择文件'; this.msgType = 'error'; return; }
+                this.previewing = true;
+                this.msg = '';
+                try {
+                    const resp = await fetch('/api/import/preview', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: authHeaders(),
+                        body: this.makeForm()
+                    });
+                    const d = await resp.json().catch(() => ({}));
+                    if (resp.ok) {
+                        this.previewRows = d.sample || [];
+                        this.totalRows = d.total_rows ?? this.previewRows.length;
+                        this.validRows = d.valid_rows ?? 0;
+                        this.errorCount = d.error_count ?? 0;
+                        this.previewDone = true;
+                        this.msg = '预览完成：共 ' + this.totalRows + ' 行，可导入 ' + this.validRows + ' 行';
+                        this.msgType = 'success';
+                    } else {
+                        this.msg = '预览失败: ' + (d.detail || d.error || resp.statusText);
+                        this.msgType = 'error';
+                    }
+                } catch (e) {
+                    this.msg = '请求失败: ' + e.message;
+                    this.msgType = 'error';
+                } finally {
+                    this.previewing = false;
+                }
+            },
+
+            async execute() {
+                if (!this.file) return;
+                if (!confirm('确认导入 ' + this.validRows + ' 条学生数据？')) return;
+                this.importing = true;
+                this.msg = '';
+                try {
+                    const resp = await fetch('/api/import/execute', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: authHeaders(),
+                        body: this.makeForm()
+                    });
+                    const d = await resp.json().catch(() => ({}));
+                    if (resp.ok && d.success !== false) {
+                        this.msg = '导入成功：已写入 ' + (d.inserted ?? 0) + ' 条数据';
+                        this.msgType = 'success';
+                        this.reset();
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    } else {
+                        this.msg = '导入失败: ' + (d.detail || d.error || resp.statusText);
+                        this.msgType = 'error';
+                    }
+                } catch (e) {
+                    this.msg = '请求失败: ' + e.message;
+                    this.msgType = 'error';
+                } finally {
+                    this.importing = false;
+                }
+            },
+
+            reset() {
+                this.file = null;
+                this.fileName = '';
+                this.previewDone = false;
+                this.previewRows = [];
+                this.totalRows = 0;
+                this.validRows = 0;
+                this.errorCount = 0;
+                if (this.$refs.file) this.$refs.file.value = '';
+            }
+        };
+    }
+</script>
+{% endblock %}

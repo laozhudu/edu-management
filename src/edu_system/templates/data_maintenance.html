@@ -1,0 +1,162 @@
+<!-- 数据维护页（M5-G 双端一致：Web 端） -->
+{% extends "index.html" %}
+
+{% block title %}数据维护 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="space-y-4 max-w-6xl mx-auto px-4" x-data="dataMaintenance()">
+    <!-- 备份提示 -->
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">数据备份</h2>
+            <button class="btn btn-primary btn-sm" @click="runBackup()">立即备份</button>
+        </div>
+        <div class="card-body text-sm text-gray-500 dark:text-gray-400 space-y-1">
+            <p>· 建议每日备份数据库与缓存目录，备份文件请存放于独立存储介质。</p>
+            <p>· 当前版本提供手动备份入口（模拟），自动定时备份策略待接入。</p>
+        </div>
+    </div>
+
+    <!-- 缓存统计 -->
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">缓存统计</h2>
+            <button class="btn btn-secondary btn-sm" @click="loadCacheStats()">刷新</button>
+        </div>
+        <div class="card-body grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-sm text-gray-500 dark:text-gray-400">缓存版本</div>
+                <div class="text-xl font-bold mt-1" x-text="cacheStats.version ?? '—'"></div>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-sm text-gray-500 dark:text-gray-400">缓存条目</div>
+                <div class="text-xl font-bold mt-1" x-text="cacheStats.entry_count ?? '—'"></div>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-sm text-gray-500 dark:text-gray-400">占用空间</div>
+                <div class="text-xl font-bold mt-1" x-text="formatBytes(cacheStats.size_bytes)"></div>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-sm text-gray-500 dark:text-gray-400">缓存目录</div>
+                <div class="text-xs mt-1 break-all" x-text="cacheStats.directory || '—'"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 数据清理 -->
+    <div class="card">
+        <div class="card-header"><h2 class="text-lg font-semibold">数据清理</h2></div>
+        <div class="card-body">
+            <div class="flex flex-wrap gap-3">
+                <button class="btn btn-secondary" @click="clean('清理统计缓存')">清理统计缓存</button>
+                <button class="btn btn-secondary" @click="clean('清理历史日志')">清理历史日志</button>
+                <button class="btn btn-danger" @click="clean('重建全部索引')">重建全部索引</button>
+            </div>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-3">
+                清理操作执行前会弹出确认对话框，执行后不可恢复，请谨慎操作。
+            </p>
+        </div>
+    </div>
+
+    <!-- 系统信息 -->
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">系统信息</h2>
+            <button class="btn btn-secondary btn-sm" @click="loadHealth()">刷新</button>
+        </div>
+        <div class="card-body grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-sm text-gray-500 dark:text-gray-400">健康状态</div>
+                <div class="mt-1">
+                    <span class="badge" :class="health.status === 'healthy' ? 'badge-success' : 'badge-danger'"
+                          x-text="health.status === 'healthy' ? '健康' : (health.status || '未知')"></span>
+                </div>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-sm text-gray-500 dark:text-gray-400">系统版本</div>
+                <div class="text-xl font-bold mt-1" x-text="health.version || '—'"></div>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-sm text-gray-500 dark:text-gray-400">缓存版本</div>
+                <div class="text-xl font-bold mt-1" x-text="health.cache_version ?? '—'"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 提示 -->
+    <div x-show="message" x-transition.opacity
+         class="card p-4 text-sm" :class="messageType === 'error' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'"
+         x-text="message"></div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function dataMaintenance() {
+        return {
+            cacheStats: {},
+            health: {},
+            message: '',
+            messageType: 'success',
+
+            async loadCacheStats() {
+                try {
+                    const resp = await fetch('/api/stats/cache/stats', { credentials: 'include', headers: authHeaders() });
+                    if (resp.ok) {
+                        this.cacheStats = await resp.json();
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载缓存统计失败:', e);
+                    this.showMessage('加载缓存统计失败', 'error');
+                }
+            },
+
+            async loadHealth() {
+                try {
+                    const resp = await fetch('/healthz', { credentials: 'include' });
+                    if (resp.ok) {
+                        this.health = await resp.json();
+                    } else {
+                        this.health = { status: 'unhealthy' };
+                    }
+                } catch (e) {
+                    console.error('健康检查失败:', e);
+                    this.health = { status: 'unhealthy' };
+                }
+            },
+
+            formatBytes(bytes) {
+                if (bytes === undefined || bytes === null) return '—';
+                if (bytes < 1024) return bytes + ' B';
+                if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+                return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+            },
+
+            runBackup() {
+                if (!confirm('确认立即执行数据备份？（当前为模拟操作）')) return;
+                this.showMessage('备份任务已提交（模拟），完成后将生成备份文件。');
+            },
+
+            clean(action) {
+                if (!confirm('确认执行「' + action + '」？该操作不可恢复。')) return;
+                this.showMessage('「' + action + '」已提交（模拟），清理完成后将刷新统计。');
+                this.loadCacheStats();
+            },
+
+            showMessage(text, type) {
+                this.message = text;
+                this.messageType = type || 'success';
+                clearTimeout(this._timer);
+                this._timer = setTimeout(() => (this.message = ''), 5000);
+            },
+
+            init() {
+                this.loadCacheStats();
+                this.loadHealth();
+            }
+        };
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,144 @@
+<!-- 用户权限页（M5-G 双端一致：Web 端） -->
+{% extends "index.html" %}
+
+{% block title %}用户权限 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="space-y-4 max-w-6xl mx-auto px-4" x-data="userPermission()">
+    <!-- 当前用户信息 -->
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">当前用户信息</h2>
+            <button class="btn btn-secondary btn-sm" @click="loadMe()">刷新</button>
+        </div>
+        <div class="card-body grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-sm text-gray-500 dark:text-gray-400">用户名</div>
+                <div class="font-medium mt-1" x-text="user.username || '—'"></div>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-sm text-gray-500 dark:text-gray-400">显示名称</div>
+                <div class="font-medium mt-1" x-text="user.display_name || '—'"></div>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-sm text-gray-500 dark:text-gray-400">角色</div>
+                <div class="mt-1"><span class="badge badge-primary" x-text="roleLabel(user.role)"></span></div>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-sm text-gray-500 dark:text-gray-400">用户 ID</div>
+                <div class="font-medium mt-1" x-text="user.id ?? '—'"></div>
+            </div>
+        </div>
+        <!-- 权限点 -->
+        <div class="card-body border-t border-gray-200 dark:border-gray-700">
+            <div class="text-sm text-gray-500 dark:text-gray-400 mb-2">权限点（permissions）</div>
+            <div class="flex flex-wrap gap-2">
+                <template x-for="p in user.permissions || []" :key="p">
+                    <span class="badge badge-success" x-text="p"></span>
+                </template>
+                <span x-show="!(user.permissions || []).length" class="text-sm text-gray-400 dark:text-gray-600">
+                    该角色无独立权限点
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 角色权限矩阵 -->
+    <div class="card">
+        <div class="card-header"><h2 class="text-lg font-semibold">角色权限矩阵</h2></div>
+        <div class="overflow-x-auto">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>功能</th>
+                        <th>admin 管理员</th>
+                        <th>teacher 教师</th>
+                        <th>academic_staff 教务人员</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="row in matrix" :key="row.feature">
+                        <tr>
+                            <td class="font-medium" x-text="row.feature"></td>
+                            <td x-html="cellIcon(row.admin)"></td>
+                            <td x-html="cellIcon(row.teacher)"></td>
+                            <td x-html="cellIcon(row.staff)"></td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 用户管理占位 -->
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">用户管理</h2>
+            <button class="btn btn-primary btn-sm" @click="showPlaceholder()">新增用户</button>
+        </div>
+        <div class="card-body text-sm text-gray-500 dark:text-gray-400">
+            用户管理功能（新增 / 停用 / 重置密码 / 分配角色）待接入，当前仅支持查看当前登录用户信息。
+        </div>
+    </div>
+
+    <!-- 提示 -->
+    <div x-show="message" x-transition.opacity
+         class="card p-4 text-sm text-green-600 dark:text-green-400" x-text="message"></div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function userPermission() {
+        return {
+            user: {},
+            message: '',
+            matrix: [
+                { feature: '学生信息查看', admin: true, teacher: true, staff: true },
+                { feature: '学生管理维护', admin: true, teacher: false, staff: true },
+                { feature: '成绩录入', admin: true, teacher: true, staff: false },
+                { feature: '考试管理', admin: true, teacher: false, staff: true },
+                { feature: '班级科目配置', admin: true, teacher: false, staff: true },
+                { feature: '学期设置', admin: true, teacher: false, staff: false },
+                { feature: '系统设置', admin: true, teacher: false, staff: false },
+                { feature: '数据维护 / 初始化', admin: true, teacher: false, staff: false }
+            ],
+
+            async loadMe() {
+                try {
+                    const resp = await fetch('/api/auth/me', { credentials: 'include', headers: authHeaders() });
+                    if (resp.ok) {
+                        this.user = await resp.json();
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载用户信息失败:', e);
+                }
+            },
+
+            roleLabel(role) {
+                return {
+                    admin: '管理员',
+                    teacher: '教师',
+                    academic_staff: '教务人员'
+                }[role] || role || '—';
+            },
+
+            cellIcon(v) {
+                return v
+                    ? '<span class="text-green-500 dark:text-green-400 font-bold">✓</span>'
+                    : '<span class="text-gray-300 dark:text-gray-600">—</span>';
+            },
+
+            showPlaceholder() {
+                this.message = '用户管理功能待接入，敬请期待。';
+                clearTimeout(this._timer);
+                this._timer = setTimeout(() => (this.message = ''), 3000);
+            },
+
+            init() { this.loadMe(); }
+        };
+    }
+</script>
+{% endblock %}

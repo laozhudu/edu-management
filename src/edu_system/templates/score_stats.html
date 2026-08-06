@@ -1,0 +1,266 @@
+<!-- 成绩统计页（M5-G 双端一致：Web 端） -->
+{% extends "index.html" %}
+
+{% block title %}成绩统计 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="space-y-4" x-data="scoreStats()">
+    <!-- 学期统计概览 -->
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">学期统计概览</h2>
+            <div class="flex gap-2 items-center">
+                <select class="select w-56" x-model="semesterId" @change="loadSummary()">
+                    <option value="">请选择学期...</option>
+                    <template x-for="s in semesters" :key="s.id">
+                        <option :value="s.id" x-text="s.label || s.display_label"></option>
+                    </template>
+                </select>
+                <button class="btn btn-secondary btn-sm" @click="loadSemesters()">刷新</button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div x-show="summaryLoaded && !summaryLoading" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">学生数</div>
+                    <div class="text-2xl font-bold mt-1" x-text="summary.student_count ?? '—'"></div>
+                </div>
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">班级数</div>
+                    <div class="text-2xl font-bold mt-1" x-text="summary.class_count ?? '—'"></div>
+                </div>
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">教师数</div>
+                    <div class="text-2xl font-bold mt-1" x-text="summary.teacher_count ?? '—'"></div>
+                </div>
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">考试数</div>
+                    <div class="text-2xl font-bold mt-1" x-text="summary.exam_count ?? '—'"></div>
+                </div>
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">平均分</div>
+                    <div class="text-2xl font-bold mt-1" x-text="fmt(summary.score_avg)"></div>
+                </div>
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">及格率</div>
+                    <div class="text-2xl font-bold mt-1" x-text="fmt(summary.score_pass_rate, '%')"></div>
+                </div>
+            </div>
+            <div x-show="summaryLoading" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+                <template x-for="i in 6" :key="i">
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"><div class="skeleton-text h-8"></div></div>
+                </template>
+            </div>
+            <div x-show="!summaryLoading && summaryLoaded && semesterId === ''" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                请选择学期查看统计概览
+            </div>
+        </div>
+    </div>
+
+    <!-- 考试统计 -->
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">考试成绩统计</h2>
+            <select class="select w-56" x-model="examId" @change="loadExamStats()">
+                <option value="">请选择考试...</option>
+                <template x-for="e in exams" :key="e.id">
+                    <option :value="e.id" x-text="e.name + '（' + (e.exam_date || '') + '）'"></option>
+                </template>
+            </select>
+        </div>
+        <div class="card-body" x-show="examId" x-cloak>
+            <div x-show="!examLoading" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">成绩记录</div>
+                    <div class="text-2xl font-bold mt-1" x-text="examStats.count ?? '—'"></div>
+                </div>
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">平均分</div>
+                    <div class="text-2xl font-bold mt-1" x-text="fmt(examStats.avg)"></div>
+                </div>
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">最高分 / 最低分</div>
+                    <div class="text-2xl font-bold mt-1">
+                        <span x-text="examStats.max ?? '—'"></span><span class="text-gray-400 text-lg"> / </span><span x-text="examStats.min ?? '—'"></span>
+                    </div>
+                </div>
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">及格率</div>
+                    <div class="text-2xl font-bold mt-1" x-text="fmt(examStats.pass_rate, '%')"></div>
+                </div>
+            </div>
+            <div x-show="examLoading" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <template x-for="i in 4" :key="i">
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"><div class="skeleton-text h-8"></div></div>
+                </template>
+            </div>
+
+            <!-- 成绩明细 -->
+            <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>学号</th>
+                            <th>学生</th>
+                            <th>科目</th>
+                            <th>成绩</th>
+                            <th>折算分</th>
+                            <th>补考</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="s in examScores" :key="s.id">
+                            <tr>
+                                <td x-text="s.student_no || '—'"></td>
+                                <td class="font-medium" x-text="s.student_name || '—'"></td>
+                                <td x-text="s.subject_name || s.subject_id || '—'"></td>
+                                <td class="font-medium" x-text="s.score"></td>
+                                <td x-text="s.converted_score ?? '—'"></td>
+                                <td>
+                                    <span class="badge" :class="s.is_makeup ? 'badge-warning' : 'badge-gray'"
+                                          x-text="s.is_makeup ? '补考' : '正常'"></span>
+                                </td>
+                            </tr>
+                        </template>
+                        <tr x-show="!examLoading && examScores.length === 0">
+                            <td colspan="6" class="text-center py-8 text-gray-500 dark:text-gray-400">该考试暂无成绩数据</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function scoreStats() {
+        return {
+            semesters: [],
+            semesterId: '',
+            summary: {},
+            summaryLoaded: false,
+            summaryLoading: false,
+
+            exams: [],
+            examId: '',
+            examScores: [],
+            examStats: {},
+            examLoading: false,
+
+            async loadSemesters() {
+                try {
+                    const resp = await fetch('/api/semester/list?page_size=100', {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        this.semesters = (await resp.json()).items || [];
+                        await this.loadActiveSemester();
+                    }
+                } catch (e) {
+                    console.error('加载学期列表失败:', e);
+                }
+            },
+
+            async loadActiveSemester() {
+                try {
+                    const resp = await fetch('/api/semester/active', {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        const d = await resp.json();
+                        if (d.semester) {
+                            this.semesterId = String(d.semester.id);
+                            this.loadSummary();
+                        }
+                    }
+                } catch (e) {
+                    console.error('加载当前学期失败:', e);
+                }
+            },
+
+            async loadSummary() {
+                if (!this.semesterId) { this.summaryLoaded = true; return; }
+                this.summaryLoading = true;
+                try {
+                    const resp = await fetch('/api/stats/semester/' + this.semesterId + '/summary', {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        const d = await resp.json();
+                        this.summary = d.metrics || {};
+                        this.summary.semester_label = d.semester_label || '';
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载学期统计失败:', e);
+                } finally {
+                    this.summaryLoading = false;
+                    this.summaryLoaded = true;
+                }
+            },
+
+            async loadExams() {
+                try {
+                    const resp = await fetch('/api/exam?page_size=100', {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        this.exams = (await resp.json()).items || [];
+                    }
+                } catch (e) {
+                    console.error('加载考试列表失败:', e);
+                }
+            },
+
+            async loadExamStats() {
+                if (!this.examId) { this.examStats = {}; this.examScores = []; return; }
+                this.examLoading = true;
+                try {
+                    const resp = await fetch('/api/score?exam_id=' + this.examId + '&page_size=200', {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        const d = await resp.json();
+                        this.examScores = d.items || [];
+                        this.computeStats();
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载考试成绩失败:', e);
+                } finally {
+                    this.examLoading = false;
+                }
+            },
+
+            computeStats() {
+                const scores = this.examScores
+                    .map(s => Number(s.score))
+                    .filter(v => Number.isFinite(v));
+                if (scores.length === 0) { this.examStats = { count: 0 }; return; }
+                const sum = scores.reduce((a, b) => a + b, 0);
+                this.examStats = {
+                    count: this.examScores.length,
+                    avg: sum / scores.length,
+                    max: Math.max(...scores),
+                    min: Math.min(...scores),
+                    pass_rate: scores.filter(v => v >= 60).length / scores.length * 100
+                };
+            },
+
+            fmt(v, suffix) {
+                if (v === null || v === undefined || v === '') return '—';
+                const n = Number(v);
+                const s = Number.isFinite(n) ? (Math.round(n * 10) / 10) : v;
+                return s + (suffix || '');
+            },
+
+            init() {
+                this.loadSemesters();
+                this.loadExams();
+            }
+        };
+    }
+</script>
+{% endblock %}

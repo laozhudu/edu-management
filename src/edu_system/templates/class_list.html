@@ -1,0 +1,151 @@
+<!-- 班级科目页（M5-G 双端一致：Web 端） -->
+{% extends "index.html" %}
+
+{% block title %}班级科目 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="space-y-4 max-w-6xl mx-auto px-4" x-data="classList()">
+    <!-- 统计卡片 -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-sm text-gray-500 dark:text-gray-400">班级总数</div>
+                <div class="text-2xl font-bold mt-1" x-text="classes.length"></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <div class="text-sm text-gray-500 dark:text-gray-400">学生总数</div>
+                <div class="text-2xl font-bold mt-1" x-text="totalStudents"></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <div class="text-sm text-gray-500 dark:text-gray-400">平均每班人数</div>
+                <div class="text-2xl font-bold mt-1" x-text="avgStudents()"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 班级列表 -->
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">班级列表（按学生档案统计）</h2>
+            <div class="flex items-center gap-2">
+                <input type="text" class="input input-sm w-48" placeholder="搜索班级名称"
+                       x-model="filters.keyword" @keydown.enter="load()">
+                <button class="btn btn-secondary btn-sm" @click="load()">刷新</button>
+            </div>
+        </div>
+        <div class="overflow-x-auto max-h-[480px]">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>班级名称</th>
+                        <th>学生人数</th>
+                        <th>占比</th>
+                        <th>科目配置</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="(c, idx) in filteredClasses()" :key="c.name">
+                        <tr>
+                            <td x-text="idx + 1"></td>
+                            <td class="font-medium" x-text="c.name || '未分班'"></td>
+                            <td><span class="badge badge-primary" x-text="c.count + ' 人'"></span></td>
+                            <td class="whitespace-nowrap">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-24 h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+                                        <div class="h-full bg-primary-500 rounded-full" :style="'width:' + percent(c.count) + '%'"></div>
+                                    </div>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400" x-text="percent(c.count) + '%'"></span>
+                                </div>
+                            </td>
+                            <td><span class="badge badge-gray">待接入</span></td>
+                        </tr>
+                    </template>
+                    <tr x-show="!loading && classes.length === 0">
+                        <td colspan="5" class="text-center py-8 text-gray-500 dark:text-gray-400">暂无班级数据</td>
+                    </tr>
+                    <tr x-show="loading">
+                        <td colspan="5" class="py-8"><div class="skeleton-text w-2/3 mx-auto"></div></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 说明 -->
+    <div class="card">
+        <div class="card-header"><h2 class="text-lg font-semibold">说明</h2></div>
+        <div class="card-body text-sm text-gray-500 dark:text-gray-400 space-y-1">
+            <p>· 当前为简化实现：班级数据由学生档案（GET /api/students）按班级字段实时分组统计。</p>
+            <p>· 班级科目配置接口待接入，后续将支持按班级维护开课科目与任课教师。</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function classList() {
+        return {
+            classes: [],
+            totalStudents: 0,
+            loading: false,
+            filters: { keyword: '' },
+
+            async load() {
+                this.loading = true;
+                try {
+                    const params = new URLSearchParams({ page: 1, page_size: 500 });
+                    const resp = await fetch('/api/students?' + params, {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        const d = await resp.json();
+                        this.groupByClass(d.items || []);
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载学生数据失败:', e);
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            groupByClass(items) {
+                const map = new Map();
+                this.totalStudents = items.length;
+                items.forEach(s => {
+                    const name = s.class_name || '未分班';
+                    map.set(name, (map.get(name) || 0) + 1);
+                });
+                this.classes = [...map.entries()]
+                    .map(([name, count]) => ({ name, count }))
+                    .sort((a, b) => b.count - a.count);
+            },
+
+            filteredClasses() {
+                const kw = (this.filters.keyword || '').trim().toLowerCase();
+                if (!kw) return this.classes;
+                return this.classes.filter(c => c.name.toLowerCase().includes(kw));
+            },
+
+            percent(count) {
+                if (!this.totalStudents) return 0;
+                return Math.round((count / this.totalStudents) * 1000) / 10;
+            },
+
+            avgStudents() {
+                if (!this.classes.length) return 0;
+                return Math.round((this.totalStudents / this.classes.length) * 10) / 10;
+            },
+
+            init() { this.load(); }
+        };
+    }
+</script>
+{% endblock %}

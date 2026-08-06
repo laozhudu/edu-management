@@ -1,0 +1,160 @@
+<!-- 成绩查询页（M5-G 双端一致：Web 端） -->
+{% extends "index.html" %}
+
+{% block title %}成绩查询 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="space-y-4" x-data="scoreQuery()">
+    <!-- 筛选工具栏 -->
+    <div class="card">
+        <div class="card-body flex flex-wrap gap-3 items-end">
+            <div class="min-w-[220px] flex-1">
+                <label class="label" for="exam">考试</label>
+                <select id="exam" class="select" x-model="filters.exam_id" @change="load(1)">
+                    <option value="">全部考试</option>
+                    <template x-for="e in exams" :key="e.id">
+                        <option :value="e.id" x-text="e.name + '（' + (e.exam_date || '') + '）'"></option>
+                    </template>
+                </select>
+            </div>
+            <div class="min-w-[180px] flex-1">
+                <label class="label" for="kw">关键字</label>
+                <input id="kw" type="text" class="input" placeholder="学号/姓名"
+                       x-model="filters.keyword" @keydown.enter="load(1)">
+            </div>
+            <button class="btn btn-primary" @click="load(1)">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                查询
+            </button>
+            <button class="btn btn-secondary" @click="resetFilters()">重置</button>
+        </div>
+    </div>
+
+    <!-- 成绩列表 -->
+    <div class="card">
+        <div class="overflow-x-auto">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>学号</th>
+                        <th>姓名</th>
+                        <th>科目</th>
+                        <th>成绩</th>
+                        <th>折算分</th>
+                        <th>补考</th>
+                        <th>发布状态</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="s in list" :key="s.id">
+                        <tr>
+                            <td x-text="s.student_no || '—'"></td>
+                            <td class="font-medium" x-text="s.student_name || '—'"></td>
+                            <td x-text="s.subject_name || s.subject_id || '—'"></td>
+                            <td class="font-medium" x-text="s.score"></td>
+                            <td x-text="s.converted_score ?? '—'"></td>
+                            <td>
+                                <span class="badge" :class="s.is_makeup ? 'badge-warning' : 'badge-gray'"
+                                      x-text="s.is_makeup ? '补考' : '正常'"></span>
+                            </td>
+                            <td>
+                                <span class="badge" :class="s.is_published ? 'badge-success' : 'badge-gray'"
+                                      x-text="s.is_published ? '已发布' : '未发布'"></span>
+                            </td>
+                        </tr>
+                    </template>
+                    <tr x-show="!loading && list.length === 0">
+                        <td colspan="7" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                            暂无成绩数据
+                        </td>
+                    </tr>
+                    <tr x-show="loading">
+                        <td colspan="7" class="py-8"><div class="skeleton-text w-2/3 mx-auto"></div></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer flex items-center justify-between">
+            <div class="text-sm text-gray-500 dark:text-gray-400">
+                共 <span x-text="total"></span> 条 · 第 <span x-text="page"></span>/<span x-text="totalPages()"></span> 页
+            </div>
+            <div class="pagination">
+                <button class="pagination-btn" :disabled="page <= 1" @click="load(page-1)">上一页</button>
+                <button class="pagination-btn" :disabled="page >= totalPages()" @click="load(page+1)">下一页</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function scoreQuery() {
+        return {
+            exams: [],
+            list: [],
+            total: 0,
+            page: 1,
+            pageSize: 20,
+            loading: false,
+            filters: { exam_id: '', keyword: '' },
+
+            async loadExams() {
+                try {
+                    const resp = await fetch('/api/exam?page_size=100', {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        this.exams = (await resp.json()).items || [];
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载考试列表失败:', e);
+                }
+            },
+
+            async load(p) {
+                this.page = p || 1;
+                this.loading = true;
+                try {
+                    const params = new URLSearchParams({
+                        page: this.page,
+                        page_size: this.pageSize,
+                        keyword: this.filters.keyword
+                    });
+                    if (this.filters.exam_id) params.set('exam_id', this.filters.exam_id);
+                    const resp = await fetch('/api/score?' + params, {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        const d = await resp.json();
+                        this.list = d.items || [];
+                        this.total = d.total || 0;
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载成绩失败:', e);
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            totalPages() {
+                return Math.max(1, Math.ceil(this.total / this.pageSize));
+            },
+
+            resetFilters() {
+                this.filters = { exam_id: '', keyword: '' };
+                this.load(1);
+            },
+
+            init() {
+                this.loadExams();
+                this.load(1);
+            }
+        };
+    }
+</script>
+{% endblock %}

@@ -89,8 +89,9 @@ async def page_placeholder(
     if domain:
         tab = next((t for t in domain.get("tabs", []) if t.get("id") == tab_id), None)
 
-    # 优先渲染特定功能页模板（如 student_list.html），不存在则回退 index.html 占位
-    specific = TEMPLATES_DIR / f"{tab_id}.html"
+    # 优先按页签 view 字段解析特定模板（如 classes→class_list.html），回退 tab_id，再回退 index.html 占位
+    tmpl_key = (tab or {}).get("view") or tab_id
+    specific = TEMPLATES_DIR / f"{tmpl_key}.html"
     template_name = specific.name if specific.exists() else "index.html"
     return templates.TemplateResponse(
         request,

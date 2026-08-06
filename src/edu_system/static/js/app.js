@@ -19,6 +19,7 @@ window.App = {
         this.loadSemester();
         this.loadServices();
         this.initTheme();
+        this.initConfigHotReload();  // G4 配置热加载
         this.initKeyboardShortcuts();
         this.initCommandPalette();
     },
@@ -88,6 +89,29 @@ window.App = {
         } catch (e) {
             console.warn('Failed to load services:', e);
         }
+    },
+
+    // G4 配置热加载：轮询 /api/config/version，指纹变化即刷新页面
+    initConfigHotReload() {
+        this._configFingerprint = null;
+        this._configPollTimer = setInterval(async () => {
+            try {
+                const resp = await fetch('/api/config/version', { credentials: 'include' });
+                if (!resp.ok) return;
+                const data = await resp.json();
+                if (this._configFingerprint === null) {
+                    this._configFingerprint = data.fingerprint;  // 首次仅记录
+                    return;
+                }
+                if (data.fingerprint !== this._configFingerprint) {
+                    console.log('[G4] 配置已变更，刷新页面');
+                    clearInterval(this._configPollTimer);
+                    location.reload();
+                }
+            } catch (e) {
+                // 忽略轮询错误（网络抖动等）
+            }
+        }, 5000);  // 5 秒轮询
     },
     
     updateServicesUI() {

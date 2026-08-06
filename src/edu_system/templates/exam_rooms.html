@@ -1,0 +1,263 @@
+<!-- 考场座位页（M5-G 双端一致：Web 端） -->
+{% extends "index.html" %}
+
+{% block title %}考场座位 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="space-y-4" x-data="examRooms()">
+    <!-- 工具栏：考试选择与座位分配 -->
+    <div class="card">
+        <div class="card-body flex flex-wrap gap-3 items-end">
+            <div class="min-w-[240px] flex-1">
+                <label class="label" for="exam">考试</label>
+                <select id="exam" class="select" x-model="examId" @change="loadRooms()">
+                    <option value="">请选择考试...</option>
+                    <template x-for="e in exams" :key="e.id">
+                        <option :value="e.id" x-text="e.name + '（' + (e.exam_date || '') + '）'"></option>
+                    </template>
+                </select>
+            </div>
+            <button class="btn btn-secondary" @click="loadExams()">刷新考试</button>
+            <button class="btn btn-primary" @click="arrangeSeats()" :disabled="!examId || seating">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+                <span x-show="!seating">分配座位</span>
+                <span x-show="seating">分配中...</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 创建考场表单 -->
+    <div class="card" x-show="examId" x-cloak>
+        <div class="card-header">
+            <h2 class="text-lg font-semibold">创建考场</h2>
+        </div>
+        <div class="card-body grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+            <div>
+                <label class="label label-required" for="room-name">考场名称</label>
+                <input id="room-name" type="text" class="input" x-model="roomForm.room_name" placeholder="如：教学楼A-101">
+            </div>
+            <div>
+                <label class="label label-required" for="room-capacity">容量</label>
+                <input id="room-capacity" type="number" class="input" x-model.number="roomForm.capacity" min="1" placeholder="30">
+            </div>
+            <div>
+                <label class="label" for="invig1">监考教师1</label>
+                <select id="invig1" class="select" x-model="roomForm.invigilator1_id">
+                    <option value="">不指定</option>
+                    <template x-for="t in teachers" :key="t.id">
+                        <option :value="t.id" x-text="t.name"></option>
+                    </template>
+                </select>
+            </div>
+            <div>
+                <label class="label" for="invig2">监考教师2</label>
+                <select id="invig2" class="select" x-model="roomForm.invigilator2_id">
+                    <option value="">不指定</option>
+                    <template x-for="t in teachers" :key="t.id">
+                        <option :value="t.id" x-text="t.name"></option>
+                    </template>
+                </select>
+            </div>
+        </div>
+        <div class="card-footer flex items-center justify-between">
+            <span class="text-sm text-gray-500 dark:text-gray-400" x-text="roomMsg"></span>
+            <button class="btn btn-success" @click="createRoom()" :disabled="creatingRoom">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                <span x-show="!creatingRoom">创建考场</span>
+                <span x-show="creatingRoom">创建中...</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 考场列表 -->
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">考场列表</h2>
+            <span class="text-sm text-gray-500 dark:text-gray-400" x-text="seatMsg"></span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>考场编号</th>
+                        <th>考场名称</th>
+                        <th>容量</th>
+                        <th>已分配人数</th>
+                        <th>使用率</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="r in rooms" :key="r.room_id ?? r.id">
+                        <tr>
+                            <td x-text="r.room_id ?? r.id"></td>
+                            <td class="font-medium" x-text="r.room_name || r.name || '—'"></td>
+                            <td x-text="r.capacity ?? '—'"></td>
+                            <td x-text="r.assigned_count ?? 0"></td>
+                            <td>
+                                <span class="badge" :class="usageBadge(r)" x-text="usageText(r)"></span>
+                            </td>
+                        </tr>
+                    </template>
+                    <tr x-show="!loading && rooms.length === 0">
+                        <td colspan="5" class="text-center py-8 text-gray-500 dark:text-gray-400" x-text="emptyText()"></td>
+                    </tr>
+                    <tr x-show="loading">
+                        <td colspan="5" class="py-8"><div class="skeleton-text w-2/3 mx-auto"></div></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function examRooms() {
+        return {
+            exams: [],
+            examId: '',
+            rooms: [],
+            loading: false,
+            teachers: [],
+            roomForm: { room_name: '', capacity: 30, invigilator1_id: '', invigilator2_id: '' },
+            creatingRoom: false,
+            seating: false,
+            roomMsg: '',
+            seatMsg: '',
+
+            async loadExams() {
+                try {
+                    const resp = await fetch('/api/exam?page_size=100', {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        this.exams = (await resp.json()).items || [];
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载考试列表失败:', e);
+                }
+            },
+
+            async loadRooms() {
+                if (!this.examId) { this.rooms = []; return; }
+                this.loading = true;
+                this.rooms = [];
+                try {
+                    const resp = await fetch('/api/exam/' + this.examId + '/rooms', {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        const d = await resp.json();
+                        this.rooms = d.items || d.rooms || (Array.isArray(d) ? d : []);
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载考场失败:', e);
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            async loadTeachers() {
+                try {
+                    const resp = await fetch('/api/teachers?page_size=100', {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        this.teachers = (await resp.json()).items || [];
+                    }
+                } catch (e) {
+                    console.error('加载教师失败:', e);
+                }
+            },
+
+            async createRoom() {
+                if (!this.roomForm.room_name.trim() || !this.roomForm.capacity) {
+                    this.roomMsg = '请填写考场名称和容量';
+                    return;
+                }
+                this.creatingRoom = true;
+                this.roomMsg = '';
+                try {
+                    const resp = await fetch('/api/exam/' + this.examId + '/rooms', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                        body: JSON.stringify({
+                            room_name: this.roomForm.room_name.trim(),
+                            capacity: this.roomForm.capacity,
+                            invigilator1_id: this.roomForm.invigilator1_id ? parseInt(this.roomForm.invigilator1_id) : null,
+                            invigilator2_id: this.roomForm.invigilator2_id ? parseInt(this.roomForm.invigilator2_id) : null
+                        })
+                    });
+                    const d = await resp.json();
+                    if (resp.ok) {
+                        this.roomMsg = d.message || '考场创建成功';
+                        this.roomForm = { room_name: '', capacity: 30, invigilator1_id: '', invigilator2_id: '' };
+                        this.loadRooms();
+                    } else {
+                        this.roomMsg = '创建失败: ' + (d.detail || d.error || resp.statusText);
+                    }
+                } catch (e) {
+                    this.roomMsg = '请求失败: ' + e.message;
+                } finally {
+                    this.creatingRoom = false;
+                }
+            },
+
+            async arrangeSeats() {
+                if (!this.examId) return;
+                this.seating = true;
+                this.seatMsg = '';
+                try {
+                    const resp = await fetch('/api/exam/' + this.examId + '/seats', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                        body: JSON.stringify({ method: 'snake' })
+                    });
+                    const d = await resp.json();
+                    if (resp.ok) {
+                        this.seatMsg = d.message || '座位分配完成';
+                        this.loadRooms();
+                    } else {
+                        this.seatMsg = '分配失败: ' + (d.detail || d.error || resp.statusText);
+                    }
+                } catch (e) {
+                    this.seatMsg = '请求失败: ' + e.message;
+                } finally {
+                    this.seating = false;
+                }
+            },
+
+            usageText(r) {
+                const cap = r.capacity || 0;
+                const used = r.assigned_count || 0;
+                return cap ? Math.round(used / cap * 100) + '%' : '—';
+            },
+
+            usageBadge(r) {
+                const cap = r.capacity || 0;
+                const used = r.assigned_count || 0;
+                if (!cap) return 'badge-gray';
+                return used >= cap ? 'badge-warning' : 'badge-success';
+            },
+
+            emptyText() {
+                return this.examId ? '暂无考场数据，可在上方创建考场' : '请先选择考试';
+            },
+
+            init() {
+                this.loadExams();
+                this.loadTeachers();
+            }
+        };
+    }
+</script>
+{% endblock %}

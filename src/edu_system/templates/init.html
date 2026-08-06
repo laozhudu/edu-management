@@ -1,0 +1,116 @@
+<!-- 初始化系统页（M5-G 双端一致：Web 端） -->
+{% extends "index.html" %}
+
+{% block title %}初始化系统 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="space-y-4 max-w-4xl mx-auto px-4" x-data="systemInit()">
+    <!-- 红色警告卡片 -->
+    <div class="card border-2 border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20">
+        <div class="card-body">
+            <div class="flex items-start gap-4">
+                <div class="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 flex items-center justify-center">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold text-red-700 dark:text-red-400">此操作将清空所有业务数据</h2>
+                    <p class="text-sm text-red-600/80 dark:text-red-400/80 mt-1">
+                        该操作不可撤销，执行前请务必备份数据库。仅管理员可执行。
+                    </p>
+                </div>
+            </div>
+            <!-- 清空范围 -->
+            <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
+                <span class="badge badge-danger justify-center py-1">学生档案</span>
+                <span class="badge badge-danger justify-center py-1">教师档案</span>
+                <span class="badge badge-danger justify-center py-1">班级科目</span>
+                <span class="badge badge-danger justify-center py-1">考试成绩</span>
+                <span class="badge badge-danger justify-center py-1">考试安排</span>
+                <span class="badge badge-danger justify-center py-1">学期数据</span>
+                <span class="badge badge-danger justify-center py-1">统计缓存</span>
+                <span class="badge badge-danger justify-center py-1">审计日志</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 确认输入 -->
+    <div class="card">
+        <div class="card-header"><h2 class="text-lg font-semibold">确认操作</h2></div>
+        <div class="card-body space-y-4">
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                请在下方输入 <span class="font-bold text-red-600 dark:text-red-400">确认</span> 二字，以启用初始化按钮：
+            </p>
+            <input type="text" class="input max-w-xs" placeholder="请输入「确认」"
+                   x-model="confirmText" @input="confirmText = confirmText.slice(0, 2)">
+            <div>
+                <button class="btn btn-danger" :disabled="confirmText !== '确认' || initializing"
+                        @click="openModal()">
+                    <span x-text="initializing ? '初始化中…' : '初始化系统'"></span>
+                </button>
+            </div>
+            <p class="text-sm text-gray-400 dark:text-gray-500">
+                提示：当前为前端模拟流程，不会真实调用破坏性接口。
+            </p>
+        </div>
+    </div>
+
+    <!-- 确认对话框 -->
+    <div x-show="modalOpen" x-transition.opacity
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+         @click.self="modalOpen = false">
+        <div class="card w-full max-w-md">
+            <div class="card-header">
+                <h2 class="text-lg font-semibold text-red-600 dark:text-red-400">再次确认</h2>
+            </div>
+            <div class="card-body space-y-3 text-sm">
+                <p>即将初始化系统，将<strong>清空所有业务数据</strong>（学生 / 教师 / 班级 / 考试成绩 / 学期等），且<strong>不可恢复</strong>。</p>
+                <p class="text-gray-500 dark:text-gray-400">请再次确认是否继续？</p>
+            </div>
+            <div class="card-footer flex justify-end gap-2">
+                <button class="btn btn-secondary" @click="modalOpen = false">取消</button>
+                <button class="btn btn-danger" @click="doInit()">确认初始化</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 结果提示 -->
+    <div x-show="message" x-transition.opacity
+         class="card p-4 text-sm" :class="messageType === 'error' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'"
+         x-text="message"></div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function systemInit() {
+        return {
+            confirmText: '',
+            modalOpen: false,
+            initializing: false,
+            message: '',
+            messageType: 'success',
+
+            openModal() {
+                if (this.confirmText !== '确认' || this.initializing) return;
+                this.modalOpen = true;
+            },
+
+            doInit() {
+                this.modalOpen = false;
+                this.initializing = true;
+                this.message = '';
+                // 前端模拟：不实际调用破坏性 API
+                setTimeout(() => {
+                    this.initializing = false;
+                    this.confirmText = '';
+                    this.message = '初始化流程已执行完毕（模拟）。请重新登录并导入备份数据。';
+                }, 1500);
+            },
+
+            init() {}
+        };
+    }
+</script>
+{% endblock %}

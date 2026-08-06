@@ -1,0 +1,117 @@
+<!-- 准考证页（M5-G 双端一致：Web 端） -->
+{% extends "index.html" %}
+
+{% block title %}准考证 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="space-y-4" x-data="examAdmit()">
+    <!-- 工具栏：考试选择 -->
+    <div class="card">
+        <div class="card-body flex flex-wrap gap-3 items-end">
+            <div class="min-w-[240px] flex-1">
+                <label class="label" for="exam">考试</label>
+                <select id="exam" class="select" x-model="examId" @change="clearResult()">
+                    <option value="">请选择考试...</option>
+                    <template x-for="e in exams" :key="e.id">
+                        <option :value="e.id" x-text="e.name + '（' + (e.exam_date || '') + '）'"></option>
+                    </template>
+                </select>
+            </div>
+            <button class="btn btn-secondary" @click="loadExams()">刷新考试</button>
+        </div>
+    </div>
+
+    <!-- 批量生成准考证 -->
+    <div class="card" x-show="examId" x-cloak>
+        <div class="card-header">
+            <h2 class="text-lg font-semibold">批量生成准考证</h2>
+        </div>
+        <div class="card-body space-y-4">
+            <p class="text-sm text-gray-500 dark:text-gray-400" x-text="hint()"></p>
+            <div class="flex items-center gap-2">
+                <button class="btn btn-primary" @click="generate()" :disabled="generating">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <span x-show="!generating">生成准考证</span>
+                    <span x-show="generating">生成中...</span>
+                </button>
+            </div>
+            <!-- 生成结果 -->
+            <div class="rounded-lg p-4 text-sm"
+                 :class="resultOk ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-300'"
+                 x-show="resultMsg" x-cloak>
+                <span x-text="resultMsg"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function examAdmit() {
+        return {
+            exams: [],
+            examId: '',
+            generating: false,
+            resultMsg: '',
+            resultOk: false,
+
+            async loadExams() {
+                try {
+                    const resp = await fetch('/api/exam?page_size=100', {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        this.exams = (await resp.json()).items || [];
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载考试列表失败:', e);
+                }
+            },
+
+            hint() {
+                const e = this.exams.find(x => String(x.id) === String(this.examId));
+                return e ? ('考试：' + e.name + '　时间：' + (e.exam_date || '—') + '。生成将覆盖该考试全部学生的准考证，未生成过的学生将自动创建。') : '';
+            },
+
+            clearResult() {
+                this.resultMsg = '';
+            },
+
+            async generate() {
+                if (!this.examId) return;
+                this.generating = true;
+                this.resultMsg = '';
+                try {
+                    const resp = await fetch('/api/exam/' + this.examId + '/admit-card', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                        body: JSON.stringify({ format: 'pdf', include_qrcode: true })
+                    });
+                    const d = await resp.json();
+                    if (resp.ok) {
+                        const n = d.generated ?? 0;
+                        this.resultOk = true;
+                        this.resultMsg = d.message || ('已生成 ' + n + ' 张准考证');
+                    } else {
+                        this.resultOk = false;
+                        this.resultMsg = '生成失败: ' + (d.detail || d.error || resp.statusText);
+                    }
+                } catch (e) {
+                    this.resultOk = false;
+                    this.resultMsg = '请求失败: ' + e.message;
+                } finally {
+                    this.generating = false;
+                }
+            },
+
+            init() {
+                this.loadExams();
+            }
+        };
+    }
+</script>
+{% endblock %}

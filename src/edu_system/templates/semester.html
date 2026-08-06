@@ -1,0 +1,168 @@
+<!-- 学期设置页（M5-G 双端一致：Web 端） -->
+{% extends "index.html" %}
+
+{% block title %}学期设置 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="space-y-4 max-w-6xl mx-auto px-4" x-data="semesterManage()">
+    <!-- 当前激活学期 + 统计 -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="card sm:col-span-2">
+            <div class="card-header flex items-center justify-between">
+                <h2 class="text-lg font-semibold">当前激活学期</h2>
+                <span class="badge badge-success" x-show="activeSemester">生效中</span>
+            </div>
+            <div class="card-body">
+                <template x-if="activeSemester">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <span class="text-2xl font-bold" x-text="activeSemester.display_label || activeSemester.label"></span>
+                        <span class="badge badge-primary" x-text="'#' + activeSemester.id"></span>
+                        <span class="text-sm text-gray-500 dark:text-gray-400"
+                              x-text="(activeSemester.start_date || '—') + ' ~ ' + (activeSemester.end_date || '—')"></span>
+                    </div>
+                </template>
+                <div x-show="!activeSemester && !loadingActive" class="text-sm text-gray-500 dark:text-gray-400">
+                    暂无激活学期，请从下方列表中选择。
+                </div>
+                <div x-show="loadingActive" class="skeleton-text w-1/2"></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><h2 class="text-lg font-semibold">统计</h2></div>
+            <div class="card-body">
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">学期总数</div>
+                    <div class="text-2xl font-bold mt-1" x-text="semesters.length"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 学期列表 -->
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">学期列表</h2>
+            <button class="btn btn-secondary btn-sm" @click="loadList()">刷新</button>
+        </div>
+        <div class="overflow-x-auto max-h-[480px]">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>学年度 / 学期</th>
+                        <th>编码</th>
+                        <th>开始日期</th>
+                        <th>结束日期</th>
+                        <th>状态</th>
+                        <th>当前标记</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="s in semesters" :key="s.id">
+                        <tr>
+                            <td class="font-medium" x-text="s.display_label || s.label"></td>
+                            <td><span class="badge badge-gray" x-text="s.label || '—'"></span></td>
+                            <td class="whitespace-nowrap" x-text="s.start_date || '—'"></td>
+                            <td class="whitespace-nowrap" x-text="s.end_date || '—'"></td>
+                            <td>
+                                <span class="badge" :class="s.is_active ? 'badge-success' : 'badge-gray'"
+                                      x-text="s.is_active ? '启用' : '停用'"></span>
+                            </td>
+                            <td>
+                                <span class="badge badge-primary" x-show="isCurrent(s.id)">当前</span>
+                                <span x-show="!isCurrent(s.id)" class="text-gray-400 dark:text-gray-600">—</span>
+                            </td>
+                            <td>
+                                <button class="btn btn-primary btn-sm" :disabled="isCurrent(s.id) || switching === s.id"
+                                        @click="setActive(s.id)">
+                                    <span x-text="switching === s.id ? '切换中…' : '设为当前'"></span>
+                                </button>
+                            </td>
+                        </tr>
+                    </template>
+                    <tr x-show="!loading && semesters.length === 0">
+                        <td colspan="7" class="text-center py-8 text-gray-500 dark:text-gray-400">暂无学期数据</td>
+                    </tr>
+                    <tr x-show="loading">
+                        <td colspan="7" class="py-8"><div class="skeleton-text w-2/3 mx-auto"></div></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function semesterManage() {
+        return {
+            semesters: [],
+            activeSemester: null,
+            loading: false,
+            loadingActive: false,
+            switching: null,
+
+            async loadList() {
+                this.loading = true;
+                try {
+                    const resp = await fetch('/api/semester/list', { credentials: 'include', headers: authHeaders() });
+                    if (resp.ok) {
+                        this.semesters = (await resp.json()).items || [];
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载学期列表失败:', e);
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            async loadActive() {
+                this.loadingActive = true;
+                try {
+                    const resp = await fetch('/api/semester/active', { credentials: 'include', headers: authHeaders() });
+                    if (resp.ok) {
+                        this.activeSemester = (await resp.json()).semester || null;
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载当前学期失败:', e);
+                } finally {
+                    this.loadingActive = false;
+                }
+            },
+
+            async setActive(id) {
+                this.switching = id;
+                try {
+                    const resp = await fetch('/api/semester/active', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ semester_id: id })
+                    });
+                    if (resp.ok) {
+                        await Promise.all([this.loadList(), this.loadActive()]);
+                    }
+                } catch (e) {
+                    console.error('切换学期失败:', e);
+                } finally {
+                    this.switching = null;
+                }
+            },
+
+            isCurrent(id) {
+                return this.activeSemester && this.activeSemester.id === id;
+            },
+
+            init() {
+                this.loadList();
+                this.loadActive();
+            }
+        };
+    }
+</script>
+{% endblock %}

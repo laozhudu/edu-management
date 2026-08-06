@@ -66,3 +66,40 @@ class TestUIConfigAPI:
         assert "shortcuts" in data["topbar"]
         # 状态栏
         assert "left" in data["statusbar"] and "right" in data["statusbar"]
+
+
+class TestConfigHotReload:
+    """G4 配置热加载：version 指纹 + reload"""
+
+    def test_version_endpoint_public(self, client):
+        """GET /api/config/version 公开（无需登录），返回指纹"""
+        resp = client.get("/api/config/version")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "fingerprint" in data
+        assert data["fingerprint"]
+
+    def test_version_fingerprint_stable(self, client):
+        """同一配置文件指纹稳定（两次一致）"""
+        f1 = client.get("/api/config/version").json()["fingerprint"]
+        f2 = client.get("/api/config/version").json()["fingerprint"]
+        assert f1 == f2
+
+    def test_reload_requires_auth(self, client):
+        """POST /api/config/reload 需登录"""
+        resp = client.post("/api/config/reload")
+        assert resp.status_code in (401, 403)
+
+    def test_reload_success(self, client):
+        """登录后 reload 返回新指纹 + 学校名"""
+        login = client.post(
+            "/api/auth/login",
+            json={"username": "admin", "password": "admin123"},
+        )
+        headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+        resp = client.post("/api/config/reload", headers=headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success"] is True
+        assert "fingerprint" in data
+        assert "school" in data

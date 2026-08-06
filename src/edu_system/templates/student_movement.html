@@ -1,0 +1,212 @@
+<!-- 学籍变动页（M5-G 双端一致：Web 端） -->
+{% extends "index.html" %}
+
+{% block title %}学籍变动 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="space-y-4" x-data="studentMovement()">
+    <!-- 提示横幅 -->
+    <div x-show="msg" x-cloak
+         class="rounded-lg px-4 py-3 text-sm"
+         :class="msgType === 'error' ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300' : 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300'"
+         x-text="msg"></div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <!-- 变动登记表单（占位） -->
+        <div class="card lg:col-span-1">
+            <div class="card-header">
+                <h2 class="text-lg font-semibold">变动登记</h2>
+            </div>
+            <div class="card-body space-y-3">
+                <div>
+                    <label class="label" for="mv-student">学生</label>
+                    <select id="mv-student" class="select w-full" x-model="form.student_id">
+                        <option value="">请选择学生...</option>
+                        <template x-for="s in students" :key="s.id">
+                            <option :value="s.id" x-text="s.name + '（' + (s.student_no || '') + '）'"></option>
+                        </template>
+                    </select>
+                </div>
+                <div>
+                    <label class="label" for="mv-type">变动类型</label>
+                    <select id="mv-type" class="select w-full" x-model="form.move_type">
+                        <option value="转学">转学</option>
+                        <option value="休学">休学</option>
+                        <option value="复学">复学</option>
+                        <option value="退学">退学</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="label" for="mv-date">变动日期</label>
+                    <input id="mv-date" type="date" class="input w-full" x-model="form.move_date">
+                </div>
+                <div>
+                    <label class="label" for="mv-reason">备注</label>
+                    <textarea id="mv-reason" class="input w-full h-24" x-model="form.reason"
+                              placeholder="变动原因及说明（选填）"></textarea>
+                </div>
+                <button class="btn btn-primary w-full" @click="submit()" :disabled="submitting">
+                    <span x-show="!submitting">提交登记</span>
+                    <span x-show="submitting">提交中...</span>
+                </button>
+                <p class="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">
+                    说明：Web 端提供登记入口占位，学籍变动记录请到桌面端执行后在此同步查看。
+                </p>
+            </div>
+        </div>
+
+        <!-- 学生列表 -->
+        <div class="card lg:col-span-2">
+            <div class="card-body border-b border-gray-200 dark:border-gray-700">
+                <div class="flex flex-wrap gap-3 items-end">
+                    <div class="flex-1 min-w-[220px]">
+                        <label class="label" for="kw">关键字</label>
+                        <input id="kw" type="text" class="input" placeholder="姓名 / 学号"
+                               x-model="filters.keyword" @keydown.enter="load(1)">
+                    </div>
+                    <button class="btn btn-primary" @click="load(1)">查询</button>
+                    <button class="btn btn-secondary" @click="resetFilters()">重置</button>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>学号</th>
+                            <th>姓名</th>
+                            <th>班级</th>
+                            <th>学籍状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="s in students" :key="s.id">
+                            <tr :class="{ 'bg-primary-50 dark:bg-primary-900/20': s.id === Number(form.student_id) }"
+                                @click="form.student_id = s.id">
+                                <td x-text="s.student_no || '—'"></td>
+                                <td class="font-medium" x-text="s.name"></td>
+                                <td x-text="s.class_name || '—'"></td>
+                                <td><span class="badge" :class="statusClass(s.status)" x-text="s.status || '—'"></span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-secondary" @click="useStudent(s)">选为登记对象</button>
+                                </td>
+                            </tr>
+                        </template>
+                        <tr x-show="!loading && students.length === 0">
+                            <td colspan="5" class="text-center py-8 text-gray-500 dark:text-gray-400">暂无学生数据</td>
+                        </tr>
+                        <tr x-show="loading">
+                            <td colspan="5" class="py-8"><div class="skeleton-text w-2/3 mx-auto"></div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer flex items-center justify-between">
+                <div class="text-sm text-gray-500 dark:text-gray-400">
+                    共 <span x-text="total"></span> 条 · 第 <span x-text="page"></span>/<span x-text="totalPages()"></span> 页
+                </div>
+                <div class="pagination">
+                    <button class="pagination-btn" :disabled="page <= 1" @click="load(page-1)">上一页</button>
+                    <button class="pagination-btn" :disabled="page >= totalPages()" @click="load(page+1)">下一页</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function studentMovement() {
+        return {
+            students: [],
+            total: 0,
+            page: 1,
+            pageSize: 20,
+            loading: false,
+            saving: false,
+            filters: { keyword: '' },
+            form: { student_id: '', move_type: '转学', move_date: new Date().toISOString().slice(0, 10), reason: '' },
+            msg: '',
+            msgType: 'info',
+
+            async load(p) {
+                this.page = p || 1;
+                this.loading = true;
+                try {
+                    const params = new URLSearchParams({
+                        page: this.page, page_size: this.pageSize, ...this.filters
+                    });
+                    const resp = await fetch('/api/students?' + params, {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        const d = await resp.json();
+                        this.students = d.items || [];
+                        this.total = d.total || 0;
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载学生列表失败:', e);
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            useStudent(s) {
+                this.form.student_id = s.id;
+                this.form.move_type = '转学';
+            },
+
+            async submit() {
+                if (!this.form.student_id) { this.msg = '请选择学生'; this.msgType = 'error'; return; }
+                if (this.saving) return;
+                this.saving = true;
+                this.msg = '';
+                try {
+                    const body = {
+                        student_id: Number(this.form.student_id),
+                        move_type: this.form.move_type,
+                        move_date: this.form.move_date || null,
+                        reason: this.form.reason || ''
+                    };
+                    const resp = await fetch('/api/students/' + this.form.student_id + '/movement', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                        body: JSON.stringify(body)
+                    });
+                    const d = await resp.json().catch(() => ({}));
+                    if (resp.ok) {
+                        this.msg = '变动登记成功：' + this.form.move_type;
+                        this.msgType = 'success';
+                        this.form.reason = '';
+                        this.load(1);
+                    } else if (resp.status === 404 || resp.status === 405) {
+                        this.msg = '变动登记接口尚未在 Web 端开放，请在桌面端执行学籍变动操作。';
+                        this.msgType = 'error';
+                    } else {
+                        this.msg = '提交失败: ' + (d.detail || d.error || resp.statusText);
+                        this.msgType = 'error';
+                    }
+                } catch (e) {
+                    this.msg = '请求失败: ' + e.message;
+                    this.msgType = 'error';
+                } finally {
+                    this.saving = false;
+                }
+            },
+
+            resetFilters() {
+                this.filters = { keyword: '' };
+                this.load(1);
+            },
+            totalPages() { return Math.max(1, Math.ceil(this.total / this.pageSize)); },
+            statusClass(st) {
+                return { '在校': 'badge-success', '休学': 'badge-warning' }[st] || 'badge-gray';
+            },
+
+            init() { this.load(1); }
+        };
+    }
+</script>
+{% endblock %}

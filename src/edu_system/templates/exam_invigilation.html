@@ -1,0 +1,135 @@
+<!-- 监考安排页（M5-G 双端一致：Web 端） -->
+{% extends "index.html" %}
+
+{% block title %}监考安排 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="space-y-4" x-data="examInvigilation()">
+    <!-- 工具栏：考试选择 -->
+    <div class="card">
+        <div class="card-body flex flex-wrap gap-3 items-end">
+            <div class="min-w-[240px] flex-1">
+                <label class="label" for="exam">考试</label>
+                <select id="exam" class="select" x-model="examId" @change="loadInvigilation()">
+                    <option value="">请选择考试...</option>
+                    <template x-for="e in exams" :key="e.id">
+                        <option :value="e.id" x-text="e.name + '（' + (e.exam_date || '') + '）'"></option>
+                    </template>
+                </select>
+            </div>
+            <button class="btn btn-secondary" @click="loadExams()">刷新考试</button>
+        </div>
+    </div>
+
+    <!-- 监考表 -->
+    <div class="card" x-show="examId" x-cloak>
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold" x-text="examName()"></h2>
+            <span class="text-sm text-gray-500 dark:text-gray-400">考试时间：<span x-text="examDate()"></span></span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>考场</th>
+                        <th>科目</th>
+                        <th>容量</th>
+                        <th>监考教师1</th>
+                        <th>监考教师2</th>
+                        <th>考试时间</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="r in rooms" :key="r.room_id ?? r.id">
+                        <tr>
+                            <td class="font-medium" x-text="r.room_name || '—'"></td>
+                            <td x-text="r.subject || '通用'"></td>
+                            <td x-text="r.capacity ?? '—'"></td>
+                            <td x-text="invigilatorName(r, 'chief')"></td>
+                            <td x-text="invigilatorName(r, 'deputy')"></td>
+                            <td x-text="examDate()"></td>
+                        </tr>
+                    </template>
+                    <tr x-show="!loading && rooms.length === 0">
+                        <td colspan="6" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                            暂无监考安排，请先在「考场座位」页创建考场
+                        </td>
+                    </tr>
+                    <tr x-show="loading">
+                        <td colspan="6" class="py-8"><div class="skeleton-text w-2/3 mx-auto"></div></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function examInvigilation() {
+        return {
+            exams: [],
+            examId: '',
+            rooms: [],
+            loading: false,
+
+            async loadExams() {
+                try {
+                    const resp = await fetch('/api/exam?page_size=100', {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        this.exams = (await resp.json()).items || [];
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载考试列表失败:', e);
+                }
+            },
+
+            async loadInvigilation() {
+                if (!this.examId) { this.rooms = []; return; }
+                this.loading = true;
+                this.rooms = [];
+                try {
+                    const resp = await fetch('/api/exam/' + this.examId + '/invigilation', {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        const d = await resp.json();
+                        this.rooms = d.rooms || [];
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载监考安排失败:', e);
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            examName() {
+                const e = this.exams.find(x => String(x.id) === String(this.examId));
+                return e ? e.name : '';
+            },
+
+            examDate() {
+                const e = this.exams.find(x => String(x.id) === String(this.examId));
+                return (e && e.exam_date) || '—';
+            },
+
+            invigilatorName(room, role) {
+                const invs = room.invigilators || [];
+                const byRole = invs.find(inv => inv.role === role);
+                if (byRole) return byRole.teacher_name || '—';
+                const idx = role === 'chief' ? 0 : 1;
+                return (invs[idx] && invs[idx].teacher_name) || '—';
+            },
+
+            init() {
+                this.loadExams();
+            }
+        };
+    }
+</script>
+{% endblock %}

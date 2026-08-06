@@ -1,0 +1,189 @@
+<!-- 排名分析页（M5-G 双端一致：Web 端） -->
+{% extends "index.html" %}
+
+{% block title %}排名分析 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="space-y-4" x-data="scoreRank()">
+    <!-- 工具栏 -->
+    <div class="card">
+        <div class="card-body flex flex-wrap gap-3 items-end">
+            <div class="min-w-[240px] flex-1">
+                <label class="label" for="exam">考试</label>
+                <select id="exam" class="select" x-model="examId" @change="loadRank()">
+                    <option value="">请选择考试...</option>
+                    <template x-for="e in exams" :key="e.id">
+                        <option :value="e.id" x-text="e.name + '（' + (e.exam_date || '') + '）'"></option>
+                    </template>
+                </select>
+            </div>
+            <div>
+                <label class="label" for="scope">排名范围</label>
+                <select id="scope" class="select w-36" x-model="scope" @change="loadRank()">
+                    <option value="class">班级</option>
+                    <option value="grade">年级</option>
+                    <option value="school">全校</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" @click="loadRank()" :disabled="!examId || loading">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                </svg>
+                计算排名
+            </button>
+            <button class="btn btn-secondary" @click="loadExams()">刷新考试</button>
+        </div>
+    </div>
+
+    <!-- 排名结果 -->
+    <div class="card" x-show="examId" x-cloak>
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold" x-text="rankTitle()"></h2>
+            <span class="text-sm text-gray-500 dark:text-gray-400" x-text="rankMsg"></span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>名次</th>
+                        <th>姓名</th>
+                        <th>学号</th>
+                        <th>科目数</th>
+                        <th>总分</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="(r, i) in rankList" :key="r.student_id">
+                        <tr>
+                            <td>
+                                <span class="badge" :class="rankBadge(i)" x-text="r.rank"></span>
+                            </td>
+                            <td class="font-medium" x-text="r.student_name || '—'"></td>
+                            <td x-text="r.student_no || '—'"></td>
+                            <td x-text="r.subject_count"></td>
+                            <td class="font-medium" x-text="r.total_score"></td>
+                        </tr>
+                    </template>
+                    <tr x-show="!loading && rankList.length === 0">
+                        <td colspan="5" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                            暂无成绩数据，无法排名
+                        </td>
+                    </tr>
+                    <tr x-show="loading">
+                        <td colspan="5" class="py-8"><div class="skeleton-text w-2/3 mx-auto"></div></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer">
+            <span class="text-sm text-gray-500 dark:text-gray-400">排名规则：按总分从高到低，同分并列名次。</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    function scoreRank() {
+        return {
+            exams: [],
+            examId: '',
+            scope: 'class',
+            rankList: [],
+            loading: false,
+            rankMsg: '',
+
+            async loadExams() {
+                try {
+                    const resp = await fetch('/api/exam?page_size=100', {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        this.exams = (await resp.json()).items || [];
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载考试列表失败:', e);
+                }
+            },
+
+            rankTitle() {
+                const e = this.exams.find(x => String(x.id) === String(this.examId));
+                const scopeLabel = { class: '班级', grade: '年级', school: '全校' }[this.scope] || this.scope;
+                return (e ? e.name : '') + ' · ' + scopeLabel + '排名';
+            },
+
+            rankBadge(i) {
+                return i === 0 ? 'badge-warning' : (i < 3 ? 'badge-primary' : 'badge-gray');
+            },
+
+            async loadRank() {
+                if (!this.examId) { this.rankList = []; return; }
+                this.loading = true;
+                this.rankMsg = '';
+                try {
+                    // 1) 触发后端排名计算
+                    const resp = await fetch('/api/score/rank', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                        body: JSON.stringify({ exam_id: parseInt(this.examId), scope: this.scope })
+                    });
+                    const d = await resp.json();
+                    if (resp.ok) {
+                        const result = d.result || {};
+                        this.rankMsg = (d.message || '排名计算完成') + '，已处理 ' + (result.ranked ?? 0) + ' 人';
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                        return;
+                    } else {
+                        this.rankMsg = '排名计算失败: ' + (d.detail || d.error || resp.statusText);
+                        return;
+                    }
+                    // 2) 拉取成绩，前端聚合生成排名表
+                    const resp2 = await fetch('/api/score?exam_id=' + this.examId + '&page_size=200', {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp2.ok) {
+                        const d2 = await resp2.json();
+                        this.rankList = this.buildRank(d2.items || []);
+                    }
+                } catch (e) {
+                    this.rankMsg = '请求失败: ' + e.message;
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            buildRank(items) {
+                const map = {};
+                for (const s of items) {
+                    if (!map[s.student_id]) {
+                        map[s.student_id] = {
+                            student_id: s.student_id,
+                            student_name: s.student_name || '—',
+                            student_no: s.student_no || '—',
+                            total_score: 0,
+                            subject_count: 0
+                        };
+                    }
+                    map[s.student_id].total_score += Number(s.score) || 0;
+                    map[s.student_id].subject_count += 1;
+                }
+                const arr = Object.values(map).sort((a, b) => b.total_score - a.total_score);
+                let prevScore = null, prevRank = 0;
+                arr.forEach((r, i) => {
+                    r.total_score = Math.round(r.total_score * 100) / 100;
+                    r.rank = (r.total_score === prevScore) ? prevRank : (i + 1);
+                    prevScore = r.total_score;
+                    prevRank = r.rank;
+                });
+                return arr;
+            },
+
+            init() {
+                this.loadExams();
+            }
+        };
+    }
+</script>
+{% endblock %}

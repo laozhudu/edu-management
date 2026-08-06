@@ -1,0 +1,111 @@
+<!-- 教室位置页（M5-G 双端一致：Web 端） -->
+{% extends "index.html" %}
+
+{% block title %}教室位置 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="space-y-4 max-w-6xl mx-auto px-4" x-data="classroomList()">
+    <!-- 配置信息卡片 -->
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">系统配置信息</h2>
+            <button class="btn btn-secondary btn-sm" @click="loadConfig()">刷新</button>
+        </div>
+        <div class="card-body grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-sm text-gray-500 dark:text-gray-400">学校名称</div>
+                <div class="font-medium mt-1" x-text="config.app?.school_name || '—'"></div>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-sm text-gray-500 dark:text-gray-400">学期切换</div>
+                <div class="font-medium mt-1" x-text="config.app?.allow_semester_switch !== false ? '启用' : '停用'"></div>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-sm text-gray-500 dark:text-gray-400">数据来源</div>
+                <div class="font-medium mt-1">GET /api/meta/ui-config</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 教室列表（占位表格） -->
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">教室列表</h2>
+            <span class="badge badge-warning">示例数据</span>
+        </div>
+        <div class="overflow-x-auto max-h-[480px]">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>教室名称</th>
+                        <th>容纳人数</th>
+                        <th>所属学期</th>
+                        <th>状态</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="r in classrooms" :key="r.name">
+                        <tr>
+                            <td class="font-medium" x-text="r.name"></td>
+                            <td><span class="badge badge-primary" x-text="r.capacity + ' 人'"></span></td>
+                            <td x-text="r.semester"></td>
+                            <td>
+                                <span class="badge" :class="r.status === '使用中' ? 'badge-success' : 'badge-gray'"
+                                      x-text="r.status"></span>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 说明 -->
+    <div class="card">
+        <div class="card-header"><h2 class="text-lg font-semibold">说明</h2></div>
+        <div class="card-body text-sm text-gray-500 dark:text-gray-400 space-y-1">
+            <p>· 当前系统暂无教室管理专用 API，此处展示系统配置信息与示例占位表格。</p>
+            <p>· 后续接入教室管理接口后，将替换为实时数据（教室名称 / 容纳人数 / 所属学期）。</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function classroomList() {
+        return {
+            config: {},
+            loading: false,
+            // 占位示例数据：待教室管理 API 接入后替换为实时数据
+            classrooms: [
+                { name: '教学楼A-101', capacity: 50, semester: '2025-2026学年第一学期', status: '使用中' },
+                { name: '教学楼A-102', capacity: 50, semester: '2025-2026学年第一学期', status: '使用中' },
+                { name: '教学楼B-201', capacity: 60, semester: '2025-2026学年第一学期', status: '使用中' },
+                { name: '实验楼C-301', capacity: 45, semester: '2025-2026学年第一学期', status: '空闲' },
+                { name: '阶梯教室-1', capacity: 200, semester: '2025-2026学年第一学期', status: '使用中' }
+            ],
+
+            async loadConfig() {
+                this.loading = true;
+                try {
+                    const resp = await fetch('/api/meta/ui-config', {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        this.config = await resp.json();
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载系统配置失败:', e);
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            init() { this.loadConfig(); }
+        };
+    }
+</script>
+{% endblock %}
