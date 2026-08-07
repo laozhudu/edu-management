@@ -80,10 +80,7 @@
       "icon": "◈",
       "order": 3,
       "tabs": [
-        { "id": "exam_manage", "title": "考试管理", "view": "exam_manage", "default": true },
-        { "id": "exam_rooms", "title": "考场座位", "view": "exam_rooms" },
-        { "id": "exam_invigilation", "title": "监考安排", "view": "exam_invigilation" },
-        { "id": "exam_admit", "title": "准考证", "view": "exam_admit" }
+        { "id": "exam_manage", "title": "考试管理", "view": "exam_manage", "default": true }
       ]
     },
     {
@@ -92,8 +89,7 @@
       "icon": "◇",
       "order": 4,
       "tabs": [
-        { "id": "teacher_list", "title": "教师信息", "view": "teacher_list", "default": true },
-        { "id": "teacher_assign", "title": "任课安排", "view": "teacher_assign" }
+        { "id": "teacher_list", "title": "教师管理", "view": "teacher_list", "default": true }
       ]
     },
     {
@@ -108,7 +104,8 @@
         { "id": "users", "title": "用户权限", "view": "users" },
         { "id": "data_maintenance", "title": "数据维护", "view": "data_maintenance" },
         { "id": "system_config", "title": "系统设置", "view": "system_config" },
-        { "id": "init", "title": "初始化系统", "view": "init" }
+        { "id": "init", "title": "初始化系统", "view": "init" },
+        { "id": "report", "title": "报表模板", "view": "report" }
       ]
     }
   ],

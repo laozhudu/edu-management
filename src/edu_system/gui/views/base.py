@@ -272,9 +272,10 @@ class ColumnSelectorDialog(QDialog):
 class WorkbenchWidget(QWidget):
     """工作台：顶部标签页 + 下方堆栈视图，懒加载"""
 
-    def __init__(self, session: Session, tab_configs: list[tuple[str, int]], title: str = ""):
+    def __init__(self, session: Session | None, tab_configs: list[tuple[str, int]], title: str = "", server_thread=None):
         super().__init__()
         self.session = session
+        self.server_thread = server_thread
         self.tab_configs = tab_configs  # [(tab_name, view_idx), ...]
         self._instances = {}  # tab_index -> widget (use tab index as key to support duplicate view_idx)
         self._loaded = False
@@ -307,6 +308,13 @@ class WorkbenchWidget(QWidget):
         for view in self._instances.values():
             if hasattr(view, "session"):
                 view.session = session
+
+    def set_server_thread(self, server_thread):
+        """设置服务器线程引用，传递给需要的视图"""
+        self.server_thread = server_thread
+        for view in self._instances.values():
+            if hasattr(view, "set_server_thread"):
+                view.set_server_thread(server_thread)
 
     def ensure_loaded(self):
         """确保当前标签页已加载（首次显示工作台时调用）"""
@@ -341,6 +349,10 @@ class WorkbenchWidget(QWidget):
                     return
                 real_view = build_view(view_idx, self.session)
             self._instances[index] = real_view
+
+            # 如果视图需要服务器线程，传递给它
+            if self.server_thread and hasattr(real_view, "set_server_thread"):
+                real_view.set_server_thread(self.server_thread)
 
             # 保存标签文本（在 removeTab 之前）
             tab_text = self.tabs.tabText(index)

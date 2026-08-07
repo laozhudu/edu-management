@@ -502,7 +502,7 @@ class MainWindow(QMainWindow):
                 title = t.title if hasattr(t, "title") else t["title"]
                 view = t.view if hasattr(t, "view") else t["view"]
                 tab_configs.append((title, view))
-            wb = WorkbenchWidget(None, tab_configs, domain["title"])
+            wb = WorkbenchWidget(None, tab_configs, domain["title"], self._server_thread)
             if self.session is not None:
                 wb.set_session(self.session)
             self._workbenches.append(wb)

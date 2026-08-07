@@ -26,27 +26,16 @@ VIEW_REGISTRY = {
 
     # 考试管理域
     "exam_manage": ("edu_system.gui.views.exam", "ExamView", ["session"]),
-    "exam_rooms": ("edu_system.gui.views.exam", "ExamView", ["session"]),
-    "exam_invigilation": ("edu_system.gui.views.exam", "ExamView", ["session"]),
-    "exam_admit": ("edu_system.gui.views.exam", "ExamView", ["session"]),
 
     # 教师管理域
     "teacher_list": ("edu_system.gui.views.teacher", "TeacherView", ["session"]),
-    "teacher_assign": ("edu_system.gui.views.teacher", "TeacherView", ["session"]),
-
-    # 班级管理域
-    "class_list": ("edu_system.gui.views.class_management", "ClassView", ["session"]),
-    "class_edit": ("edu_system.gui.views.class_management", "ClassView", ["session"]),
-
-    # 教室管理域
-    "classroom_list": ("edu_system.gui.views.classroom", "ClassroomView", ["session"]),
 
     # 学期设置域
     "semester": ("edu_system.gui.views.semester", "SemesterView", ["session"]),
 
     # 系统设置域
     "users": ("edu_system.gui.views.settings", "SettingsView", ["session"]),
-    "data_maintenance": ("edu_system.gui.views.system_config", "SystemConfigView", ["session"]),
+    "data_maintenance": ("edu_system.gui.views.data_maintenance", "DataMaintenanceView", ["session"]),
     "system_config": ("edu_system.gui.views.system_config", "SystemConfigView", ["session"]),
     "init": ("edu_system.gui.views.init_system", "InitView", ["session"]),
     "report": ("edu_system.gui.views.report", "ReportView", ["session"]),

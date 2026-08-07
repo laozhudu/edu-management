@@ -103,11 +103,7 @@ class TestPagePlaceholder:
             "/page/scores/score_stats",
             "/page/scores/score_rank",
             "/page/exams/exam_manage",
-            "/page/exams/exam_rooms",
-            "/page/exams/exam_invigilation",
-            "/page/exams/exam_admit",
             "/page/teachers/teacher_list",
-            "/page/teachers/teacher_assign",
             "/page/system/semester",
             "/page/system/classes",
             "/page/system/classrooms",
@@ -115,6 +111,7 @@ class TestPagePlaceholder:
             "/page/system/data_maintenance",
             "/page/system/system_config",
             "/page/system/init",
+            "/page/system/report",
         ],
     )
     def test_page_200_when_logged_in(self, client, auth_headers, path):
