@@ -94,6 +94,11 @@ class SystemConfigView(BaseView):
         if server_thread:
             server_thread.signals.started.connect(self._on_server_started)
             server_thread.signals.stopped.connect(self._on_server_stopped)
+            
+            # 关键修复：如果服务已经在运行，立即同步界面状态
+            # （因为服务可能在视图加载前就已启动，错过了 started 信号）
+            if server_thread.isRunning():
+                self._on_server_started(server_thread.host, server_thread._actual_port)
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
@@ -691,8 +696,30 @@ class SystemConfigView(BaseView):
             self.lbl_qr.setText(f"二维码生成失败: {e}")
 
     def _start_service(self):
-        if self.server_thread and not self.server_thread.isRunning():
+        """启动服务（若线程已结束则新建实例，QThread 不能复用已结束的线程）"""
+        from edu_system.gui.server_thread import create_server_thread
+
+        if self.server_thread is None:
+            self.server_thread = create_server_thread(
+                host="0.0.0.0", port=self.spin_port.value(),
+                app_module="edu_system.api.main:app",
+            )
+            self.server_thread.signals.started.connect(self._on_server_started)
+            self.server_thread.signals.stopped.connect(self._on_server_stopped)
             self.server_thread.start()
+            return
+
+        if self.server_thread.isRunning():
+            return  # 已在运行
+
+        # 线程已结束（可能因端口冲突等失败退出）→ 必须新建实例
+        self.server_thread = create_server_thread(
+            host="0.0.0.0", port=self.spin_port.value(),
+            app_module="edu_system.api.main:app",
+        )
+        self.server_thread.signals.started.connect(self._on_server_started)
+        self.server_thread.signals.stopped.connect(self._on_server_stopped)
+        self.server_thread.start()
 
     def _stop_service(self):
         if self.server_thread and self.server_thread.isRunning():
@@ -701,7 +728,7 @@ class SystemConfigView(BaseView):
     def _restart_service(self):
         if self.server_thread:
             self.server_thread.stop()
-            QTimer.singleShot(1000, lambda: self.server_thread.start())
+            QTimer.singleShot(1000, self._start_service)
 
     def _save_config(self):
         QMessageBox.information(self, "提示", "配置保存功能开发中...")

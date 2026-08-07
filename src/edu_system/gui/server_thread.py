@@ -3,6 +3,7 @@ PyQt5 嵌入式 FastAPI 服务器线程
 使用 QThread 运行 uvicorn，支持优雅启动/停止、端口冲突重试、PID 文件
 """
 
+import os
 import socket
 import sys
 import time
@@ -98,6 +99,14 @@ class ServerThread(QThread):
 
     def _find_available_port(self) -> int | None:
         """寻找可用端口"""
+        # 如果目标端口被本项目自己的遗留进程占用，先尝试清理
+        if not self._is_port_available(self.port):
+            self._kill_stale_process(self.port)
+            # 清理后再次检查
+            if self._is_port_available(self.port):
+                return self.port
+            self.signals.log.emit(f"端口 {self.port} 被占用，尝试下一个...")
+        # 正常占用的话按重试顺序找可用端口
         for i in range(self.max_retries):
             port = self.port + i
             if self._is_port_available(port):
@@ -115,6 +124,68 @@ class ServerThread(QThread):
                 return True
         except OSError:
             return False
+
+    def _kill_stale_process(self, port: int) -> None:
+        """清理占用目标端口的本项目遗留 uvicorn 进程
+
+        场景：桌面端异常退出后，独立的 uvicorn 进程可能残留占用 8080，
+        导致"启动服务"实际跳到其他端口、用户以为没启动。
+        仅清理命令行含 edu_system.api.main 的本项目进程，绝不误杀其他服务。
+        """
+        import subprocess
+
+        if sys.platform == "win32":
+            # Windows: netstat 找 PID
+            try:
+                out = subprocess.check_output(
+                    ["netstat", "-ano"], text=True, timeout=5
+                )
+                for line in out.splitlines():
+                    if f":{port}" in line and "LISTENING" in line:
+                        parts = line.split()
+                        pid = parts[-1]
+                        try:
+                            subprocess.run(
+                                ["taskkill", "/F", "/PID", pid],
+                                check=False, capture_output=True, timeout=5,
+                            )
+                            self.signals.log.emit(f"已清理遗留进程 PID {pid}（端口 {port}）")
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+            return
+
+        # Linux: ss/lsof 找占用进程，校验命令行后再杀
+        try:
+            out = subprocess.check_output(
+                ["ss", "-tlnp"], text=True, timeout=5
+            )
+            for line in out.splitlines():
+                if f":{port}" not in line:
+                    continue
+                if "users:" not in line:
+                    continue
+                # 提取 pid=xxx
+                import re
+
+                m = re.search(r"pid=(\d+)", line)
+                if not m:
+                    continue
+                pid = m.group(1)
+                # 校验命令行确实包含本项目 uvicorn
+                try:
+                    cmdline = subprocess.check_output(
+                        ["cat", f"/proc/{pid}/cmdline"], text=True, timeout=3
+                    )
+                except Exception:
+                    continue
+                if "edu_system.api.main" not in cmdline:
+                    continue  # 非本项目进程，不动
+                os.kill(int(pid), 9)
+                self.signals.log.emit(f"已清理遗留 uvicorn 进程 PID {pid}（端口 {port}）")
+        except Exception:
+            pass
 
     def _get_pid(self) -> int:
         """获取当前进程 PID"""
