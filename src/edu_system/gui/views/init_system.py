@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QVBoxLayout,
     QWidget,
+    QSizePolicy,
 )
 from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
@@ -49,6 +50,10 @@ class InitView(QWidget):
         l = self.layout()
         l.setContentsMargins(12, 10, 12, 10)
         l.setSpacing(10)
+
+        # 设置最小尺寸，防止界面跳动
+        self.setMinimumSize(800, 550)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         # 工具栏
         tb = QHBoxLayout()

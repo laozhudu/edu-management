@@ -33,6 +33,7 @@ from PyQt5.QtWidgets import (
     QTextEdit,
     QVBoxLayout,
     QWidget,
+    QSizePolicy,
 )
 from sqlalchemy.orm import Session
 
@@ -139,6 +140,10 @@ class DataMaintenanceView(QWidget):
         # 标签页
         self.tabs = QTabWidget()
         layout.addWidget(self.tabs)
+
+        # 设置标签页最小尺寸，防止切换时界面跳动
+        self.tabs.setMinimumSize(800, 550)
+        self.tabs.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         # Tab 1: 备份/还原
         self._create_backup_tab()

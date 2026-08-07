@@ -23,6 +23,7 @@ from PyQt5.QtWidgets import (
     QTabWidget,
     QVBoxLayout,
     QWidget,
+    QSizePolicy,
 )
 
 from edu_system.gui.views.base import BaseView
@@ -128,6 +129,10 @@ class SystemConfigView(BaseView):
         self._create_network_tab()
 
         layout.addWidget(self.tabs)
+
+        # 设置标签页最小尺寸，防止切换时界面跳动
+        self.tabs.setMinimumSize(800, 550)
+        self.tabs.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         # 底部按钮
         btn_layout = QHBoxLayout()

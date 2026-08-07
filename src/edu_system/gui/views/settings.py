@@ -27,6 +27,7 @@ from PyQt5.QtWidgets import (
     QTableWidgetItem,
     QVBoxLayout,
     QWidget,
+    QSizePolicy,
 )
 from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
@@ -62,6 +63,11 @@ class SettingsView(QWidget):
         self._outer = QVBoxLayout()
         self._outer.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self._outer)
+        
+        # 设置最小尺寸，防止界面跳动
+        self.setMinimumSize(800, 550)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        
         self._rebuild()
 
     def _rebuild(self):
