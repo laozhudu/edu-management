@@ -102,9 +102,11 @@ class ServerThread(QThread):
         # 如果目标端口被本项目自己的遗留进程占用，先尝试清理
         if not self._is_port_available(self.port):
             self._kill_stale_process(self.port)
-            # 清理后再次检查
-            if self._is_port_available(self.port):
-                return self.port
+            # 清理后等待端口释放（进程被杀后 socket 需短暂释放）
+            for _ in range(self.max_retries):
+                if self._is_port_available(self.port):
+                    return self.port
+                time.sleep(self.retry_interval)
             self.signals.log.emit(f"端口 {self.port} 被占用，尝试下一个...")
         # 正常占用的话按重试顺序找可用端口
         for i in range(self.max_retries):
