@@ -329,8 +329,7 @@ class ExamView(QWidget):
         exam_id = self._rooms_exam_cb.itemData(idx)
 
         from edu_system.api.routes.exam import auto_arrange_rooms, arrange_seats
-        from fastapi import Depends
-        from edu_system.database import get_db
+        from edu_system.database import get_session
 
         # 直接调用服务逻辑
         try:
