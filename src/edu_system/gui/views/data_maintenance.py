@@ -13,18 +13,24 @@ from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtWidgets import (
     QButtonGroup,
     QCheckBox,
+    QComboBox,
+    QDateEdit,
     QDialog,
     QFileDialog,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QMessageBox,
     QProgressBar,
     QPushButton,
     QRadioButton,
+    QSpinBox,
     QTableWidget,
     QTableWidgetItem,
+    QTabWidget,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -259,15 +265,6 @@ class DataMaintenanceView(QWidget):
         grl.addWidget(self.restore_status)
 
         l.addWidget(grp_restore)
-        l.addStretch()
-
-        # 添加到标签页
-        from PyQt5.QtWidgets import QLineEdit
-        from edu_system.gui.theme import C, font
-        
-        self.backup_path_edit = QLineEdit()
-        self.restore_file_edit = QLineEdit()
-        
         self.tabs.addTab(tab, "备份/还原")
 
     def _browse_backup_path(self):
@@ -513,8 +510,6 @@ class DataMaintenanceView(QWidget):
 
     # ===== Tab 3: 审计日志 =====
     def _create_audit_tab(self):
-        from PyQt5.QtWidgets import QLineEdit, QComboBox, QSpinBox, QDateEdit
-        
         tab = QWidget()
         l = QVBoxLayout(tab)
         l.setContentsMargins(12, 12, 12, 12)
@@ -688,9 +683,3 @@ class DataMaintenanceView(QWidget):
             self.db_maint_log.append(f"❌ 检查失败: {e}")
 
 
-# 需要导入的模块
-from PyQt5.QtWidgets import QLineEdit, QRadioButton, QButtonGroup, QTextEdit
-import os
-from pathlib import Path
-from datetime import datetime
-import threading
