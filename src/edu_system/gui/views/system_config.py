@@ -17,13 +17,13 @@ from PyQt5.QtWidgets import (
     QLabel,
     QMessageBox,
     QPushButton,
+    QSizePolicy,
     QSpinBox,
     QTableWidget,
     QTableWidgetItem,
     QTabWidget,
     QVBoxLayout,
     QWidget,
-    QSizePolicy,
 )
 
 from edu_system.gui.views.base import BaseView
