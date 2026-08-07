@@ -30,6 +30,13 @@ VIEW_REGISTRY = {
     # 教师管理域
     "teacher_list": ("edu_system.gui.views.teacher", "TeacherView", ["session"]),
 
+    # 班级管理域
+    "class_list": ("edu_system.gui.views.class_management", "ClassView", ["session"]),
+    "class_edit": ("edu_system.gui.views.class_management", "ClassView", ["session"]),
+
+    # 教室管理域
+    "classroom_list": ("edu_system.gui.views.classroom", "ClassroomView", ["session"]),
+
     # 学期设置域
     "semester": ("edu_system.gui.views.semester", "SemesterView", ["session"]),
 
