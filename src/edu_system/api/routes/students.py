@@ -324,3 +324,114 @@ def student_list(
         page=page,
         page_size=page_size,
     )
+
+
+@router.get("/{student_id}")
+def student_detail(
+    student_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """获取学生详情（Web 学生信息页查看/编辑回显）"""
+    from edu_system.services.student_service import get_student
+
+    student = get_student(db, student_id)
+    if student is None:
+        raise HTTPException(status_code=404, detail=f"学生不存在: {student_id}")
+    return {
+        "id": student.id,
+        "name": student.name,
+        "student_no": student.student_no,
+        "student_code": getattr(student, "student_code", ""),
+        "gender": getattr(student, "gender", ""),
+        "class_id": student.class_id,
+        "class_name": student.class_.name if student.class_ else None,
+        "birth_date": str(student.birth_date) if student.birth_date else None,
+        "phone": getattr(student, "phone", ""),
+        "address": getattr(student, "address", ""),
+        "status": getattr(student, "status", ""),
+        "enroll_year": getattr(student, "enroll_year", None),
+    }
+
+
+class StudentCreateRequest(BaseModel):
+    """创建学生请求"""
+
+    name: str
+    class_id: int
+    student_no: str = ""
+    student_code: str = ""
+    gender: str = ""
+    birth_date: str | None = None
+    phone: str = ""
+    address: str = ""
+    ethnicity: str = ""
+    native_place: str = ""
+    enroll_year: int | None = None
+    status: str = "在读"
+
+
+class StudentUpdateRequest(BaseModel):
+    """更新学生请求（部分字段）"""
+
+    name: str | None = None
+    class_id: int | None = None
+    student_no: str | None = None
+    student_code: str | None = None
+    gender: str | None = None
+    birth_date: str | None = None
+    phone: str | None = None
+    address: str | None = None
+    ethnicity: str | None = None
+    native_place: str | None = None
+    enroll_year: int | None = None
+    status: str | None = None
+
+
+@router.post("", status_code=201)
+def create_student(
+    body: StudentCreateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """创建学生（Web 学生信息页新增）"""
+    from edu_system.services.student_service import StudentError
+    from edu_system.services.student_service import create_student as svc_create
+
+    try:
+        student = svc_create(db, body.model_dump(exclude_unset=True))
+    except StudentError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"id": student.id, "name": student.name, "class_id": student.class_id}
+
+
+@router.put("/{student_id}")
+def update_student(
+    student_id: int,
+    body: StudentUpdateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """更新学生（Web 学生信息页编辑）"""
+    from edu_system.services.student_service import StudentError
+    from edu_system.services.student_service import update_student as svc_update
+
+    try:
+        student = svc_update(db, student_id, body.model_dump(exclude_unset=True))
+    except StudentError as e:
+        raise HTTPException(status_code=404 if "不存在" in str(e) else 400, detail=str(e))
+    return {"id": student.id, "name": student.name, "class_id": student.class_id}
+
+
+@router.delete("/{student_id}")
+def delete_student(
+    student_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """删除学生（Web 学生信息页删除）"""
+    from edu_system.services.student_service import delete_student as svc_delete
+
+    if not svc_delete(db, student_id):
+        raise HTTPException(status_code=404, detail=f"学生不存在: {student_id}")
+    return {"ok": True}

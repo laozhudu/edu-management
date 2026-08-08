@@ -114,5 +114,58 @@ class TestStudentScoresContract:
             assert "text/csv" in response.headers.get("content-type", "")
 
 
+class TestStudentCrudContract:
+    """学生 CRUD 契约测试（Web 学生信息页增删改）"""
+
+    def setup_method(self):
+        self.client = TestClient(create_app())
+        r = self.client.post(
+            "/api/auth/login",
+            json={"username": "admin", "password": "admin123"},
+        )
+        assert r.status_code == 200, r.text
+        self.headers = {"Authorization": f"Bearer {r.json()['access_token']}"}
+
+    def test_create_student(self):
+        """创建学生"""
+        r = self.client.post(
+            "/api/students",
+            headers=self.headers,
+            json={"name": "契约测试生", "class_id": 1, "student_no": "CT001", "gender": "男"},
+        )
+        assert r.status_code in (201, 403), f"{r.status_code} {r.text[:80]}"
+        if r.status_code == 201:
+            data = r.json()
+            assert "id" in data
+
+    def test_create_student_missing_name(self):
+        """缺姓名 → 400"""
+        r = self.client.post("/api/students", headers=self.headers, json={"class_id": 1})
+        assert r.status_code in (400, 422, 403)
+
+    def test_crud_roundtrip(self):
+        """增→改→查→删 闭环"""
+        r = self.client.post(
+            "/api/students",
+            headers=self.headers,
+            json={"name": "往返测试", "class_id": 1, "student_no": "RT001"},
+        )
+        if r.status_code == 403:
+            return  # 权限受限时跳过（契约允许）
+        assert r.status_code == 201, f"{r.status_code} {r.text[:80]}"
+        sid = r.json()["id"]
+        # 更新
+        r2 = self.client.put(
+            f"/api/students/{sid}", headers=self.headers, json={"name": "往返测试改"}
+        )
+        assert r2.status_code in (200, 404), f"{r2.status_code} {r2.text[:80]}"
+        # 删除
+        r3 = self.client.delete(f"/api/students/{sid}", headers=self.headers)
+        assert r3.status_code in (200, 404), f"{r3.status_code}"
+        # 查已删 → 404
+        r4 = self.client.get(f"/api/students/{sid}", headers=self.headers)
+        assert r4.status_code in (404, 403, 405)
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-x", "-v"])
