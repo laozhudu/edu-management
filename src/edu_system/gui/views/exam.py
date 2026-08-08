@@ -19,7 +19,6 @@ from PyQt5.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QTabWidget,
-    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -103,8 +102,8 @@ class ExamView(QWidget):
 
     def _build_list_tab(self):
         w = QWidget()
-        l = QVBoxLayout(w)
-        l.setContentsMargins(4, 4, 4, 4)
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(4, 4, 4, 4)
 
         exams = self.session.query(Exam).order_by(Exam.id.desc()).all()
         t = QTableWidget(len(exams), 5)
@@ -122,7 +121,7 @@ class ExamView(QWidget):
             t.setItem(i, 2, QTableWidgetItem(e.grade.name if e.grade else ""))
             t.setItem(i, 3, QTableWidgetItem(e.name))
             t.setItem(i, 4, QTableWidgetItem(str(e.exam_date) if e.exam_date else ""))
-        l.addWidget(t)
+        lay.addWidget(t)
         return w
 
     # ═══════════════════════════════════
@@ -131,9 +130,9 @@ class ExamView(QWidget):
 
     def _build_create_tab(self):
         w = QWidget()
-        l = QVBoxLayout(w)
-        l.setContentsMargins(8, 8, 8, 8)
-        l.setSpacing(8)
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(8, 8, 8, 8)
+        lay.setSpacing(8)
 
         cy = datetime.now().year
         grp = QGroupBox("新建考试")
@@ -215,8 +214,8 @@ class ExamView(QWidget):
         b.clicked.connect(lambda: self._create_exam(sem_cb, grade_cb, name_e, date_e, note_e))
         gl.addWidget(b, alignment=Qt.AlignLeft)
 
-        l.addWidget(grp)
-        l.addStretch()
+        lay.addWidget(grp)
+        lay.addStretch()
         return w
 
     def _create_exam(self, sem_cb, grade_cb, name_e, date_e, note_e):
@@ -246,9 +245,9 @@ class ExamView(QWidget):
 
     def _build_rooms_tab(self):
         w = QWidget()
-        l = QVBoxLayout(w)
-        l.setContentsMargins(8, 8, 8, 8)
-        l.setSpacing(8)
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(8, 8, 8, 8)
+        lay.setSpacing(8)
 
         # 考试选择
         row = QHBoxLayout()
@@ -264,7 +263,7 @@ class ExamView(QWidget):
         refresh_btn.clicked.connect(self._reload_rooms)
         row.addWidget(refresh_btn)
         row.addStretch()
-        l.addLayout(row)
+        lay.addLayout(row)
 
         # 分考场区
         grp_rooms = QGroupBox("自动分考场")
@@ -287,10 +286,10 @@ class ExamView(QWidget):
         arrange_btn = _btn("自动分配考场", C["accent_green"])
         arrange_btn.clicked.connect(self._arrange_rooms)
         grl.addWidget(arrange_btn)
-        l.addWidget(grp_rooms)
+        lay.addWidget(grp_rooms)
 
         # 考场列表
-        l.addWidget(QLabel("考场列表:"))
+        lay.addWidget(QLabel("考场列表:"))
         self._rooms_table = QTableWidget(0, 5)
         self._rooms_table.setHorizontalHeaderLabels(["考场ID", "教室", "容量", "已分配", "监考1/2"])
         self._rooms_table.setFont(font(9))
@@ -299,7 +298,7 @@ class ExamView(QWidget):
         self._rooms_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self._rooms_table.horizontalHeader().setStretchLastSection(True)
         self._rooms_table.setStyleSheet(TABLE_STYLE)
-        l.addWidget(self._rooms_table)
+        lay.addWidget(self._rooms_table)
 
         # 分配座位
         grp_seats = QGroupBox("座位分配")
@@ -309,9 +308,9 @@ class ExamView(QWidget):
         seat_btn = _btn("自动排座（每考场内按班级/姓名）", C["accent_teal"])
         seat_btn.clicked.connect(self._arrange_seats)
         gsl.addWidget(seat_btn)
-        l.addWidget(grp_seats)
+        lay.addWidget(grp_seats)
 
-        l.addStretch()
+        lay.addStretch()
         return w
 
     def _reload_rooms_exams(self):
@@ -328,17 +327,17 @@ class ExamView(QWidget):
             return
         exam_id = self._rooms_exam_cb.itemData(idx)
 
-        from edu_system.api.routes.exam import auto_arrange_rooms, arrange_seats
-        from edu_system.database import get_session
-
         # 直接调用服务逻辑
         try:
             from edu_system.api.routes.exam import ExamRoom
+
             rooms = self.session.query(ExamRoom).filter(ExamRoom.exam_id == exam_id).all()
             self._rooms_table.setRowCount(len(rooms))
             for i, r in enumerate(rooms):
                 self._rooms_table.setItem(i, 0, QTableWidgetItem(str(r.id)))
-                self._rooms_table.setItem(i, 1, QTableWidgetItem(r.classroom.name if r.classroom else ""))
+                self._rooms_table.setItem(
+                    i, 1, QTableWidgetItem(r.classroom.name if r.classroom else "")
+                )
                 self._rooms_table.setItem(i, 2, QTableWidgetItem(str(r.capacity)))
                 self._rooms_table.setItem(i, 3, QTableWidgetItem(str(r.assigned_count)))
                 invig = ""
@@ -360,21 +359,32 @@ class ExamView(QWidget):
 
         # 调用后端自动分考场逻辑
         try:
-            from edu_system.api.routes.exam import auto_arrange_rooms
-            from fastapi import Depends
-
             # 这里直接调用内部逻辑
+
             from edu_system.models import Classroom, ExamRoom, Student
-            from sqlalchemy import func
 
-            students = self.session.query(Student).join(Student.class_obj).filter(
-                Student.class_obj.has(semester_id=self.session.query(Exam.semester_id).filter(Exam.id == exam_id).scalar())
-            ).count()
+            students = (
+                self.session.query(Student)
+                .join(Student.class_obj)
+                .filter(
+                    Student.class_obj.has(
+                        semester_id=self.session.query(Exam.semester_id)
+                        .filter(Exam.id == exam_id)
+                        .scalar()
+                    )
+                )
+                .count()
+            )
 
-            classrooms = self.session.query(Classroom).filter(
-                Classroom.semester_id == self.session.query(Exam.semester_id).filter(Exam.id == exam_id).scalar(),
-                Classroom.is_available == True
-            ).all()
+            classrooms = (
+                self.session.query(Classroom)
+                .filter(
+                    Classroom.semester_id
+                    == self.session.query(Exam.semester_id).filter(Exam.id == exam_id).scalar(),
+                    Classroom.is_available,
+                )
+                .all()
+            )
 
             if not classrooms:
                 QMessageBox.warning(self, "错误", "当前学期无可用教室")
@@ -421,9 +431,19 @@ class ExamView(QWidget):
                 return
 
             # 获取该考试学生（按班级/姓名排序）
-            students = self.session.query(Student).join(Student.class_obj).filter(
-                Student.class_obj.has(semester_id=self.session.query(Exam.semester_id).filter(Exam.id == exam_id).scalar())
-            ).order_by(Student.class_obj.has().class_obj.has().name, Student.name).all()
+            students = (
+                self.session.query(Student)
+                .join(Student.class_obj)
+                .filter(
+                    Student.class_obj.has(
+                        semester_id=self.session.query(Exam.semester_id)
+                        .filter(Exam.id == exam_id)
+                        .scalar()
+                    )
+                )
+                .order_by(Student.class_obj.has().class_obj.has().name, Student.name)
+                .all()
+            )
 
             seat_no = 1
             for room in rooms:
@@ -443,9 +463,9 @@ class ExamView(QWidget):
 
     def _build_invigilation_tab(self):
         w = QWidget()
-        l = QVBoxLayout(w)
-        l.setContentsMargins(8, 8, 8, 8)
-        l.setSpacing(8)
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(8, 8, 8, 8)
+        lay.setSpacing(8)
 
         row = QHBoxLayout()
         row.setSpacing(6)
@@ -460,19 +480,21 @@ class ExamView(QWidget):
         refresh_btn.clicked.connect(self._reload_invigilation)
         row.addWidget(refresh_btn)
         row.addStretch()
-        l.addLayout(row)
+        lay.addLayout(row)
 
         # 监考安排表
-        l.addWidget(QLabel("监考安排:"))
+        lay.addWidget(QLabel("监考安排:"))
         self._inv_table = QTableWidget(0, 5)
-        self._inv_table.setHorizontalHeaderLabels(["考场ID", "教室", "日期", "监考教师1", "监考教师2"])
+        self._inv_table.setHorizontalHeaderLabels(
+            ["考场ID", "教室", "日期", "监考教师1", "监考教师2"]
+        )
         self._inv_table.setFont(font(9))
         self._inv_table.verticalHeader().hide()
         self._inv_table.setAlternatingRowColors(True)
         self._inv_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self._inv_table.horizontalHeader().setStretchLastSection(True)
         self._inv_table.setStyleSheet(TABLE_STYLE)
-        l.addWidget(self._inv_table)
+        lay.addWidget(self._inv_table)
 
         # 监考编辑
         grp_edit = QGroupBox("编辑监考")
@@ -505,7 +527,7 @@ class ExamView(QWidget):
         save_btn = _btn("保存监考", C["accent_green"])
         save_btn.clicked.connect(self._save_invigilation)
         gel.addWidget(save_btn)
-        l.addWidget(grp_edit)
+        lay.addWidget(grp_edit)
 
         # 准考证
         grp_admit = QGroupBox("准考证批量生成")
@@ -516,9 +538,9 @@ class ExamView(QWidget):
         admit_btn = _btn("生成准考证（ZIP）", C["accent_orange"])
         admit_btn.clicked.connect(self._generate_admit_cards)
         gal.addWidget(admit_btn)
-        l.addWidget(grp_admit)
+        lay.addWidget(grp_admit)
 
-        l.addStretch()
+        lay.addStretch()
         return w
 
     def _reload_inv_exams(self):
@@ -537,15 +559,26 @@ class ExamView(QWidget):
 
         try:
             from edu_system.models import ExamRoom
+
             rooms = self.session.query(ExamRoom).filter(ExamRoom.exam_id == exam_id).all()
             self._inv_table.setRowCount(len(rooms))
             self._inv_room_cb.clear()
             for r in rooms:
                 self._inv_table.setItem(r.id - 1, 0, QTableWidgetItem(str(r.id)))
-                self._inv_table.setItem(r.id - 1, 1, QTableWidgetItem(r.classroom.name if r.classroom else ""))
+                self._inv_table.setItem(
+                    r.id - 1, 1, QTableWidgetItem(r.classroom.name if r.classroom else "")
+                )
                 self._inv_table.setItem(r.id - 1, 2, QTableWidgetItem("—"))
-                self._inv_table.setItem(r.id - 1, 3, QTableWidgetItem(str(r.invigilator1_id) if r.invigilator1_id else "—"))
-                self._inv_table.setItem(r.id - 1, 4, QTableWidgetItem(str(r.invigilator2_id) if r.invigilator2_id else "—"))
+                self._inv_table.setItem(
+                    r.id - 1,
+                    3,
+                    QTableWidgetItem(str(r.invigilator1_id) if r.invigilator1_id else "—"),
+                )
+                self._inv_table.setItem(
+                    r.id - 1,
+                    4,
+                    QTableWidgetItem(str(r.invigilator2_id) if r.invigilator2_id else "—"),
+                )
                 self._inv_room_cb.addItem(f"考场{r.id}", r.id)
         except Exception as e:
             QMessageBox.warning(self, "加载失败", str(e))
@@ -559,6 +592,7 @@ class ExamView(QWidget):
         t2 = self._inv_t2.text().strip()
 
         from edu_system.models import ExamRoom
+
         room = self.session.get(ExamRoom, room_id)
         if not room:
             QMessageBox.warning(self, "错误", "考场不存在")
@@ -578,10 +612,12 @@ class ExamView(QWidget):
 
         try:
             from edu_system.services.report import ReportService
+
             svc = ReportService(self.session)
 
-            from pathlib import Path
             import tempfile
+            from pathlib import Path
+
             out_dir = Path(tempfile.mkdtemp(prefix=f"admit_{exam_id}_"))
             files = svc.generate_report_cards_word(exam_id, str(out_dir), single_file=True)
 
@@ -590,6 +626,7 @@ class ExamView(QWidget):
                 return
 
             import zipfile
+
             zip_path = out_dir / f"admit_cards_{exam_id}.zip"
             with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
                 for f in out_dir.iterdir():

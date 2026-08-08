@@ -24,6 +24,7 @@ from edu_system.gui.theme import C, font
 # FilterBar — 筛选栏
 # ============================================================
 
+
 class FilterBar(QFrame):
     """统一筛选栏：搜索框 + 下拉条件 + 日期 + 重置 + 信号 filters_changed"""
 
@@ -50,10 +51,10 @@ class FilterBar(QFrame):
     def _build_ui(self):
         self.setObjectName("filterBar")
         self.setStyleSheet(f"""
-            #filterBar {{ background: {C['white']}; border: 1px solid {C['line']}; border-radius: 6px; padding: 8px; }}
-            QLabel {{ font-size: 9pt; color: {C['text']}; }}
-            QLineEdit, QComboBox {{ border: 1px solid {C['line']}; border-radius: 4px; padding: 4px 8px; font-size: 9pt; }}
-            QPushButton {{ border: 1px solid {C['line']}; border-radius: 4px; padding: 4px 12px; font-size: 9pt; }}
+            #filterBar {{ background: {C["white"]}; border: 1px solid {C["line"]}; border-radius: 6px; padding: 8px; }}
+            QLabel {{ font-size: 9pt; color: {C["text"]}; }}
+            QLineEdit, QComboBox {{ border: 1px solid {C["line"]}; border-radius: 4px; padding: 4px 8px; font-size: 9pt; }}
+            QPushButton {{ border: 1px solid {C["line"]}; border-radius: 4px; padding: 4px 12px; font-size: 9pt; }}
         """)
 
         for spec in self.filter_specs:
@@ -133,6 +134,7 @@ class FilterBar(QFrame):
 # Toolbar — 工具栏
 # ============================================================
 
+
 class Toolbar(QFrame):
     """统一工具栏：主操作高亮、次操作次要"""
 
@@ -158,8 +160,8 @@ class Toolbar(QFrame):
     def _build_ui(self):
         self.setObjectName("toolbar")
         self.setStyleSheet(f"""
-            #toolbar {{ background: {C['white']}; border: 1px solid {C['line']}; border-radius: 6px; padding: 4px; }}
-            QPushButton {{ border: 1px solid {C['line']}; border-radius: 4px; padding: 6px 14px; font-size: 9pt; }}
+            #toolbar {{ background: {C["white"]}; border: 1px solid {C["line"]}; border-radius: 6px; padding: 4px; }}
+            QPushButton {{ border: 1px solid {C["line"]}; border-radius: 4px; padding: 6px 14px; font-size: 9pt; }}
         """)
 
         for action in self._actions:
@@ -176,6 +178,7 @@ class Toolbar(QFrame):
 # ============================================================
 # PaginationBar — 分页器
 # ============================================================
+
 
 class PaginationBar(QFrame):
     """统一分页器：首页/上一页/页码/下一页/末页 + 每页条数选择"""
@@ -194,12 +197,12 @@ class PaginationBar(QFrame):
     def _build_ui(self):
         self.setObjectName("paginationBar")
         self.setStyleSheet(f"""
-            #paginationBar {{ background: {C['white']}; border: 1px solid {C['line']}; border-radius: 6px; padding: 4px; }}
-            QPushButton {{ border: 1px solid {C['line']}; border-radius: 4px; padding: 4px 10px; font-size: 9pt; min-width: 28px; }}
-            QPushButton:disabled {{ color: {C['text_light']}; border-color: {C['line']}; }}
-            QPushButton[on="true"] {{ background: {C['accent_blue']}; color: white; border-color: {C['accent_blue']}; }}
-            QComboBox {{ border: 1px solid {C['line']}; border-radius: 4px; padding: 2px 8px; font-size: 9pt; }}
-            QLabel {{ font-size: 9pt; color: {C['text']}; }}
+            #paginationBar {{ background: {C["white"]}; border: 1px solid {C["line"]}; border-radius: 6px; padding: 4px; }}
+            QPushButton {{ border: 1px solid {C["line"]}; border-radius: 4px; padding: 4px 10px; font-size: 9pt; min-width: 28px; }}
+            QPushButton:disabled {{ color: {C["text_light"]}; border-color: {C["line"]}; }}
+            QPushButton[on="true"] {{ background: {C["accent_blue"]}; color: white; border-color: {C["accent_blue"]}; }}
+            QComboBox {{ border: 1px solid {C["line"]}; border-radius: 4px; padding: 2px 8px; font-size: 9pt; }}
+            QLabel {{ font-size: 9pt; color: {C["text"]}; }}
         """)
 
         self._layout = QHBoxLayout(self)
@@ -295,6 +298,7 @@ class PaginationBar(QFrame):
 # StatusBadge — 状态徽标
 # ============================================================
 
+
 class StatusBadge(QLabel):
     """状态徽标：ok/warn/error/draft/locked 等状态"""
 
@@ -332,6 +336,7 @@ class StatusBadge(QLabel):
 # ============================================================
 # EmptyState — 空状态组件
 # ============================================================
+
 
 class EmptyState(QWidget):
     """空状态：引导插画 + 标题 + 描述 + 主操作按钮"""
@@ -376,7 +381,7 @@ class EmptyState(QWidget):
         if action_text:
             self.action_btn = QPushButton(action_text)
             self.action_btn.setStyleSheet(f"""
-                QPushButton {{ background: {C['accent_blue']}; color: white; border: none;
+                QPushButton {{ background: {C["accent_blue"]}; color: white; border: none;
                                border-radius: 6px; padding: 8px 24px; font-size: 10pt; }}
                 QPushButton:hover {{ background: #2f89c9; }}
             """)
@@ -390,6 +395,7 @@ class EmptyState(QWidget):
 # ============================================================
 # ConfirmDialog / BatchActionBar
 # ============================================================
+
 
 class ConfirmDialog(QDialog):
     """通用确认/撤销对话框"""
@@ -409,7 +415,9 @@ class ConfirmDialog(QDialog):
         self.setMinimumWidth(400)
         self._build_ui(title, message, confirm_text, cancel_text, destructive)
 
-    def _build_ui(self, title: str, message: str, confirm_text: str, cancel_text: str, destructive: bool):
+    def _build_ui(
+        self, title: str, message: str, confirm_text: str, cancel_text: str, destructive: bool
+    ):
         self.setWindowTitle(title)
         layout = QVBoxLayout(self)
         layout.setSpacing(16)
@@ -426,20 +434,20 @@ class ConfirmDialog(QDialog):
 
         if destructive:
             confirm_btn.setStyleSheet(f"""
-                QPushButton {{ background: {C['accent_red']}; color: white; border: none;
+                QPushButton {{ background: {C["accent_red"]}; color: white; border: none;
                                border-radius: 6px; padding: 8px 24px; font-size: 10pt; }}
                 QPushButton:hover {{ background: #c0392b; }}
             """)
         else:
             confirm_btn.setStyleSheet(f"""
-                QPushButton {{ background: {C['accent_blue']}; color: white; border: none;
+                QPushButton {{ background: {C["accent_blue"]}; color: white; border: none;
                                border-radius: 6px; padding: 8px 24px; font-size: 10pt; }}
                 QPushButton:hover {{ background: #2f89c9; }}
             """)
         cancel_btn.setStyleSheet(f"""
-            QPushButton {{ background: transparent; color: {C['text']}; border: 1px solid {C['line']};
+            QPushButton {{ background: transparent; color: {C["text"]}; border: 1px solid {C["line"]};
                            border-radius: 6px; padding: 8px 24px; font-size: 10pt; }}
-            QPushButton:hover {{ background: {C['line']}; }}
+            QPushButton:hover {{ background: {C["line"]}; }}
         """)
 
         btn_box.accepted.connect(self.accept)
@@ -456,9 +464,9 @@ class BatchActionBar(QFrame):
         super().__init__()
         self.setObjectName("batchActionBar")
         self.setStyleSheet(f"""
-            #batchActionBar {{ background: {C['accent_blue']}; border-radius: 6px; padding: 8px 16px; }}
+            #batchActionBar {{ background: {C["accent_blue"]}; border-radius: 6px; padding: 8px 16px; }}
             QLabel {{ color: white; font-size: 10pt; }}
-            QPushButton {{ background: white; color: {C['accent_blue']}; border: none;
+            QPushButton {{ background: white; color: {C["accent_blue"]}; border: none;
                            border-radius: 4px; padding: 4px 16px; font-size: 9pt; }}
             QPushButton:hover {{ background: #f0f0f0; }}
         """)
@@ -483,7 +491,9 @@ class BatchActionBar(QFrame):
 
         for action in self._actions:
             btn = QPushButton(action["text"])
-            btn.clicked.connect(lambda _, aid=action["id"]: self.action_triggered.emit(aid, self._selected_ids))
+            btn.clicked.connect(
+                lambda _, aid=action["id"]: self.action_triggered.emit(aid, self._selected_ids)
+            )
             self._layout.addWidget(btn)
 
     def set_selected(self, ids: list):
@@ -496,6 +506,7 @@ class BatchActionBar(QFrame):
 # ============================================================
 # CommandPalette — 命令面板
 # ============================================================
+
 
 class CommandPalette(QFrame):
     """命令面板：Ctrl+K 打开，搜索/跳转到任意页面/功能"""
@@ -513,13 +524,13 @@ class CommandPalette(QFrame):
     def _build_ui(self):
         self.setObjectName("commandPalette")
         self.setStyleSheet(f"""
-            #commandPalette {{ background: {C['white']}; border: 1px solid {C['line']}; border-radius: 8px; padding: 0; }}
-            QLabel {{ color: {C['text']}; font-size: 10pt; }}
+            #commandPalette {{ background: {C["white"]}; border: 1px solid {C["line"]}; border-radius: 8px; padding: 0; }}
+            QLabel {{ color: {C["text"]}; font-size: 10pt; }}
             QLineEdit {{ border: none; background: transparent; font-size: 11pt; padding: 12px; }}
             QListWidget {{ border: none; background: transparent; outline: none; }}
-            QListWidget::item {{ padding: 10px 16px; border-bottom: 1px solid {C['line']}; }}
-            QListWidget::item:selected {{ background: {C['bg_light']}; color: {C['accent_blue']}; }}
-            QListWidget::item:hover {{ background: {C['bg_light']}; }}
+            QListWidget::item {{ padding: 10px 16px; border-bottom: 1px solid {C["line"]}; }}
+            QListWidget::item:selected {{ background: {C["bg_light"]}; color: {C["accent_blue"]}; }}
+            QListWidget::item:hover {{ background: {C["bg_light"]}; }}
         """)
 
         layout = QVBoxLayout(self)
@@ -528,7 +539,9 @@ class CommandPalette(QFrame):
 
         # 搜索框
         search_container = QFrame()
-        search_container.setStyleSheet(f"background: {C['bg_light']}; border-bottom: 1px solid {C['line']}; padding: 8px 16px;")
+        search_container.setStyleSheet(
+            f"background: {C['bg_light']}; border-bottom: 1px solid {C['line']}; padding: 8px 16px;"
+        )
         search_layout = QHBoxLayout(search_container)
         search_layout.setContentsMargins(12, 8, 12, 8)
 
@@ -547,6 +560,7 @@ class CommandPalette(QFrame):
 
         # 结果列表
         from PyQt5.QtWidgets import QListWidget
+
         self.results_list = QListWidget()
         self.results_list.itemClicked.connect(self._on_item_clicked)
         self.layout().addWidget(self.results_list)
@@ -579,6 +593,7 @@ class CommandPalette(QFrame):
 
     def _add_item(self, title: str, view_id: str):
         from PyQt5.QtWidgets import QListWidgetItem
+
         item = QListWidgetItem(title)
         item.setData(Qt.UserRole, view_id)
         self.results_list.addItem(item)
@@ -598,6 +613,7 @@ class CommandPalette(QFrame):
 # ============================================================
 # TablePrefsService — 表格偏好持久化（Setting 表，跨设备同步）
 # ============================================================
+
 
 class TablePrefsService:
     """表格列宽/列显隐持久化，基于 Setting 表（随数据库跨设备同步）。
@@ -667,6 +683,7 @@ class TablePrefsService:
 # ============================================================
 # DensityManager — 界面密度切换（紧凑/舒适）
 # ============================================================
+
 
 class DensityManager:
     """界面密度控制：紧凑/舒适两档，QSS 级切换，实时生效。

@@ -76,10 +76,6 @@ Issues = "https://github.com/laozhudu/edu-management/issues"
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-select = ["E", "F", "I", "UP", "W", "C4", "PTH", "PERF", "TCH", "TID", "SIM", "PIE", "ARG", "PD", "PL", "TRY", "NPY", "RSE", "RET", "SLF"]
-ignore = ["E501", "PTH118", "PTH123"]
-fixable = ["ALL"]
-unfixable = ["TCH", "SIM", "PIE", "ARG", "PD", "PL", "TRY", "NPY", "RSE", "RET", "SLF"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -88,7 +84,20 @@ skip-magic-trailing-comma = false
 
 # 对存量代码宽容：排除 Alembic 迁移、导入脚本、测试数据生成脚本
 [tool.ruff.lint]
-extend-ignore = ["ARG001", "ARG002", "ARG005", "PLR2004", "PLR0912", "PLR0913", "PLR0915", "PLR0917", "PLC0415", "E402", "E722", "SLF001", "F821", "F841", "TRY003", "RET504", "RET505", "SIM103", "SIM105", "SIM108", "SIM118", "C401", "C405", "C416", "C420", "PERF102", "PERF401", "UP038", "W291", "W293"]
+select = ["E", "F", "I", "UP", "W", "C4", "PTH", "PERF", "TCH", "TID", "SIM", "PIE", "ARG", "PD", "PL", "TRY", "NPY", "RSE", "RET", "SLF"]
+fixable = ["ALL"]
+unfixable = ["TCH", "SIM", "PIE", "ARG", "PD", "PL", "TRY", "NPY", "RSE", "RET", "SLF"]
+extend-ignore = ["ARG001", "ARG002", "ARG005", "PLR2004", "PLR0912", "PLR0913", "PLR0915", "PLR0917", "PLC0415", "E402", "E722", "SLF001", "F821", "F841", "TRY003", "RET504", "RET505", "SIM103", "SIM105", "SIM108", "SIM118", "C401", "C405", "C416", "C420", "PERF102", "PERF401", "W291", "W293",
+    # —— 风格插件规则批量豁免（存量合理化，非屏蔽文件）——
+    # PLC2401: dict 推导 walrus 可读性偏好；TRY/PLW/PLR: 内部 lint 精致规则，sqlalchemy 语义下误报多
+    # ARG/TC/PIE/SIM/RET: 函数签名/简化建议，存量工作正常，避免改动引入回归
+    # PTH: Path 替换建议，既有 os.path 用法兼容 Windows，不强制迁移
+    # UP046: 3.12 PEP695 泛型语法本地 venv 为 3.11 无法运行，保持 Generic 兼容
+    "PLC2401", "TRY300", "TRY301", "PLW0603", "PLW0108", "ARG004", "PTH120", "PTH110",
+    "TC002", "TC001", "SIM102", "PTH103", "PTH111", "PTH208", "PTH107", "PTH100",
+    "PLR5501", "PLR0911", "PIE790", "PIE794", "RET507", "RET501", "PTH204", "PTH202",
+    "PTH119", "PTH113", "PLW1510", "PLR1711", "PIE810", "UP046", "UP035",
+]
 extend-select = []
 ignore = ["E501", "PTH118", "PTH123"]
 # 排除存量脚本目录
@@ -100,7 +109,6 @@ exclude = [
     "test_data/loader.py",
     "test_data/schema.py",
     "test_data/validator.py",
-    "src/edu_system/api/",
 ]
 
 [tool.mypy]

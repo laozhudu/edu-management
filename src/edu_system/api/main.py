@@ -134,7 +134,7 @@ def create_app() -> FastAPI:
     from edu_system.api.routes.reports import router as reports_router
 
     app.include_router(reports_router, prefix="/api")
-    
+
     # 手动注册 column_config 路由（include_router 在此环境有问题，需手动注册）
     # 先清除现有的同路径路由（避免重复）
     new_routes = []
@@ -143,6 +143,7 @@ def create_app() -> FastAPI:
         new_format = "/api" + route.path_format
         # 重新创建 APIRoute 以正确生成 path_regex
         from fastapi.routing import APIRoute
+
         new_route = APIRoute(
             path=new_path,
             endpoint=route.endpoint,
@@ -170,10 +171,10 @@ def create_app() -> FastAPI:
             openapi_extra=route.openapi_extra,
         )
         new_routes.append(new_route)
-    
+
     for r in new_routes:
         app.router.routes.append(r)
-    
+
     app.include_router(pages.router)  # Web 页面路由（无 /api 前缀）
     # app.include_router(admin.router, prefix="/api")
     # app.include_router(class_roster.router, prefix="/api")

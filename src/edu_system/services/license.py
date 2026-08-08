@@ -69,7 +69,9 @@ def verify_license_code(code: str, machine_id: str | None = None) -> dict:
 
     # 校验签名（_SECRET 为空时跳过签名校验）
     if _SECRET:
-        expected = hmac.new(_SECRET.encode(), f"{code_mid}.{days_str}".encode(), hashlib.sha256).hexdigest()[:16]
+        expected = hmac.new(
+            _SECRET.encode(), f"{code_mid}.{days_str}".encode(), hashlib.sha256
+        ).hexdigest()[:16]
         if not hmac.compare_digest(expected, sig):
             return {"valid": False, "reason": "授权码签名无效"}
 

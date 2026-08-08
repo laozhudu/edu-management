@@ -165,9 +165,7 @@ class TestReportTabs:
         ws["A1"] = "姓名: {{name}}  总分: {{total}}"
         wb.save(str(tpl_file))
 
-        monkeypatch.setattr(
-            QFileDialog, "getOpenFileName", lambda *a, **k: (str(tpl_file), "")
-        )
+        monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (str(tpl_file), ""))
 
         tab_w = _find_tab(view, "模板管理")
         name_input = tab_w.findChild(QLineEdit)

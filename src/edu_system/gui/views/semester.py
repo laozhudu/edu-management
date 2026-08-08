@@ -71,16 +71,16 @@ class SemesterView(QWidget):
         self._build_content(w)
 
     def _build_content(self, w):
-        l = QVBoxLayout(w)
-        l.setContentsMargins(12, 8, 12, 8)
-        l.setSpacing(6)
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(12, 8, 12, 8)
+        lay.setSpacing(6)
 
         # 工具栏
         tb = QHBoxLayout()
         tb.setSpacing(4)
         tb.addWidget(QLabel("学期设置"))
         tb.addStretch()
-        l.addLayout(tb)
+        lay.addLayout(tb)
 
         cur = self.session.query(Semester).filter_by(is_active=True).first()
 
@@ -100,7 +100,7 @@ class SemesterView(QWidget):
             cl.addWidget(QLabel(f"在校学生: {total}人"))
         else:
             cl.addWidget(QLabel("未设置当前学期"))
-        l.addWidget(card)
+        lay.addWidget(card)
 
         # ── Tab ──
         tabs = QTabWidget()
@@ -109,7 +109,7 @@ class SemesterView(QWidget):
         tabs.addTab(self._build_create_tab(cur), "新建学期")
         tabs.addTab(self._build_inherit_tab(), "继承配置")
         tabs.addTab(self._build_version_tab(), "版本历史")
-        l.addWidget(tabs)
+        lay.addWidget(tabs)
 
     # ═══════════════════════════════════
     #  Tab 1: 学期列表
@@ -117,8 +117,8 @@ class SemesterView(QWidget):
 
     def _build_list_tab(self, cur):
         w = QWidget()
-        l = QVBoxLayout(w)
-        l.setContentsMargins(4, 4, 4, 4)
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(4, 4, 4, 4)
         semesters = (
             self.session.query(Semester).order_by(Semester.year_start.desc(), Semester.id).all()
         )
@@ -183,7 +183,7 @@ class SemesterView(QWidget):
             op_ly.addStretch()
             t.setCellWidget(i, 3, op)
             t.setRowHeight(i, 30)
-        l.addWidget(t)
+        lay.addWidget(t)
         return w
 
     def _edit_semester(self, sem):
@@ -226,9 +226,9 @@ class SemesterView(QWidget):
 
     def _build_create_tab(self, cur):
         w = QWidget()
-        l = QVBoxLayout(w)
-        l.setContentsMargins(8, 8, 8, 8)
-        l.setSpacing(8)
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(8, 8, 8, 8)
+        lay.setSpacing(8)
 
         cy = datetime.now().year
         grp = QGroupBox("新建学期")
@@ -277,7 +277,7 @@ class SemesterView(QWidget):
         b.clicked.connect(lambda: self._create(start_y.value(), sc.currentText(), info_label))
         row3.addWidget(b)
         gl.addLayout(row3)
-        l.addWidget(grp)
+        lay.addWidget(grp)
 
         # 关联信息
         if cur:
@@ -292,8 +292,8 @@ class SemesterView(QWidget):
                     f"新建第一学期 → 跨学年，自动提示升年级"
                 )
             )
-            l.addWidget(grp2)
-        l.addStretch()
+            lay.addWidget(grp2)
+        lay.addStretch()
         return w
 
     # ═══════════════════════════════════
@@ -302,9 +302,9 @@ class SemesterView(QWidget):
 
     def _build_inherit_tab(self):
         w = QWidget()
-        l = QVBoxLayout(w)
-        l.setContentsMargins(8, 8, 8, 8)
-        l.setSpacing(8)
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(8, 8, 8, 8)
+        lay.setSpacing(8)
 
         grp = QGroupBox("从历史学期继承配置")
         grp.setFont(font(10, True))
@@ -312,9 +312,7 @@ class SemesterView(QWidget):
         gl.setSpacing(6)
 
         # 选择源学期 + 目标学期
-        sems = (
-            self.session.query(Semester).order_by(Semester.year_start.desc(), Semester.id).all()
-        )
+        sems = self.session.query(Semester).order_by(Semester.year_start.desc(), Semester.id).all()
         row = QHBoxLayout()
         row.setSpacing(6)
         row.addWidget(QLabel("源学期:"))
@@ -383,7 +381,7 @@ class SemesterView(QWidget):
         exec_row.addWidget(run_b)
         gl.addLayout(exec_row)
 
-        l.addWidget(grp)
+        lay.addWidget(grp)
 
         # 四色图例
         legend = QLabel(
@@ -393,8 +391,8 @@ class SemesterView(QWidget):
             '<span style="color:#ef4444">■ 冲突</span>'
         )
         legend.setFont(font(8))
-        l.addWidget(legend)
-        l.addStretch()
+        lay.addWidget(legend)
+        lay.addStretch()
 
         def _preview():
             src_id = src_cb.currentData()
@@ -594,9 +592,9 @@ class SemesterView(QWidget):
 
     def _build_version_tab(self):
         w = QWidget()
-        l = QVBoxLayout(w)
-        l.setContentsMargins(8, 8, 8, 8)
-        l.setSpacing(8)
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(8, 8, 8, 8)
+        lay.setSpacing(8)
 
         # 学期选择
         row = QHBoxLayout()
@@ -612,7 +610,7 @@ class SemesterView(QWidget):
         sem_cb.setMinimumWidth(200)
         row.addWidget(sem_cb)
         row.addStretch()
-        l.addLayout(row)
+        lay.addLayout(row)
 
         # 版本列表
         t = QTableWidget(0, 5)
@@ -627,7 +625,7 @@ class SemesterView(QWidget):
             QHeaderView::section { background:#D9E1F2; font-weight:bold; padding:4px; border:1px solid #CCC; }"""
         )
         t.setMinimumHeight(200)
-        l.addWidget(t)
+        lay.addWidget(t)
 
         # 刷新按钮
         btn_row = QHBoxLayout()
@@ -643,26 +641,27 @@ class SemesterView(QWidget):
         refresh_btn.setCursor(Qt.PointingHandCursor)
         btn_row.addWidget(refresh_btn)
         btn_row.addStretch()
-        l.addLayout(btn_row)
+        lay.addLayout(btn_row)
 
         # 详情区
         detail_label = QLabel("选择版本查看配置详情")
         detail_label.setFont(font(8))
         detail_label.setStyleSheet("color:#666;")
-        l.addWidget(detail_label)
+        lay.addWidget(detail_label)
 
         detail_text = QTextEdit()
         detail_text.setFont(font(8))
         detail_text.setReadOnly(True)
         detail_text.setMaximumHeight(150)
         detail_text.setStyleSheet("border:1px solid #DDD; background:#FAFAFA;")
-        l.addWidget(detail_text)
+        lay.addWidget(detail_text)
 
         def load_versions():
             sem_id = sem_cb.currentData()
             if not sem_id:
                 return
             from edu_system.services.semester_config import SemesterConfigService
+
             svc = SemesterConfigService(self.session)
             try:
                 versions = svc.get_versions(sem_id)
@@ -680,7 +679,9 @@ class SemesterView(QWidget):
                         "border:none; border-radius:2px; padding:2px 8px;"
                     )
                     rollback_btn.setCursor(Qt.PointingHandCursor)
-                    rollback_btn.clicked.connect(lambda _, ver=v["version"]: do_rollback(sem_id, ver))
+                    rollback_btn.clicked.connect(
+                        lambda _, ver=v["version"]: do_rollback(sem_id, ver)
+                    )
                     t.setCellWidget(i, 4, rollback_btn)
                 t.setColumnWidth(0, 60)
                 t.setColumnWidth(1, 140)
@@ -693,6 +694,7 @@ class SemesterView(QWidget):
 
         def do_rollback(sem_id, version):
             from PyQt5.QtWidgets import QMessageBox
+
             ans = QMessageBox.question(
                 self,
                 "确认回滚",
@@ -703,6 +705,7 @@ class SemesterView(QWidget):
                 return
 
             from edu_system.services.semester_config import SemesterConfigService
+
             svc = SemesterConfigService(self.session)
             try:
                 result = svc.rollback_to_version(sem_id, version, operator="admin")

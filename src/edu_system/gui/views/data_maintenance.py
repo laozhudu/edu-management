@@ -3,11 +3,9 @@ GUI 视图 — 数据维护 (M5-F1)
 功能：备份/还原、数据清理、审计日志查看、数据库维护
 """
 
-import threading
 import os
-import shutil
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtWidgets import (
@@ -15,9 +13,7 @@ from PyQt5.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDateEdit,
-    QDialog,
     QFileDialog,
-    QFormLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -26,20 +22,16 @@ from PyQt5.QtWidgets import (
     QProgressBar,
     QPushButton,
     QRadioButton,
+    QSizePolicy,
     QSpinBox,
     QTableWidget,
-    QTableWidgetItem,
     QTabWidget,
     QTextEdit,
     QVBoxLayout,
     QWidget,
-    QSizePolicy,
 )
-from sqlalchemy.orm import Session
 
 from edu_system.gui.theme import C, font
-from edu_system.gui.views.base import BaseView
-from edu_system.database import get_session
 
 
 def _btn(txt, color, w=None):
@@ -58,6 +50,7 @@ def _btn(txt, color, w=None):
 
 class BackupWorker(QThread):
     """备份工作线程"""
+
     finished = pyqtSignal(bool, str)
     progress = pyqtSignal(int, str)
 
@@ -69,20 +62,21 @@ class BackupWorker(QThread):
     def run(self):
         try:
             self.progress.emit(10, "准备备份...")
-            
+
             # 这里实现实际备份逻辑
             # 简化版：复制数据库文件
             import shutil
+
             from edu_system.config import settings
-            
+
             db_path = settings.DATABASE_URL.replace("sqlite:///", "")
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             backup_name = f"backup_{self.backup_type}_{timestamp}.db"
             backup_full_path = os.path.join(self.target_path, backup_name)
-            
+
             self.progress.emit(50, "正在复制数据库...")
             shutil.copy2(db_path, backup_full_path)
-            
+
             self.progress.emit(100, "备份完成")
             self.finished.emit(True, backup_full_path)
         except Exception as e:
@@ -91,6 +85,7 @@ class BackupWorker(QThread):
 
 class RestoreWorker(QThread):
     """还原工作线程"""
+
     finished = pyqtSignal(bool, str)
     progress = pyqtSignal(int, str)
 
@@ -101,15 +96,16 @@ class RestoreWorker(QThread):
     def run(self):
         try:
             self.progress.emit(10, "准备还原...")
-            
+
             import shutil
+
             from edu_system.config import settings
-            
+
             db_path = settings.DATABASE_URL.replace("sqlite:///", "")
-            
+
             self.progress.emit(50, "正在还原数据库...")
             shutil.copy2(self.backup_file, db_path)
-            
+
             self.progress.emit(100, "还原完成")
             self.finished.emit(True, "还原成功，请重启应用")
         except Exception as e:
@@ -147,10 +143,10 @@ class DataMaintenanceView(QWidget):
 
         # Tab 1: 备份/还原
         self._create_backup_tab()
-        
+
         # Tab 2: 数据清理
         self._create_cleanup_tab()
-        
+
         # Tab 3: 审计日志
         self._create_audit_tab()
 
@@ -160,9 +156,9 @@ class DataMaintenanceView(QWidget):
     def _create_backup_tab(self):
         """备份/还原标签页"""
         tab = QWidget()
-        l = QVBoxLayout(tab)
-        l.setContentsMargins(16, 16, 16, 16)
-        l.setSpacing(12)
+        lay = QVBoxLayout(tab)
+        lay.setContentsMargins(16, 16, 16, 16)
+        lay.setSpacing(12)
 
         # 备份区域
         grp_backup = QGroupBox("数据库备份")
@@ -174,7 +170,7 @@ class DataMaintenanceView(QWidget):
         type_row = QHBoxLayout()
         type_row.setSpacing(8)
         type_row.addWidget(QLabel("备份类型:"))
-        
+
         self.backup_type_group = QButtonGroup()
         self.rb_full = QRadioButton("完整备份 (包含所有数据)")
         self.rb_full.setChecked(True)
@@ -224,7 +220,7 @@ class DataMaintenanceView(QWidget):
         self.backup_status.setStyleSheet("color: #666; font-size: 9pt;")
         gbl.addWidget(self.backup_status)
 
-        l.addWidget(grp_backup)
+        lay.addWidget(grp_backup)
 
         # 还原区域
         grp_restore = QGroupBox("数据库还原")
@@ -269,16 +265,20 @@ class DataMaintenanceView(QWidget):
         self.restore_status.setStyleSheet("color: #666; font-size: 9pt;")
         grl.addWidget(self.restore_status)
 
-        l.addWidget(grp_restore)
+        lay.addWidget(grp_restore)
         self.tabs.addTab(tab, "备份/还原")
 
     def _browse_backup_path(self):
-        path = QFileDialog.getExistingDirectory(self, "选择备份保存目录", self.backup_path_edit.text())
+        path = QFileDialog.getExistingDirectory(
+            self, "选择备份保存目录", self.backup_path_edit.text()
+        )
         if path:
             self.backup_path_edit.setText(path)
 
     def _browse_restore_file(self):
-        path, _ = QFileDialog.getOpenFileName(self, "选择备份文件", "", "数据库文件 (*.db *.sqlite *.sqlite3)")
+        path, _ = QFileDialog.getOpenFileName(
+            self, "选择备份文件", "", "数据库文件 (*.db *.sqlite *.sqlite3)"
+        )
         if path:
             self.restore_file_edit.setText(path)
 
@@ -288,13 +288,13 @@ class DataMaintenanceView(QWidget):
         if not target_path:
             QMessageBox.warning(self, "提示", "请选择备份保存目录")
             return
-        
+
         Path(target_path).mkdir(parents=True, exist_ok=True)
-        
+
         self.backup_progress.setVisible(True)
         self.backup_progress.setValue(0)
         self.backup_status.setText("正在备份...")
-        
+
         self.backup_worker = BackupWorker(backup_type, target_path)
         self.backup_worker.progress.connect(self._on_backup_progress)
         self.backup_worker.finished.connect(self._on_backup_finished)
@@ -318,21 +318,22 @@ class DataMaintenanceView(QWidget):
         if not backup_file or not os.path.exists(backup_file):
             QMessageBox.warning(self, "提示", "请选择有效的备份文件")
             return
-        
+
         # 确认对话框
         reply = QMessageBox.question(
-            self, "确认还原",
+            self,
+            "确认还原",
             "⚠️ 警告：还原将覆盖当前所有数据，且不可撤销！\n建议先做一次当前数据的备份。\n\n确定要继续还原吗？",
             QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
+            QMessageBox.No,
         )
         if reply != QMessageBox.Yes:
             return
-        
+
         self.restore_progress.setVisible(True)
         self.restore_progress.setValue(0)
         self.restore_status.setText("正在还原...")
-        
+
         self.restore_worker = RestoreWorker(self.restore_file_edit.text())
         self.restore_worker.progress.connect(self._on_restore_progress)
         self.restore_worker.finished.connect(self._on_restore_finished)
@@ -354,9 +355,9 @@ class DataMaintenanceView(QWidget):
     # ===== Tab 2: 数据清理 =====
     def _create_cleanup_tab(self):
         tab = QWidget()
-        l = QVBoxLayout(tab)
-        l.setContentsMargins(16, 16, 16, 16)
-        l.setSpacing(12)
+        lay = QVBoxLayout(tab)
+        lay.setContentsMargins(16, 16, 16, 16)
+        lay.setSpacing(12)
 
         grp = QGroupBox("数据清理")
         grp.setFont(font(10, True))
@@ -371,7 +372,7 @@ class DataMaintenanceView(QWidget):
         self.chk_audit = QCheckBox("清理旧审计日志 (保留最近 N 个月)")
         self.chk_audit.setChecked(False)
         gl.addWidget(self.chk_audit)
-        
+
         audit_row = QHBoxLayout()
         audit_row.addWidget(QLabel("保留月数:"))
         self.spin_audit_months = QSpinBox()
@@ -390,7 +391,7 @@ class DataMaintenanceView(QWidget):
         self.chk_logs = QCheckBox("清理旧日志文件 (保留最近 N 个月)")
         self.chk_logs.setChecked(False)
         gl.addWidget(self.chk_logs)
-        
+
         logs_row = QHBoxLayout()
         logs_row.addWidget(QLabel("保留月数:"))
         self.spin_logs_months = QSpinBox()
@@ -423,44 +424,52 @@ class DataMaintenanceView(QWidget):
         self.cleanup_status.setStyleSheet("color: #666; font-size: 9pt;")
         gl.addWidget(self.cleanup_status)
 
-        l.addWidget(grp)
-        l.addStretch()
+        lay.addWidget(grp)
+        lay.addStretch()
 
         self.tabs.addTab(tab, "数据清理")
 
     def _do_cleanup(self):
         # 检查至少选了一项
-        if not (self.chk_orphans.isChecked() or self.chk_audit.isChecked() 
-                or self.chk_temp.isChecked() or self.chk_logs.isChecked()):
+        if not (
+            self.chk_orphans.isChecked()
+            or self.chk_audit.isChecked()
+            or self.chk_temp.isChecked()
+            or self.chk_logs.isChecked()
+        ):
             QMessageBox.warning(self, "提示", "请至少选择一项清理内容")
             return
-        
+
         reply = QMessageBox.question(
-            self, "确认清理",
+            self,
+            "确认清理",
             "清理操作不可撤销，建议先备份数据库。\n确定要执行选中的清理操作吗？",
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
         )
         if reply != QMessageBox.Yes:
             return
-        
+
         self.cleanup_progress.setVisible(True)
         self.cleanup_progress.setValue(0)
         self.cleanup_status.setText("正在清理...")
 
         # 这里简化实现，实际应调用后端 API
         try:
-            from edu_system.services.storage import get_storage_service
-            from edu_system.database import get_session
-            from edu_system.models import AuditLog
-            from sqlalchemy import func
             from datetime import datetime, timedelta
 
-            total_ops = sum([
-                self.chk_orphans.isChecked(),
-                self.chk_audit.isChecked(),
-                self.chk_temp.isChecked(),
-                self.chk_logs.isChecked(),
-            ])
+            from edu_system.database import get_session
+            from edu_system.models import AuditLog
+            from edu_system.services.storage import get_storage_service
+
+            total_ops = sum(
+                [
+                    self.chk_orphans.isChecked(),
+                    self.chk_audit.isChecked(),
+                    self.chk_temp.isChecked(),
+                    self.chk_logs.isChecked(),
+                ]
+            )
             current = 0
 
             def update_progress(op_name):
@@ -486,8 +495,8 @@ class DataMaintenanceView(QWidget):
 
             if self.chk_temp.isChecked():
                 update_progress("清理临时文件")
-                import tempfile
                 import shutil
+
                 temp_dirs = ["/tmp/edu_management", os.path.expanduser("~/.cache/edu_management")]
                 for d in temp_dirs:
                     if os.path.exists(d):
@@ -497,7 +506,10 @@ class DataMaintenanceView(QWidget):
                 update_progress("清理旧日志文件")
                 months = self.spin_logs_months.value()
                 cutoff = datetime.now() - timedelta(days=months * 30)
-                log_dirs = ["/var/log/edu_management", os.path.expanduser("~/.local/share/edu_management/logs")]
+                log_dirs = [
+                    "/var/log/edu_management",
+                    os.path.expanduser("~/.local/share/edu_management/logs"),
+                ]
                 for d in log_dirs:
                     if os.path.exists(d):
                         for f in os.listdir(d):
@@ -516,9 +528,9 @@ class DataMaintenanceView(QWidget):
     # ===== Tab 3: 审计日志 =====
     def _create_audit_tab(self):
         tab = QWidget()
-        l = QVBoxLayout(tab)
-        l.setContentsMargins(12, 12, 12, 12)
-        l.setSpacing(8)
+        lay = QVBoxLayout(tab)
+        lay.setContentsMargins(12, 12, 12, 12)
+        lay.setSpacing(8)
 
         # 搜索/筛选区
         filter_row = QHBoxLayout()
@@ -528,44 +540,46 @@ class DataMaintenanceView(QWidget):
         self.audit_service_cb.addItem("全部", "")
         # TODO: 从 API 获取服务列表
         filter_row.addWidget(self.audit_service_cb)
-        
+
         filter_row.addWidget(QLabel("方法:"))
         self.audit_method_cb = QComboBox()
         self.audit_method_cb.addItem("全部", "")
         for m in ["GET", "POST", "PUT", "DELETE", "PATCH"]:
             self.audit_method_cb.addItem(m, m)
         filter_row.addWidget(self.audit_method_cb)
-        
+
         filter_row.addWidget(QLabel("关键词:"))
         self.audit_keyword = QLineEdit()
         self.audit_keyword.setPlaceholderText("路径/用户/IP/错误信息...")
         self.audit_keyword.setMinimumWidth(200)
         filter_row.addWidget(self.audit_keyword)
-        
+
         filter_row.addWidget(QLabel("时间范围:"))
         self.audit_date_from = QDateEdit()
         self.audit_date_from.setCalendarPopup(True)
         self.audit_date_from.setDate(self._get_default_start_date())
         filter_row.addWidget(self.audit_date_from)
-        
+
         filter_row.addWidget(QLabel("至"))
         self.audit_date_to = QDateEdit()
         self.audit_date_to.setCalendarPopup(True)
         self.audit_date_to.setDate(datetime.now().date())
         filter_row.addWidget(self.audit_date_to)
-        
+
         filter_row.addStretch()
         btn_search = QPushButton("搜索")
-        btn_search.setStyleSheet(f"background: {C['accent_blue']}; color: white; padding: 4px 12px;")
+        btn_search.setStyleSheet(
+            f"background: {C['accent_blue']}; color: white; padding: 4px 12px;"
+        )
         btn_search.clicked.connect(self._search_audit_logs)
         filter_row.addWidget(btn_search)
-        l.addLayout(filter_row)
+        lay.addLayout(filter_row)
 
         # 日志表格
         self.audit_table = QTableWidget(0, 7)
-        self.audit_table.setHorizontalHeaderLabels([
-            "时间", "方法", "路径", "状态码", "耗时(ms)", "用户", "错误信息"
-        ])
+        self.audit_table.setHorizontalHeaderLabels(
+            ["时间", "方法", "路径", "状态码", "耗时(ms)", "用户", "错误信息"]
+        )
         self.audit_table.setAlternatingRowColors(True)
         self.audit_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.audit_table.horizontalHeader().setStretchLastSection(True)
@@ -574,7 +588,7 @@ class DataMaintenanceView(QWidget):
             QTableWidget { font-size:9pt; border:1px solid #DDD; background:white; }
             QHeaderView::section { background:#D9E1F2; font-weight:bold; padding:4px; border:1px solid #CCC; }
         """)
-        l.addWidget(self.audit_table)
+        lay.addWidget(self.audit_table)
 
         # 分页/统计
         page_row = QHBoxLayout()
@@ -582,12 +596,13 @@ class DataMaintenanceView(QWidget):
         self.audit_status.setStyleSheet("color: #666;")
         page_row.addWidget(self.audit_status)
         page_row.addStretch()
-        l.addLayout(page_row)
+        lay.addLayout(page_row)
 
         self.tabs.addTab(tab, "审计日志")
 
     def _get_default_start_date(self):
         from datetime import datetime, timedelta
+
         return (datetime.now() - timedelta(days=7)).date()
 
     def _search_audit_logs(self):
@@ -595,14 +610,15 @@ class DataMaintenanceView(QWidget):
         self.audit_status.setText("搜索中...")
         # 这里简化实现
         from datetime import datetime
+
         self.audit_status.setText(f"搜索完成 - {datetime.now().strftime('%H:%M:%S')}")
 
     # ===== Tab 4: 数据库维护 =====
     def _create_db_maintenance_tab(self):
         tab = QWidget()
-        l = QVBoxLayout(tab)
-        l.setContentsMargins(16, 16, 16, 16)
-        l.setSpacing(12)
+        lay = QVBoxLayout(tab)
+        lay.setContentsMargins(16, 16, 16, 16)
+        lay.setSpacing(12)
 
         grp = QGroupBox("数据库维护工具")
         grp.setFont(font(10, True))
@@ -641,8 +657,8 @@ class DataMaintenanceView(QWidget):
         self.db_maint_log.setStyleSheet("border:1px solid #DDD; background:#FAFAFA;")
         gl.addWidget(self.db_maint_log)
 
-        l.addWidget(grp)
-        l.addStretch()
+        lay.addWidget(grp)
+        lay.addStretch()
 
         self.tabs.addTab(tab, "数据库维护")
 
@@ -677,6 +693,7 @@ class DataMaintenanceView(QWidget):
         self.db_maint_log.append("正在执行完整性检查...")
         try:
             from sqlalchemy import text
+
             result = self.session.execute(text("PRAGMA integrity_check")).fetchall()
             for row in result:
                 self.db_maint_log.append(f"  {row[0]}")
@@ -686,5 +703,3 @@ class DataMaintenanceView(QWidget):
                 self.db_maint_log.append("❌ 发现完整性问题")
         except Exception as e:
             self.db_maint_log.append(f"❌ 检查失败: {e}")
-
-

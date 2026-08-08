@@ -139,9 +139,7 @@ class ServerThread(QThread):
         if sys.platform == "win32":
             # Windows: netstat 找 PID
             try:
-                out = subprocess.check_output(
-                    ["netstat", "-ano"], text=True, timeout=5
-                )
+                out = subprocess.check_output(["netstat", "-ano"], text=True, timeout=5)
                 for line in out.splitlines():
                     if f":{port}" in line and "LISTENING" in line:
                         parts = line.split()
@@ -149,7 +147,9 @@ class ServerThread(QThread):
                         try:
                             subprocess.run(
                                 ["taskkill", "/F", "/PID", pid],
-                                check=False, capture_output=True, timeout=5,
+                                check=False,
+                                capture_output=True,
+                                timeout=5,
                             )
                             self.signals.log.emit(f"已清理遗留进程 PID {pid}（端口 {port}）")
                         except Exception:
@@ -160,9 +160,7 @@ class ServerThread(QThread):
 
         # Linux: ss/lsof 找占用进程，校验命令行后再杀
         try:
-            out = subprocess.check_output(
-                ["ss", "-tlnp"], text=True, timeout=5
-            )
+            out = subprocess.check_output(["ss", "-tlnp"], text=True, timeout=5)
             for line in out.splitlines():
                 if f":{port}" not in line:
                     continue

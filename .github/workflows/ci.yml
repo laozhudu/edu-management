@@ -26,8 +26,8 @@ jobs:
           cache: 'pip'
       - run: pip install -r requirements.lock
       - run: pip install ruff mypy black isort pre-commit
-      - run: ruff check src/ tests/ --exclude=src/edu_system/api/ --exclude=src/edu_system/gui/ --exclude=src/edu_system/services/ --exclude=src/edu_system/models/__init__.py --exclude=src/edu_system/repository/ --exclude=src/edu_system/schemas/ --exclude=alembic/versions/ --exclude=test_data/generate.py --exclude=test_data/loader.py --exclude=test_data/schema.py --exclude=test_data/validator.py --exclude=src/edu_system/core/auth.py --exclude=src/edu_system/core/event_bus.py --exclude=src/edu_system/core/features.py --exclude=src/edu_system/core/idempotency.py --exclude=src/edu_system/core/permissions.py --exclude=src/edu_system/core/result.py --exclude=src/edu_system/database.py --exclude=src/edu_system/config/__init__.py --output-format=github
-      - run: ruff format --check src/ tests/ --exclude=src/edu_system/api/ --exclude=src/edu_system/gui/ --exclude=src/edu_system/services/ --exclude=src/edu_system/models/__init__.py --exclude=src/edu_system/repository/ --exclude=src/edu_system/schemas/ --exclude=alembic/versions/ --exclude=test_data/generate.py --exclude=test_data/loader.py --exclude=test_data/schema.py --exclude=test_data/validator.py --exclude=src/edu_system/core/auth.py --exclude=src/edu_system/core/event_bus.py --exclude=src/edu_system/core/features.py --exclude=src/edu_system/core/idempotency.py --exclude=src/edu_system/core/permissions.py --exclude=src/edu_system/core/result.py --exclude=src/edu_system/database.py --exclude=src/edu_system/config/__init__.py
+      - run: ruff check src/ tests/ --output-format=github
+      - run: ruff format --check src/ tests/
 
   # typecheck:
   #   name: 类型检查

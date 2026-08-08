@@ -541,10 +541,10 @@ class StudentView(QWidget):
             self._edit_full()
 
     def _lbl(self, t):
-        l = QLabel(t)
-        l.setFont(font(8))
-        l.setStyleSheet("color:#555;")
-        return l
+        lay = QLabel(t)
+        lay.setFont(font(8))
+        lay.setStyleSheet("color:#555;")
+        return lay
 
     # ═══════════════════════════════════
     # 表格增强

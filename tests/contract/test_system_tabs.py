@@ -49,7 +49,9 @@ class TestSystemTabs:
             ("/page/system/init", "systemInit", "此操作将清空所有业务数据"),
         ],
     )
-    def test_tab_renders_specific_template(self, client, auth_headers, path, component, fetch_marker):
+    def test_tab_renders_specific_template(
+        self, client, auth_headers, path, component, fetch_marker
+    ):
         r = client.get(path, headers=auth_headers)
         assert r.status_code == 200
         assert component in r.text, f"{path} 未渲染 {component} 组件"

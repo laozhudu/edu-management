@@ -18,6 +18,7 @@ pytestmark = pytest.mark.gui  # 仅 GUI job（xvfb）运行
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
+import pytest
 from PyQt5.QtWidgets import (
     QApplication,
     QComboBox,
@@ -27,8 +28,6 @@ from PyQt5.QtWidgets import (
     QSpinBox,
     QTableWidget,
 )
-
-import pytest
 
 
 @pytest.fixture(scope="module")
@@ -53,7 +52,6 @@ def session():
         Grade,
         Semester,
         SemesterStatus,
-        Student,
     )
 
     engine = create_engine("sqlite:///:memory:")
@@ -82,7 +80,7 @@ def session():
     s.add(g1)
     s.flush()
 
-    cls = __import__('edu_system.models', fromlist=['Class']).Class
+    cls = __import__("edu_system.models", fromlist=["Class"]).Class
     cl1 = cls(semester_id=sem.id, grade_id=g1.id, name="初一1班")
     cl2 = cls(semester_id=sem.id, grade_id=g1.id, name="初一2班")
     s.add_all([cl1, cl2])
@@ -170,12 +168,19 @@ class TestExamViewTabs:
         assert len(combos) >= 2, "应有学期+年级两个下拉框"
 
         # 名称输入框
-        from PyQt5.QtWidgets import QLineEdit
-        name_inputs = [w for w in tab_w.findChildren(QLineEdit) if w.placeholderText() == "如: 期中考试、期末考试"]
+        name_inputs = [
+            w
+            for w in tab_w.findChildren(QLineEdit)
+            if w.placeholderText() == "如: 期中考试、期末考试"
+        ]
         assert len(name_inputs) == 1, "应有考试名称输入框"
 
         # 备注输入框
-        note_inputs = [w for w in tab_w.findChildren(QLineEdit) if w.placeholderText() is None or w.placeholderText() == ""]
+        note_inputs = [
+            w
+            for w in tab_w.findChildren(QLineEdit)
+            if w.placeholderText() is None or w.placeholderText() == ""
+        ]
         assert any(note_inputs), "应有备注输入框"
 
         # 创建按钮
@@ -184,7 +189,7 @@ class TestExamViewTabs:
 
     def test_create_exam_workflow(self, view, session, monkeypatch):
         """新建考试：填表 → 点击创建 → 数据库落库"""
-        from PyQt5.QtWidgets import QMessageBox, QLineEdit, QComboBox
+        from PyQt5.QtWidgets import QComboBox
 
         monkeypatch.setattr(QMessageBox, "information", lambda *a, **k: QMessageBox.Ok)
         monkeypatch.setattr(QMessageBox, "warning", lambda *a, **k: QMessageBox.Ok)
@@ -202,7 +207,11 @@ class TestExamViewTabs:
         grade_cb.setCurrentIndex(0)
 
         # 名称
-        name_inputs = [w for w in tab_w.findChildren(QLineEdit) if w.placeholderText() == "如: 期中考试、期末考试"]
+        name_inputs = [
+            w
+            for w in tab_w.findChildren(QLineEdit)
+            if w.placeholderText() == "如: 期中考试、期末考试"
+        ]
         name_inputs[0].setText("GUI新建测试")
 
         # 日期默认即可
@@ -218,6 +227,7 @@ class TestExamViewTabs:
 
         # 验证数据库落库
         from edu_system.models import Exam
+
         new_exam = session.query(Exam).filter_by(name="GUI新建测试").first()
         assert new_exam is not None, "数据库应有新建考试"
         assert new_exam.grade_id is not None
@@ -256,7 +266,6 @@ class TestExamViewTabs:
 
     def test_invigilation_save_workflow(self, view, session, monkeypatch):
         """监考编辑：选择考场 → 输入教师ID → 保存 → 数据库落库"""
-        from PyQt5.QtWidgets import QMessageBox, QLineEdit
 
         monkeypatch.setattr(QMessageBox, "information", lambda *a, **k: QMessageBox.Ok)
         monkeypatch.setattr(QMessageBox, "warning", lambda *a, **k: QMessageBox.Ok)

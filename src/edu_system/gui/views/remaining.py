@@ -62,9 +62,9 @@ class EnrollmentView(QWidget):
         if self.layout():
             QWidget().setLayout(self.layout())
         self.setLayout(QVBoxLayout())
-        l = self.layout()
-        l.setContentsMargins(8, 6, 8, 6)
-        l.setSpacing(4)
+        lay = self.layout()
+        lay.setContentsMargins(8, 6, 8, 6)
+        lay.setSpacing(4)
 
         # 顶部工具栏
         tb = QHBoxLayout()
@@ -75,7 +75,7 @@ class EnrollmentView(QWidget):
         b_wizard = _btn("批量转班向导", C["accent_green"], 100)
         b_wizard.clicked.connect(self._open_batch_transfer_wizard)
         tb.addWidget(b_wizard)
-        l.addLayout(tb)
+        lay.addLayout(tb)
 
         # 搜索栏
         row = QHBoxLayout()
@@ -97,7 +97,7 @@ class EnrollmentView(QWidget):
         b_clear.clicked.connect(self._clear_selection)
         row.addWidget(b_clear)
         row.addStretch()
-        l.addLayout(row)
+        lay.addLayout(row)
         self._search.returnPressed.connect(self._search_student)
 
         # 学生列表（支持多选、复选框）
@@ -112,7 +112,7 @@ class EnrollmentView(QWidget):
             QListWidget::item:selected { background:#3498DB; color:white; }"""
         )
         self._list.itemSelectionChanged.connect(self._on_selection_changed)
-        l.addWidget(self._list, 1)
+        lay.addWidget(self._list, 1)
 
         # 底部状态栏
         status_row = QHBoxLayout()
@@ -132,10 +132,10 @@ class EnrollmentView(QWidget):
             b.clicked.connect(lambda _, t=txt: self._batch_action(t))
             status_row.addWidget(b)
         status_row.addStretch()
-        l.addLayout(status_row)
+        lay.addLayout(status_row)
 
         # 最近变动记录
-        l.addWidget(QLabel("最近变动记录:"))
+        lay.addWidget(QLabel("最近变动记录:"))
         self._log_table = QTableWidget(0, 5)
         self._log_table.setHorizontalHeaderLabels(["日期", "学生", "类型", "详情", "原因"])
         self._log_table.setFont(font(9))
@@ -149,7 +149,7 @@ class EnrollmentView(QWidget):
             QHeaderView::section { background:#D9E1F2; font-weight:bold; padding:3px;
             border:1px solid #CCC; }"""
         )
-        l.addWidget(self._log_table)
+        lay.addWidget(self._log_table)
         self._refresh_log()
 
     def _search_student(self):
@@ -308,23 +308,23 @@ class RegistrationView(QWidget):
         if self.layout():
             QWidget().setLayout(self.layout())
         self.setLayout(QVBoxLayout())
-        l = self.layout()
-        l.setContentsMargins(12, 10, 12, 10)
-        l.setSpacing(8)
+        lay = self.layout()
+        lay.setContentsMargins(12, 10, 12, 10)
+        lay.setSpacing(8)
 
         tb = QHBoxLayout()
         tb.addWidget(QLabel("新生注册"))
         tb.addStretch()
-        l.addLayout(tb)
+        lay.addLayout(tb)
 
-        l.addWidget(QLabel("从摇号结果Excel导入初一级学生并自动分班"))
+        lay.addWidget(QLabel("从摇号结果Excel导入初一级学生并自动分班"))
         b = QPushButton("选择摇号文件并导入")
         b.setStyleSheet(
             f"background:{C['accent_red']}; color:white; border:none; border-radius:4px; padding:8px 16px; font-size:10pt;"
         )
         b.clicked.connect(self._import)
-        l.addWidget(b)
-        l.addStretch()
+        lay.addWidget(b)
+        lay.addStretch()
 
     def _import(self):
         path, _ = QFileDialog.getOpenFileName(self, "选择摇号结果", "", "Excel (*.xlsx *.xls)")
@@ -350,16 +350,16 @@ class PromotionView(QWidget):
         if self.layout():
             QWidget().setLayout(self.layout())
         self.setLayout(QVBoxLayout())
-        l = self.layout()
-        l.setContentsMargins(12, 10, 12, 10)
-        l.setSpacing(6)
+        lay = self.layout()
+        lay.setContentsMargins(12, 10, 12, 10)
+        lay.setSpacing(6)
 
         # 工具栏
         tb = QHBoxLayout()
         tb.setSpacing(4)
         tb.addWidget(QLabel("升年级/毕业"))
         tb.addStretch()
-        l.addLayout(tb)
+        lay.addLayout(tb)
 
         cur = self.session.query(Semester).filter_by(is_active=True).first()
         old = None
@@ -387,7 +387,7 @@ class PromotionView(QWidget):
                 {"gid": g.id},
             ).fetchone()[0]
             gl.addWidget(QLabel(f"  {g.name}: {cnt} 人在校"))
-        l.addWidget(grp)
+        lay.addWidget(grp)
 
         # 操作
         ops = QFrame()
@@ -416,8 +416,8 @@ class PromotionView(QWidget):
         )
         b.clicked.connect(self._run_promotion_wizard)
         ol.addWidget(b)
-        l.addWidget(ops)
-        l.addStretch()
+        lay.addWidget(ops)
+        lay.addStretch()
 
     def _run_promotion_wizard(self):
         """运行升年级向导：预览 → 备份 → 执行 → 报表"""
@@ -460,8 +460,8 @@ class BatchTransferWizard(QDialog):
         # 步骤指示
         self._step_labels = []
         step_bar = QHBoxLayout()
-        for i, text in enumerate(["1. 选学生", "2. 目标班", "3. 预览", "4. 执行"]):
-            lbl = QLabel(text)
+        for i, step_text in enumerate(["1. 选学生", "2. 目标班", "3. 预览", "4. 执行"]):
+            lbl = QLabel(step_text)
             lbl.setFont(font(9))
             lbl.setStyleSheet("color: #999;")
             step_bar.addWidget(lbl)

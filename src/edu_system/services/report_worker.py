@@ -52,7 +52,14 @@ def run_batch_render(
     out.mkdir(parents=True, exist_ok=True)
     total = len(items)
     if total == 0:
-        result = {"success": True, "generated": 0, "failed": 0, "failed_items": [], "zip_path": "", "cancelled": False}
+        result = {
+            "success": True,
+            "generated": 0,
+            "failed": 0,
+            "failed_items": [],
+            "zip_path": "",
+            "cancelled": False,
+        }
         if finished_cb:
             finished_cb(result)
         return result

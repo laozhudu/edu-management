@@ -255,9 +255,7 @@ class ImportWizard(QWidget):
 
         def insert_fn(rows):
             svc = ImportService(self.session)
-            return svc.import_students_from_excel(
-                self._file_path, mapping=options.field_mapping
-            )
+            return svc.import_students_from_excel(self._file_path, mapping=options.field_mapping)
 
         try:
             result = ImportExportService().import_rows(options, self._stage, insert_fn)
@@ -265,10 +263,7 @@ class ImportWizard(QWidget):
             QMessageBox.critical(self, "入库失败", str(e))
             return
 
-        self._report_label.setText(
-            f"入库完成: 成功 {result.inserted} 行\n"
-            f"{result.summary()}"
-        )
+        self._report_label.setText(f"入库完成: 成功 {result.inserted} 行\n{result.summary()}")
         self.import_btn.setEnabled(False)
         QMessageBox.information(self, "导入完成", result.summary())
 

@@ -81,7 +81,6 @@ def build_view(idx: int, session: Session) -> QWidget:
         4: ReportView,
         5: EnrollmentView,
         6: RegistrationView,
-        6: RegistrationView,
         7: PromotionView,
         8: SemesterView,
         9: SettingsView,

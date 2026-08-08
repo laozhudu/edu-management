@@ -8,6 +8,7 @@
 
 日志位置：~/.edu_system/crash.log（追加式，含时间戳/异常栈）
 """
+
 from __future__ import annotations
 
 import sys
@@ -49,9 +50,7 @@ def _global_excepthook(exc_type, exc_value, exc_tb):
     if issubclass(exc_type, (KeyboardInterrupt, SystemExit)):
         sys.__excepthook__(exc_type, exc_value, exc_tb)
         return
-    log_file = write_crash_log(
-        "sys.excepthook", exc_info=(exc_type, exc_value, exc_tb)
-    )
+    log_file = write_crash_log("sys.excepthook", exc_info=(exc_type, exc_value, exc_tb))
     try:
         from PyQt5.QtWidgets import QApplication, QMessageBox
 
@@ -88,6 +87,7 @@ def install_qt_message_handler() -> None:
 # 启动自检
 # ═══════════════════════════════════
 
+
 def preflight_checks() -> list[str]:
     """启动前自检，返回问题列表（空 = 全部通过）
 
@@ -118,9 +118,7 @@ def preflight_checks() -> list[str]:
                 for tab in domain.get("tabs", []):
                     view_id = tab.view if hasattr(tab, "view") else tab["view"]
                     if view_id not in VIEW_REGISTRY:
-                        problems.append(
-                            f"视图未注册: {view_id}（ui_config 与 registry 不一致）"
-                        )
+                        problems.append(f"视图未注册: {view_id}（ui_config 与 registry 不一致）")
     except Exception as e:
         problems.append(f"视图注册表检查失败: {e}")
 

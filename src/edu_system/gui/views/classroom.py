@@ -48,9 +48,9 @@ class ClassroomView(QWidget):
         self._build_content(w)
 
     def _build_content(self, w):
-        l = QVBoxLayout(w)
-        l.setContentsMargins(12, 10, 12, 10)
-        l.setSpacing(6)
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(12, 10, 12, 10)
+        lay.setSpacing(6)
 
         # 工具栏
         tb = QHBoxLayout()
@@ -63,14 +63,14 @@ class ClassroomView(QWidget):
         )
         b.clicked.connect(self._batch_set)
         tb.addWidget(b)
-        l.addLayout(tb)
+        lay.addLayout(tb)
 
         cur = self.session.query(Semester).filter_by(is_active=True).first()
-        l.addWidget(QLabel(f"当前学期: {cur.label if cur else '未设置'}"))
+        lay.addWidget(QLabel(f"当前学期: {cur.label if cur else '未设置'}"))
 
         grades = self.session.query(Grade).order_by(Grade.sort_order).all()
         for g in grades:
-            l.addWidget(QLabel(f"  {g.name}"))
+            lay.addWidget(QLabel(f"  {g.name}"))
             classes = (
                 self.session.query(ClassModel)
                 .filter_by(grade_id=g.id)
@@ -101,9 +101,9 @@ class ClassroomView(QWidget):
             t.horizontalHeader().setStretchLastSection(True)
             t.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
             t.cellDoubleClicked.connect(lambda r, c, tbl=t: self._edit_room(tbl, r))
-            l.addWidget(t)
+            lay.addWidget(t)
 
-        l.addStretch()
+        lay.addStretch()
 
     def _edit_room(self, table, row):
         cls_name = table.item(row, 0).text()

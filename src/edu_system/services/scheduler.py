@@ -163,7 +163,7 @@ def job_auto_lock_scores():
     lock_svc = DataLockService(session)
 
     # 查找已发布但未锁定的考试
-    exams = session.query(Exam).filter(Exam.is_published == True).all()  # 假设有此字段
+    exams = session.query(Exam).filter(Exam.is_published).all()  # 假设有此字段
 
     for exam in exams:
         # 检查是否已锁定
@@ -204,7 +204,7 @@ def job_archive_semester_end():
         session.query(Semester)
         .filter(
             Semester.status == SemesterStatus.locked,
-            Semester.end_date != None,
+            Semester.end_date.isnot(None),
             Semester.end_date < datetime.now().date(),
         )
         .all()

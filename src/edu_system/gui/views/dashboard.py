@@ -83,7 +83,7 @@ class DashboardView(QWidget):
         # 刷新按钮
         refresh_btn = QPushButton("刷新")
         refresh_btn.setStyleSheet(f"""
-            QPushButton {{ background: {C['accent_blue']}; color: white; border: none;
+            QPushButton {{ background: {C["accent_blue"]}; color: white; border: none;
                            border-radius: 4px; padding: 6px 16px; font-size: 9pt; }}
             QPushButton:hover {{ background: #2f89c9; }}
         """)
@@ -113,7 +113,7 @@ class DashboardView(QWidget):
         # 学期进度卡片
         progress_card = QFrame()
         progress_card.setStyleSheet(f"""
-            QFrame {{ background: {C['white']}; border: 1px solid {C['line']}; border-radius: 8px; padding: 16px; }}
+            QFrame {{ background: {C["white"]}; border: 1px solid {C["line"]}; border-radius: 8px; padding: 16px; }}
         """)
         pc_layout = QVBoxLayout(progress_card)
         pc_layout.setSpacing(10)
@@ -128,14 +128,14 @@ class DashboardView(QWidget):
         self.progress_bar.setValue(62)
         self.progress_bar.setStyleSheet(f"""
             QProgressBar {{
-                border: 1px solid {C['line']};
+                border: 1px solid {C["line"]};
                 border-radius: 4px;
-                background: {C['bg_light']};
+                background: {C["bg_light"]};
                 text-align: center;
                 font-size: 9pt;
             }}
             QProgressBar::chunk {{
-                background: {C['accent_green']};
+                background: {C["accent_green"]};
                 border-radius: 3px;
             }}
         """)
@@ -152,7 +152,7 @@ class DashboardView(QWidget):
         # 快捷操作卡片
         quick_card = QFrame()
         quick_card.setStyleSheet(f"""
-            QFrame {{ background: {C['white']}; border: 1px solid {C['line']}; border-radius: 8px; padding: 16px; }}
+            QFrame {{ background: {C["white"]}; border: 1px solid {C["line"]}; border-radius: 8px; padding: 16px; }}
         """)
         qc_layout = QVBoxLayout(quick_card)
         qc_layout.setSpacing(8)
@@ -191,7 +191,7 @@ class DashboardView(QWidget):
         # 最近访问
         recent_card = QFrame()
         recent_card.setStyleSheet(f"""
-            QFrame {{ background: {C['white']}; border: 1px solid {C['line']}; border-radius: 8px; padding: 16px; }}
+            QFrame {{ background: {C["white"]}; border: 1px solid {C["line"]}; border-radius: 8px; padding: 16px; }}
         """)
         rc_layout = QVBoxLayout(recent_card)
         rc_layout.setSpacing(10)
@@ -209,7 +209,7 @@ class DashboardView(QWidget):
         # 待办 / 数据状态
         todo_card = QFrame()
         todo_card.setStyleSheet(f"""
-            QFrame {{ background: {C['white']}; border: 1px solid {C['line']}; border-radius: 8px; padding: 16px; }}
+            QFrame {{ background: {C["white"]}; border: 1px solid {C["line"]}; border-radius: 8px; padding: 16px; }}
         """)
         tc_layout = QVBoxLayout(todo_card)
         tc_layout.setSpacing(10)
@@ -264,13 +264,13 @@ class DashboardView(QWidget):
         table.setAlternatingRowColors(True)
         table.setStyleSheet(f"""
             QTableWidget {{
-                border: 1px solid {C['line']};
+                border: 1px solid {C["line"]};
                 border-radius: 6px;
-                gridline-color: {C['line']};
-                alternate-background-color: {C['bg_light']};
+                gridline-color: {C["line"]};
+                alternate-background-color: {C["bg_light"]};
             }}
             QHeaderView::section {{
-                background: {C['line']}; font-weight: bold; padding: 8px; border: none;
+                background: {C["line"]}; font-weight: bold; padding: 8px; border: none;
             }}
         """)
         return table
@@ -284,9 +284,12 @@ class DashboardView(QWidget):
             student_count = self.session.query(func.count(Student.id)).scalar() or 0
             class_count = self.session.query(func.count(Class.id)).scalar() or 0
             subject_count = 10  # 暂时硬编码
-            exam_count = self.session.query(func.count(Exam.id)).filter(
-                Exam.semester_id == self._get_current_semester_id()
-            ).scalar() or 0
+            exam_count = (
+                self.session.query(func.count(Exam.id))
+                .filter(Exam.semester_id == self._get_current_semester_id())
+                .scalar()
+                or 0
+            )
 
             if "students" in self._kpi_labels:
                 self._kpi_labels["students"].setText(str(student_count))
@@ -328,6 +331,7 @@ class DashboardView(QWidget):
 
     def _navigate(self, view_id: str):
         from edu_system.gui.views.registry import build_view
+
         if self.session:
             view = build_view(view_id, self.session)
             # TODO: 实际导航逻辑
@@ -364,9 +368,9 @@ class DashboardView(QWidget):
         for item in recent:
             btn = QPushButton(item["title"])
             btn.setStyleSheet(f"""
-                QPushButton {{ background: transparent; color: {C['text']}; border: none;
+                QPushButton {{ background: transparent; color: {C["text"]}; border: none;
                                border-radius: 4px; padding: 8px 12px; font-size: 10pt; text-align: left; }}
-                QPushButton:hover {{ background: {C['bg_light']}; color: {C['accent_blue']}; }}
+                QPushButton:hover {{ background: {C["bg_light"]}; color: {C["accent_blue"]}; }}
             """)
             btn.clicked.connect(lambda checked, vid=item["view_id"]: self._navigate(vid))
             self.recent_list.addWidget(btn)

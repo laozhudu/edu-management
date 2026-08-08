@@ -11,7 +11,6 @@ G4 快捷验收路径：
 """
 
 import hashlib
-import os
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException

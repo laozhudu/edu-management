@@ -136,7 +136,9 @@ def generate_report(
                 return StreamingResponse(
                     io.BytesIO(data),
                     media_type=media,
-                    headers={"Content-Disposition": f'attachment; filename="{Path(files[0]).name}"'},
+                    headers={
+                        "Content-Disposition": f'attachment; filename="{Path(files[0]).name}"'
+                    },
                 )
 
             elif request.report_type == "certificate":
@@ -157,7 +159,9 @@ def generate_report(
                 return StreamingResponse(
                     io.BytesIO(data),
                     media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    headers={"Content-Disposition": f'attachment; filename="{Path(files[0]).name}"'},
+                    headers={
+                        "Content-Disposition": f'attachment; filename="{Path(files[0]).name}"'
+                    },
                 )
 
             else:

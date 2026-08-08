@@ -8,6 +8,7 @@ import enum
 from datetime import datetime
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     Column,
     Date,
@@ -16,7 +17,6 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
-    JSON,
     LargeBinary,
     String,
     Text,
@@ -34,7 +34,7 @@ Base = declarative_base()
 # ════════════════════════════════════
 
 
-class SemesterStatus(str, enum.Enum):
+class SemesterStatus(enum.StrEnum):
     """学期状态枚举"""
 
     draft = "draft"  # 草稿
@@ -90,8 +90,14 @@ class Semester(Base):
     @property
     def display_label(self) -> str:
         """统一显示样式：2024-2025学年度第一学期（不依赖存储 label，兼容存量）"""
-        ay_name = self.academic_year.name if self.academic_year else f"{self.year_start}-{self.year_start + 1}"
-        cn = {"1": "一", "2": "二", "3": "三", "4": "四"}.get(str(self.semester), str(self.semester))
+        ay_name = (
+            self.academic_year.name
+            if self.academic_year
+            else f"{self.year_start}-{self.year_start + 1}"
+        )
+        cn = {"1": "一", "2": "二", "3": "三", "4": "四"}.get(
+            str(self.semester), str(self.semester)
+        )
         return f"{ay_name}学年度第{cn}学期"
 
 
@@ -329,7 +335,7 @@ class ExamSubjectSetting(Base):
 # ════════════════════════════════════
 
 
-class ExamType(str, enum.Enum):
+class ExamType(enum.StrEnum):
     """考试类型"""
 
     midterm = "midterm"  # 期中
@@ -340,7 +346,7 @@ class ExamType(str, enum.Enum):
     custom = "custom"  # 自定义
 
 
-class ExamStatus(str, enum.Enum):
+class ExamStatus(enum.StrEnum):
     """考试状态"""
 
     draft = "draft"  # 草稿
@@ -350,7 +356,7 @@ class ExamStatus(str, enum.Enum):
     archived = "archived"  # 已归档
 
 
-class RoomAssignmentStatus(str, enum.Enum):
+class RoomAssignmentStatus(enum.StrEnum):
     """考场分配状态"""
 
     pending = "pending"  # 待分配
@@ -566,17 +572,18 @@ class User(Base):
 
 class UserColumnConfig(Base):
     """用户列配置持久化（M5-G：多端同步）"""
+
     __tablename__ = "user_column_configs"
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True, comment="用户ID")
     page_id = Column(String(64), nullable=False, index=True, comment="页面标识")
     columns = Column(JSON, default=[], comment="列配置 JSON")
     created_at = Column(DateTime, default=datetime.utcnow, comment="创建时间")
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, comment="更新时间")
-
-    __table_args__ = (
-        UniqueConstraint("user_id", "page_id", name="uq_user_page_config"),
+    updated_at = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, comment="更新时间"
     )
+
+    __table_args__ = (UniqueConstraint("user_id", "page_id", name="uq_user_page_config"),)
 
     user = relationship("User", backref="column_configs")
 
@@ -647,9 +654,7 @@ class SemesterConfigHistory(Base):
     action = Column(String(20), nullable=False, default="SAVE", comment="SAVE/ROLLBACK/INHERIT")
     operator = Column(String(50), nullable=True, default="")
     created_at = Column(DateTime, server_default=func.now())
-    __table_args__ = (
-        Index("ix_config_history_semester_version", "semester_id", "version"),
-    )
+    __table_args__ = (Index("ix_config_history_semester_version", "semester_id", "version"),)
 
 
 # ════════════════════════════════════
@@ -697,7 +702,7 @@ class ServiceConfig(Base):
 # ════════════════════════════════════
 
 
-class LockLevel(str, enum.Enum):
+class LockLevel(enum.StrEnum):
     """锁定级别枚举"""
 
     none = "none"  # 无锁定
@@ -771,7 +776,7 @@ class OutboxEvent(Base):
 # ════════════════════════════════════
 
 
-class AttendanceType(str, enum.Enum):
+class AttendanceType(enum.StrEnum):
     """考勤类型"""
 
     morning = "morning"  # 早读/早操
@@ -781,7 +786,7 @@ class AttendanceType(str, enum.Enum):
     custom = "custom"  # 自定义
 
 
-class CheckMethod(str, enum.Enum):
+class CheckMethod(enum.StrEnum):
     """打卡方式"""
 
     gps = "gps"  # GPS 定位
@@ -791,7 +796,7 @@ class CheckMethod(str, enum.Enum):
     manual = "manual"  # 手工补录
 
 
-class AttendanceStatus(str, enum.Enum):
+class AttendanceStatus(enum.StrEnum):
     """考勤状态"""
 
     present = "present"  # 正常

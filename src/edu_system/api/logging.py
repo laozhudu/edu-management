@@ -9,7 +9,7 @@ from typing import Any
 
 try:
     import orjson
-    import structlog
+    import structlog  # noqa: F401 — 仅探测可用性（配置 structlog 渲染器用）
 
     STRUCTLOG_AVAILABLE = True
 except ImportError:

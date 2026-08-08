@@ -94,7 +94,7 @@ class SystemConfigView(BaseView):
         if server_thread:
             server_thread.signals.started.connect(self._on_server_started)
             server_thread.signals.stopped.connect(self._on_server_stopped)
-            
+
             # 关键修复：如果服务已经在运行，立即同步界面状态
             # （因为服务可能在视图加载前就已启动，错过了 started 信号）
             if server_thread.isRunning():
@@ -701,7 +701,8 @@ class SystemConfigView(BaseView):
 
         if self.server_thread is None:
             self.server_thread = create_server_thread(
-                host="0.0.0.0", port=self.spin_port.value(),
+                host="0.0.0.0",
+                port=self.spin_port.value(),
                 app_module="edu_system.api.main:app",
             )
             self.server_thread.signals.started.connect(self._on_server_started)
@@ -714,7 +715,8 @@ class SystemConfigView(BaseView):
 
         # 线程已结束（可能因端口冲突等失败退出）→ 必须新建实例
         self.server_thread = create_server_thread(
-            host="0.0.0.0", port=self.spin_port.value(),
+            host="0.0.0.0",
+            port=self.spin_port.value(),
             app_module="edu_system.api.main:app",
         )
         self.server_thread.signals.started.connect(self._on_server_started)

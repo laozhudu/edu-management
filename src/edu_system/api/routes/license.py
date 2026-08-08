@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from edu_system.api.deps import get_db, get_current_user
+from edu_system.api.deps import get_current_user, get_db
 from edu_system.models import User
 from edu_system.services.license import LicenseService, get_machine_id
 

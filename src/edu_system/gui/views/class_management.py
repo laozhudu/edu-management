@@ -65,9 +65,9 @@ class ClassView(QWidget):
         self._build_content(w)
 
     def _build_content(self, w):
-        l = QVBoxLayout(w)
-        l.setContentsMargins(12, 10, 12, 10)
-        l.setSpacing(6)
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(12, 10, 12, 10)
+        lay.setSpacing(6)
 
         # 工具栏
         tb = QHBoxLayout()
@@ -81,12 +81,12 @@ class ClassView(QWidget):
             b = _btn(txt, clr)
             b.clicked.connect(cb)
             tb.addWidget(b)
-        l.addLayout(tb)
+        lay.addLayout(tb)
 
         # 按年级分组的卡片
         grades = self.session.query(Grade).order_by(Grade.sort_order).all()
         for g in grades:
-            l.addWidget(QLabel(f"  {g.name}"))
+            lay.addWidget(QLabel(f"  {g.name}"))
             classes = (
                 self.session.query(ClassModel)
                 .filter_by(grade_id=g.id)
@@ -94,7 +94,7 @@ class ClassView(QWidget):
                 .all()
             )
             if not classes:
-                l.addWidget(QLabel("    (无班级)"))
+                lay.addWidget(QLabel("    (无班级)"))
                 continue
             t = QTableWidget(len(classes), 5)
             t.setHorizontalHeaderLabels(["班级", "班主任", "在校生", "男生", "女生"])
@@ -132,8 +132,8 @@ class ClassView(QWidget):
             t.setMaximumHeight(30 + 24 * len(classes))
             t.horizontalHeader().setStretchLastSection(True)
             t.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-            l.addWidget(t)
-        l.addStretch()
+            lay.addWidget(t)
+        lay.addStretch()
 
     def _add_class(self):
         dlg = QDialog(self)

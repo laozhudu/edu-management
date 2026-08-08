@@ -36,8 +36,15 @@ class LockToolbar(QWidget):
 
     # 实体类型候选（与数据锁定 API 对齐）
     ENTITY_TYPES = [
-        "student", "class", "score", "exam", "exam_scores",
-        "student_movement", "exam_numbers", "semester", "teacher",
+        "student",
+        "class",
+        "score",
+        "exam",
+        "exam_scores",
+        "student_movement",
+        "exam_numbers",
+        "semester",
+        "teacher",
     ]
 
     def __init__(self, session: Session, parent=None):
@@ -272,7 +279,13 @@ class ColumnSelectorDialog(QDialog):
 class WorkbenchWidget(QWidget):
     """工作台：顶部标签页 + 下方堆栈视图，懒加载"""
 
-    def __init__(self, session: Session | None, tab_configs: list[tuple[str, int]], title: str = "", server_thread=None):
+    def __init__(
+        self,
+        session: Session | None,
+        tab_configs: list[tuple[str, int]],
+        title: str = "",
+        server_thread=None,
+    ):
         super().__init__()
         self.session = session
         self.server_thread = server_thread

@@ -202,9 +202,7 @@ class LoginDialog(QDialog):
 
         # Enter 触发登录
         self.password_edit.returnPressed.connect(self._on_login)
-        self.username_combo.lineEdit().returnPressed.connect(
-            self.password_edit.setFocus
-        )
+        self.username_combo.lineEdit().returnPressed.connect(self.password_edit.setFocus)
 
     def _combo_height_fix(self, combo: QComboBox):
         """下拉框行高不被挤压：视口与弹出列表项高一致"""

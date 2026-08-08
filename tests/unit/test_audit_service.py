@@ -38,9 +38,7 @@ def _insert_log(session, service: str, method: str, path: str, status: int):
         ),
         {
             "old": f'{{"method": "{method}", "path": "{path}"}}',
-            "new": (
-                f'{{"status": {status}, "duration_ms": 12, "service": "{service}"}}'
-            ),
+            "new": (f'{{"status": {status}, "duration_ms": 12, "service": "{service}"}}'),
         },
     )
     session.commit()

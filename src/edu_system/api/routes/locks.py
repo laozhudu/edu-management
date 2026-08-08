@@ -178,6 +178,8 @@ def batch_unlock(
 ):
     """批量解锁"""
     svc = DataLockService(db)
-    items = [{"entity_type": item.entity_type, "entity_id": item.entity_id} for item in request.locks]
+    items = [
+        {"entity_type": item.entity_type, "entity_id": item.entity_id} for item in request.locks
+    ]
     unlocked = svc.batch_unlock(request.semester_id, items, unlocker=current_user.username)
     return {"unlocked": len(unlocked)}

@@ -23,11 +23,11 @@ from PyQt5.QtWidgets import (
     QLabel,
     QMessageBox,
     QPushButton,
+    QSizePolicy,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
     QWidget,
-    QSizePolicy,
 )
 from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
@@ -63,11 +63,11 @@ class SettingsView(QWidget):
         self._outer = QVBoxLayout()
         self._outer.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self._outer)
-        
+
         # 设置最小尺寸，防止界面跳动
         self.setMinimumSize(800, 550)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        
+
         self._rebuild()
 
     def _rebuild(self):
@@ -78,9 +78,9 @@ class SettingsView(QWidget):
         self._build_content(w)
 
     def _build_content(self, w):
-        l = QVBoxLayout(w)
-        l.setContentsMargins(12, 10, 12, 10)
-        l.setSpacing(8)
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(12, 10, 12, 10)
+        lay.setSpacing(8)
 
         # 工具栏（统一风格）
         tb = QHBoxLayout()
@@ -94,7 +94,7 @@ class SettingsView(QWidget):
         )
         b.clicked.connect(lambda: self._rebuild())
         tb.addWidget(b)
-        l.addLayout(tb)
+        lay.addLayout(tb)
 
         # ── 首次使用？提示初始化学期 ──
         from edu_system.models import Semester
@@ -118,8 +118,8 @@ class SettingsView(QWidget):
             btn_row.addWidget(b_init)
             btn_row.addStretch()
             bl.addLayout(btn_row)
-            l.addWidget(banner)
-            l.addStretch()
+            lay.addWidget(banner)
+            lay.addStretch()
             return
 
         # ── DB 信息 ──
@@ -137,7 +137,7 @@ class SettingsView(QWidget):
             )
         else:
             il.addWidget(QLabel("数据库文件未找到"))
-        l.addWidget(info)
+        lay.addWidget(info)
 
         # ── 全表统计 ──
         stat_grp = QGroupBox("数据统计")
@@ -183,7 +183,7 @@ class SettingsView(QWidget):
             t.setItem(i, 1, item)
             t.setItem(i, 2, QTableWidgetItem(hints.get(tbl, "")))
         stat_l.addWidget(t)
-        l.addWidget(stat_grp)
+        lay.addWidget(stat_grp)
 
         # ── 快速操作 ──
         quick = QGroupBox("快速操作")
@@ -198,7 +198,7 @@ class SettingsView(QWidget):
             b.clicked.connect(cb)
             ql.addWidget(b)
         ql.addStretch()
-        l.addWidget(quick)
+        lay.addWidget(quick)
 
         # ── 高级操作 ──
         adv = QGroupBox("高级操作")
@@ -228,8 +228,8 @@ class SettingsView(QWidget):
             r2.addWidget(b)
         r2.addStretch()
         al.addLayout(r2)
-        l.addWidget(adv)
-        l.addStretch()
+        lay.addWidget(adv)
+        lay.addStretch()
 
     # ═══════════════════════════════════
     # 首次使用向导

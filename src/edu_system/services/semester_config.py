@@ -229,7 +229,9 @@ class SemesterConfigService:
             new_configs[key] = diff["new_value"]
 
         # 快照目标旧配置到历史表（保留回滚能力）
-        self._snapshot(target_semester_id, old_configs, version=0, action="INHERIT", operator=operator)
+        self._snapshot(
+            target_semester_id, old_configs, version=0, action="INHERIT", operator=operator
+        )
 
         # 写入新配置（每 key 一行当前值 + 当前版本号）
         version = self._get_next_version(target_semester_id)
@@ -264,7 +266,9 @@ class SemesterConfigService:
                     self.session.add(config)
 
         # 快照新配置到历史表（当前版本）
-        self._snapshot(target_semester_id, new_configs, version=version, action="INHERIT", operator=operator)
+        self._snapshot(
+            target_semester_id, new_configs, version=version, action="INHERIT", operator=operator
+        )
 
         # 记录继承历史
         self._record_inheritance_history(
@@ -401,7 +405,9 @@ class SemesterConfigService:
             self.session.delete(s)
 
         # 快照回滚后的配置到历史表（新版本）
-        self._snapshot(semester_id, target_configs, version=new_version, action="ROLLBACK", operator=operator)
+        self._snapshot(
+            semester_id, target_configs, version=new_version, action="ROLLBACK", operator=operator
+        )
 
         # 记录回滚历史
         self._record_rollback_history(

@@ -54,21 +54,21 @@ class ReportView(QWidget):
     def _build_ui(self):
         if self.layout():
             QWidget().setLayout(self.layout())
-        l = QVBoxLayout(self)
-        l.setContentsMargins(12, 10, 12, 10)
-        l.setSpacing(8)
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(12, 10, 12, 10)
+        lay.setSpacing(8)
 
         tb = QHBoxLayout()
         tb.addWidget(QLabel("统计报表"))
         tb.addStretch()
-        l.addLayout(tb)
+        lay.addLayout(tb)
 
         tabs = QTabWidget()
         tabs.setFont(font(9))
         tabs.addTab(self._build_generate_tab(), "报表生成")
         tabs.addTab(self._build_template_tab(), "模板管理")
         tabs.addTab(self._build_batch_tab(), "批量打印")
-        l.addWidget(tabs)
+        lay.addWidget(tabs)
 
     # ═══════════════════════════════════
     #  Tab 1: 报表生成
@@ -76,9 +76,9 @@ class ReportView(QWidget):
 
     def _build_generate_tab(self):
         w = QWidget()
-        l = QVBoxLayout(w)
-        l.setContentsMargins(8, 8, 8, 8)
-        l.setSpacing(8)
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(8, 8, 8, 8)
+        lay.setSpacing(8)
 
         row = QHBoxLayout()
         row.addWidget(self._lbl("选择考试:"))
@@ -88,7 +88,7 @@ class ReportView(QWidget):
         self._reload_exams()
         row.addWidget(self._exam_cb)
         row.addStretch()
-        l.addLayout(row)
+        lay.addLayout(row)
 
         btns = QHBoxLayout()
         btns.setSpacing(6)
@@ -104,15 +104,13 @@ class ReportView(QWidget):
             b.clicked.connect(lambda _, t=rtype: self._generate(t))
             btns.addWidget(b)
         btns.addStretch()
-        l.addLayout(btns)
+        lay.addLayout(btns)
 
-        tip = QLabel(
-            "成绩单/证书支持批量生成（每人一份或合并单文件）——批量能力见「批量打印」Tab。"
-        )
+        tip = QLabel("成绩单/证书支持批量生成（每人一份或合并单文件）——批量能力见「批量打印」Tab。")
         tip.setFont(font(8))
         tip.setStyleSheet("color:#666;")
-        l.addWidget(tip)
-        l.addStretch()
+        lay.addWidget(tip)
+        lay.addStretch()
         return w
 
     def _reload_exams(self):
@@ -178,9 +176,9 @@ class ReportView(QWidget):
 
     def _build_template_tab(self):
         w = QWidget()
-        l = QVBoxLayout(w)
-        l.setContentsMargins(8, 8, 8, 8)
-        l.setSpacing(8)
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(8, 8, 8, 8)
+        lay.setSpacing(8)
 
         # 注册区
         reg_row = QHBoxLayout()
@@ -201,7 +199,7 @@ class ReportView(QWidget):
         reg_btn.clicked.connect(self._register_template)
         reg_row.addWidget(reg_btn)
         reg_row.addStretch()
-        l.addLayout(reg_row)
+        lay.addLayout(reg_row)
 
         # 模板列表
         self._tpl_table = QTableWidget(0, 5)
@@ -216,7 +214,7 @@ class ReportView(QWidget):
             padding:4px; border:1px solid #CCC; }"""
         )
         self._tpl_table.setMinimumHeight(160)
-        l.addWidget(self._tpl_table)
+        lay.addWidget(self._tpl_table)
 
         # 版本/变量区
         ver_row = QHBoxLayout()
@@ -230,7 +228,7 @@ class ReportView(QWidget):
         self._var_label.setStyleSheet("color:#666;")
         ver_row.addWidget(self._var_label)
         ver_row.addStretch()
-        l.addLayout(ver_row)
+        lay.addLayout(ver_row)
 
         self._load_templates()
         return w
@@ -261,7 +259,9 @@ class ReportView(QWidget):
                 created_by="admin",
                 variables=[v["key"] for v in vars_found],
             )
-            self._var_label.setText(f"发现 {len(vars_found)} 个变量: {[v['key'] for v in vars_found]}")
+            self._var_label.setText(
+                f"发现 {len(vars_found)} 个变量: {[v['key'] for v in vars_found]}"
+            )
             QMessageBox.information(
                 self, "注册成功", f"模板 v{tpl.version} 已注册，扫描到 {len(vars_found)} 个变量"
             )
@@ -279,9 +279,7 @@ class ReportView(QWidget):
             self._tpl_table.setItem(i, 0, QTableWidgetItem(t["name"]))
             self._tpl_table.setItem(i, 1, QTableWidgetItem(t["template_type"]))
             self._tpl_table.setItem(i, 2, QTableWidgetItem(f"v{t['version']}"))
-            self._tpl_table.setItem(
-                i, 3, QTableWidgetItem("启用" if t["is_active"] else "停用")
-            )
+            self._tpl_table.setItem(i, 3, QTableWidgetItem("启用" if t["is_active"] else "停用"))
             # 操作：版本历史 + 回滚
             op = QWidget()
             op_ly = QHBoxLayout(op)
@@ -309,7 +307,8 @@ class ReportView(QWidget):
             )
 
         # 提供回滚按钮
-        from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QVBoxLayout as _V
+        from PyQt5.QtWidgets import QDialog, QDialogButtonBox
+        from PyQt5.QtWidgets import QVBoxLayout as _V
 
         dlg = QDialog(self)
         dlg.setWindowTitle(f"版本历史 - {name}")
@@ -341,9 +340,9 @@ class ReportView(QWidget):
 
     def _build_batch_tab(self):
         w = QWidget()
-        l = QVBoxLayout(w)
-        l.setContentsMargins(8, 8, 8, 8)
-        l.setSpacing(8)
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(8, 8, 8, 8)
+        lay.setSpacing(8)
 
         row = QHBoxLayout()
         row.addWidget(self._lbl("选择考试:"))
@@ -357,7 +356,7 @@ class ReportView(QWidget):
             self._batch_exam_cb.addItem(f"ID{e.id}  {sem}  {grade}  {e.name}", e.id)
         row.addWidget(self._batch_exam_cb)
         row.addStretch()
-        l.addLayout(row)
+        lay.addLayout(row)
 
         btns = QHBoxLayout()
         btns.setSpacing(6)
@@ -368,20 +367,20 @@ class ReportView(QWidget):
         print_btn.clicked.connect(self._print_document)
         btns.addWidget(print_btn)
         btns.addStretch()
-        l.addLayout(btns)
+        lay.addLayout(btns)
 
         self._batch_progress = QProgressBar()
         self._batch_progress.setFont(font(8))
         self._batch_progress.setRange(0, 100)
         self._batch_progress.setValue(0)
-        l.addWidget(self._batch_progress)
+        lay.addWidget(self._batch_progress)
 
         self._batch_log = QTextEdit()
         self._batch_log.setFont(font(8))
         self._batch_log.setReadOnly(True)
         self._batch_log.setStyleSheet("border:1px solid #DDD; background:#FAFAFA;")
         self._batch_log.setMaximumHeight(120)
-        l.addWidget(self._batch_log)
+        lay.addWidget(self._batch_log)
         return w
 
     def _batch_generate(self):
@@ -453,6 +452,6 @@ class ReportView(QWidget):
             QMessageBox.warning(self, "提示", "打印失败或系统无打印机")
 
     def _lbl(self, t):
-        l = QLabel(t)
-        l.setFont(font(9))
-        return l
+        lay = QLabel(t)
+        lay.setFont(font(9))
+        return lay

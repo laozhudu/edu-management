@@ -9,10 +9,9 @@
 from collections import defaultdict
 from datetime import datetime
 
+from PyQt5.QtCore import QObject, pyqtSignal
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-
-from PyQt5.QtCore import QObject, pyqtSignal
 
 from edu_system.database import get_active_semester
 from edu_system.models import Class, Exam, Grade, Score, SemesterStatsCache, Student, Teacher

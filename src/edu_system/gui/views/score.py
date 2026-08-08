@@ -191,9 +191,9 @@ class ScoreView(QWidget):
         layout.addWidget(self._status)
 
     def _lbl(self, text, sz=8):
-        l = QLabel(text)
-        l.setFont(font(sz))
-        return l
+        lay = QLabel(text)
+        lay.setFont(font(sz))
+        return lay
 
     def _refresh_exam_list(self):
         exams = self.session.query(Exam).order_by(Exam.id.desc()).all()

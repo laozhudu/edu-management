@@ -201,6 +201,7 @@ class StorageService:
 
         # 检查是否已存在（去重）
         from edu_system.database import get_session  # 延迟导入，避免 models↔database 循环
+
         session = get_session()
         existing = (
             session.query(StoredFile)
@@ -250,6 +251,7 @@ class StorageService:
     def get_file(self, file_id: int) -> StoredFile | None:
         """获取文件记录"""
         from edu_system.database import get_session  # 延迟导入，避免 models↔database 循环
+
         session = get_session()
         return session.query(StoredFile).get(file_id)
 
@@ -258,6 +260,7 @@ class StorageService:
     ) -> StoredFile | None:
         """按 SHA256 查找文件"""
         from edu_system.database import get_session  # 延迟导入，避免 models↔database 循环
+
         session = get_session()
         return (
             session.query(StoredFile)
@@ -285,6 +288,7 @@ class StorageService:
     def delete_file(self, file_id: int, force: bool = False) -> bool:
         """删除文件（软删除：仅删除记录，保留物理文件供去重）"""
         from edu_system.database import get_session  # 延迟导入，避免 models↔database 循环
+
         session = get_session()
         file_record = session.query(StoredFile).get(file_id)
         if not file_record:
@@ -316,6 +320,7 @@ class StorageService:
     ) -> dict[str, Any]:
         """列出文件"""
         from edu_system.database import get_session  # 延迟导入，避免 models↔database 循环
+
         session = get_session()
         query = session.query(StoredFile)
 
@@ -361,6 +366,7 @@ class StorageService:
         self.log("开始清理孤儿文件...")
 
         from edu_system.database import get_session  # 延迟导入，避免 models↔database 循环
+
         session = get_session()
         # 获取所有数据库记录的存储路径
         db_paths = set()
@@ -392,6 +398,7 @@ class StorageService:
     def get_storage_stats(self) -> dict[str, Any]:
         """获取存储统计"""
         from edu_system.database import get_session  # 延迟导入，避免 models↔database 循环
+
         session = get_session()
 
         total_files = session.query(StoredFile).count()

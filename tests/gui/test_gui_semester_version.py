@@ -76,20 +76,36 @@ def session():
     s.add_all(
         [
             SemesterConfigHistory(
-                semester_id=sem1.id, key="max_class_size", value="50", version=1,
-                action="SAVE", operator="admin",
+                semester_id=sem1.id,
+                key="max_class_size",
+                value="50",
+                version=1,
+                action="SAVE",
+                operator="admin",
             ),
             SemesterConfigHistory(
-                semester_id=sem1.id, key="dorm_fee", value="800", version=1,
-                action="SAVE", operator="admin",
+                semester_id=sem1.id,
+                key="dorm_fee",
+                value="800",
+                version=1,
+                action="SAVE",
+                operator="admin",
             ),
             SemesterConfigHistory(
-                semester_id=sem1.id, key="max_class_size", value="60", version=2,
-                action="SAVE", operator="admin",
+                semester_id=sem1.id,
+                key="max_class_size",
+                value="60",
+                version=2,
+                action="SAVE",
+                operator="admin",
             ),
             SemesterConfigHistory(
-                semester_id=sem1.id, key="dorm_fee", value="900", version=2,
-                action="SAVE", operator="admin",
+                semester_id=sem1.id,
+                key="dorm_fee",
+                value="900",
+                version=2,
+                action="SAVE",
+                operator="admin",
             ),
         ]
     )

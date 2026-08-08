@@ -11,38 +11,34 @@ VIEW_REGISTRY = {
     "overview": ("edu_system.gui.views.dashboard", "DashboardView", ["session"]),
     "quick": ("edu_system.gui.views.dashboard", "QuickActionsView", ["session"]),
     "status": ("edu_system.gui.views.dashboard", "DataStatusView", ["session"]),
-
     # 学生管理域
     "student_list": ("edu_system.gui.views.student", "StudentView", ["session"]),
     "student_register": ("edu_system.gui.views.remaining", "RegistrationView", ["session"]),
     "student_movement": ("edu_system.gui.views.remaining", "EnrollmentView", ["session"]),
     "student_promotion": ("edu_system.gui.views.remaining", "PromotionView", ["session"]),
-
     # 成绩管理域
     "score_entry": ("edu_system.gui.views.score", "ScoreView", ["session"]),
     "score_query": ("edu_system.gui.views.score", "ScoreView", ["session"]),
     "score_stats": ("edu_system.gui.views.report", "ReportView", ["session"]),
     "score_rank": ("edu_system.gui.views.score", "ScoreView", ["session"]),
-
     # 考试管理域
     "exam_manage": ("edu_system.gui.views.exam", "ExamView", ["session"]),
-
     # 教师管理域
     "teacher_list": ("edu_system.gui.views.teacher", "TeacherView", ["session"]),
-
     # 班级管理域
     "class_list": ("edu_system.gui.views.class_management", "ClassView", ["session"]),
     "class_edit": ("edu_system.gui.views.class_management", "ClassView", ["session"]),
-
     # 教室管理域
     "classroom_list": ("edu_system.gui.views.classroom", "ClassroomView", ["session"]),
-
     # 学期设置域
     "semester": ("edu_system.gui.views.semester", "SemesterView", ["session"]),
-
     # 系统设置域
     "users": ("edu_system.gui.views.settings", "SettingsView", ["session"]),
-    "data_maintenance": ("edu_system.gui.views.data_maintenance", "DataMaintenanceView", ["session"]),
+    "data_maintenance": (
+        "edu_system.gui.views.data_maintenance",
+        "DataMaintenanceView",
+        ["session"],
+    ),
     "system_config": ("edu_system.gui.views.system_config", "SystemConfigView", ["session"]),
     "init": ("edu_system.gui.views.init_system", "InitView", ["session"]),
     "report": ("edu_system.gui.views.report", "ReportView", ["session"]),

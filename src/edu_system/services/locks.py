@@ -189,7 +189,7 @@ class DataLockService:
     def check_lock(cls, db: Session, entity_type: str, entity_id: int) -> DataLock | None:
         """检查指定实体是否被锁定（类方法，用于 API 调用）"""
         # 获取当前活跃学期
-        current_semester = db.query(Semester).filter(Semester.is_active == True).first()
+        current_semester = db.query(Semester).filter(Semester.is_active).first()
         if not current_semester:
             return None
         service = cls(db)

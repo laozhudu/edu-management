@@ -145,7 +145,7 @@ async def login(
             .filter(
                 DeviceTrust.user_id == user.id,
                 DeviceTrust.fingerprint == fingerprint,
-                DeviceTrust.trusted == True,
+                DeviceTrust.trusted,
             )
             .first()
         )
@@ -282,7 +282,7 @@ async def refresh_token(
                 .filter(
                     DeviceTrust.device_id == device_id,
                     DeviceTrust.user_id == user_id,
-                    DeviceTrust.trusted == True,
+                    DeviceTrust.trusted,
                 )
                 .first()
             )
@@ -408,7 +408,7 @@ async def list_trusted_devices(
         db.query(DeviceTrust)
         .filter(
             DeviceTrust.user_id == current_user.id,
-            DeviceTrust.trusted == True,
+            DeviceTrust.trusted,
         )
         .order_by(DeviceTrust.last_used_at.desc().nullslast())
         .all()

@@ -11,9 +11,9 @@ from PyQt5.QtWidgets import (
     QLabel,
     QMessageBox,
     QPushButton,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
-    QSizePolicy,
 )
 from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
@@ -47,9 +47,9 @@ class InitView(QWidget):
         if self.layout():
             QWidget().setLayout(self.layout())
         self.setLayout(QVBoxLayout())
-        l = self.layout()
-        l.setContentsMargins(12, 10, 12, 10)
-        l.setSpacing(10)
+        lay = self.layout()
+        lay.setContentsMargins(12, 10, 12, 10)
+        lay.setSpacing(10)
 
         # 设置最小尺寸，防止界面跳动
         self.setMinimumSize(800, 550)
@@ -60,7 +60,7 @@ class InitView(QWidget):
         tb.setSpacing(4)
         tb.addWidget(QLabel("初始化系统"))
         tb.addStretch()
-        l.addLayout(tb)
+        lay.addLayout(tb)
 
         # 当前数据概览
         info = QFrame()
@@ -77,7 +77,7 @@ class InitView(QWidget):
             if cnt > 0:
                 lines.append(f"  {tbl}: {cnt} 条")
         il.addWidget(QLabel("\n".join(lines) if len(lines) > 1 else "数据库为空"))
-        l.addWidget(info)
+        lay.addWidget(info)
 
         # 操作区
         warn = QFrame()
@@ -102,7 +102,7 @@ class InitView(QWidget):
             row.addWidget(b)
         row.addStretch()
         wl.addLayout(row)
-        l.addWidget(warn)
+        lay.addWidget(warn)
 
         # 导入配置
         cfg = QFrame()
@@ -116,9 +116,9 @@ class InitView(QWidget):
         b = _btn("批量导入全部数据", C["accent_green"])
         b.clicked.connect(self._batch_import)
         cl.addWidget(b)
-        l.addWidget(cfg)
+        lay.addWidget(cfg)
 
-        l.addStretch()
+        lay.addStretch()
 
     def _full_reset(self):
         """完整清空：删除DB文件重建"""

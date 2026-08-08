@@ -29,7 +29,7 @@ def session():
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
-    from edu_system.models import Base, Setting
+    from edu_system.models import Base
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)

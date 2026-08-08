@@ -77,9 +77,9 @@ class TeacherView(QWidget):
         self._build_content(w)
 
     def _build_content(self, w):
-        l = QVBoxLayout(w)
-        l.setContentsMargins(12, 8, 12, 8)
-        l.setSpacing(6)
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(12, 8, 12, 8)
+        lay.setSpacing(6)
 
         # Toolbar
         tb = QHBoxLayout()
@@ -90,19 +90,19 @@ class TeacherView(QWidget):
         b = _btn("刷新", "gray")
         b.clicked.connect(lambda: self._refresh())
         tb.addWidget(b)
-        l.addLayout(tb)
+        lay.addLayout(tb)
 
         self._tabs = QTabWidget()
         self._tabs.setFont(font(9))
         self._tabs.addTab(self._build_list_tab(), "教师列表")
         self._tabs.addTab(self._build_assign_tab(), "任课分配")
         self._tabs.addTab(self._build_query_tab(), "任课查询")
-        l.addWidget(self._tabs)
+        lay.addWidget(self._tabs)
 
     def _build_list_tab(self):
         w = QWidget()
-        l = QVBoxLayout(w)
-        l.setContentsMargins(4, 4, 4, 4)
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(4, 4, 4, 4)
         teachers = self.session.query(Teacher).order_by(Teacher.name).all()
         rows = [[t.name, t.gender, t.education, t.title, t.phone or ""] for t in teachers]
         t = QTableWidget(len(rows), 5)
@@ -121,21 +121,19 @@ class TeacherView(QWidget):
 
         self._teacher_prefs = TablePrefsService(self.session, "teacher_list")
         self._teacher_prefs.restore(t)
-        t.horizontalHeader().sectionResized.connect(
-            lambda *_: self._teacher_prefs.save(t)
-        )
-        l.addWidget(t)
+        t.horizontalHeader().sectionResized.connect(lambda *_: self._teacher_prefs.save(t))
+        lay.addWidget(t)
         return w
 
     def _build_assign_tab(self):
         w = QWidget()
-        l = QVBoxLayout(w)
-        l.setContentsMargins(8, 8, 8, 8)
-        l.setSpacing(8)
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(8, 8, 8, 8)
+        lay.setSpacing(8)
 
         cur = self.session.query(Semester).filter_by(is_active=True).first()
         if not cur:
-            l.addWidget(QLabel("请先设置当前学期"))
+            lay.addWidget(QLabel("请先设置当前学期"))
             return w
 
         grp = QGroupBox("任课分配")
@@ -228,7 +226,7 @@ class TeacherView(QWidget):
         b.clicked.connect(save_assign)
         gl.addWidget(b, alignment=Qt.AlignLeft)
 
-        l.addWidget(grp)
+        lay.addWidget(grp)
 
         # 已分配列表
         grp2 = QGroupBox("已分配任课")
@@ -254,19 +252,19 @@ class TeacherView(QWidget):
         tbl.setFont(font(9))
         tbl.setStyleSheet(TABLE_STYLE)
         g2l.addWidget(tbl)
-        l.addWidget(grp2)
-        l.addStretch()
+        lay.addWidget(grp2)
+        lay.addStretch()
         return w
 
     def _build_query_tab(self):
         w = QWidget()
-        l = QVBoxLayout(w)
-        l.setContentsMargins(8, 8, 8, 8)
-        l.setSpacing(6)
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(8, 8, 8, 8)
+        lay.setSpacing(6)
 
         cur = self.session.query(Semester).filter_by(is_active=True).first()
         if not cur:
-            l.addWidget(QLabel("请先设置当前学期"))
+            lay.addWidget(QLabel("请先设置当前学期"))
             return w
 
         # 筛选栏
@@ -299,7 +297,7 @@ class TeacherView(QWidget):
         b = _btn("查询", C["accent_blue"])
         row.addWidget(b)
         row.addStretch()
-        l.addLayout(row)
+        lay.addLayout(row)
 
         # 结果表
         tbl = QTableWidget(0, 5)
@@ -346,6 +344,6 @@ class TeacherView(QWidget):
                     tbl.setItem(i, j, QTableWidgetItem(str(v)))
 
         b.clicked.connect(do_query)
-        l.addWidget(tbl)
-        l.addStretch()
+        lay.addWidget(tbl)
+        lay.addStretch()
         return w

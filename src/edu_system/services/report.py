@@ -604,26 +604,9 @@ class ReportService:
 
         return generated
 
-    # 兼容旧接口
-    def generate_report_cards(
-        self,
-        exam_id: int,
-        output_dir: str,
-        template_path: str | None = None,
-        single_file: bool = True,
-    ) -> list[str]:
-        """生成成绩单 - 兼容旧接口，默认生成 Word"""
-        return self.generate_report_cards_word(
-            exam_id=exam_id,
-            output_dir=output_dir,
-            template_path=template_path,
-            single_file=single_file,
-        )
-
-
-# ═══════════════════════════════════
-# 5. 证书/奖状生成 (Word)
-# ═══════════════════════════════════
+    # ═══════════════════════════════════
+    # 5. 证书/奖状生成 (Word)
+    # ═══════════════════════════════════
 
     def generate_certificate(
         self,
@@ -719,9 +702,7 @@ class ReportService:
         from docx.shared import Pt, RGBColor
 
         title_text = "奖 状" if certificate_type == "award" else "结业证书"
-        cert_no = (
-            f"第 {student['grade_rank']:04d} 号" if certificate_type == "certificate" else ""
-        )
+        cert_no = f"第 {student['grade_rank']:04d} 号" if certificate_type == "certificate" else ""
 
         # 标题
         title = doc.add_paragraph()
@@ -789,5 +770,3 @@ class ReportService:
         run.font.size = Pt(14)
         run.font.name = "宋体"
         run._element.rPr.rFonts.set(qn("w:eastAsia"), "宋体")
-
-

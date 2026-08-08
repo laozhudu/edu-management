@@ -7,16 +7,14 @@
 """
 
 from datetime import date
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import desc, or_
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from edu_system.api.deps import get_current_user, get_db
-from edu_system.core.permissions import Permission
-from edu_system.models import Class, ClassSubject, Subject, Teacher, User, Semester
+from edu_system.models import Class, ClassSubject, Semester, Subject, Teacher
 
 router = APIRouter(prefix="/teachers", tags=["教师管理"])
 
@@ -103,11 +101,6 @@ class WorkloadListResponse(BaseModel):
     page: int
     page_size: int
 
-
-class TeacherAssignmentsResponse(BaseModel):
-    teacher_id: int
-    teacher_name: str
-    assignments: list[SubjectSummary]
 
 @router.get("", response_model=TeacherListResponse)
 def list_teachers(
@@ -237,13 +230,7 @@ def list_assignments(
     current_user=Depends(get_current_user),
 ):
     """任课分配列表（分页/搜索/筛选）"""
-    q = (
-        db.query(ClassSubject)
-        .join(Teacher)
-        .join(Subject)
-        .join(Class)
-        .join(Semester)
-    )
+    q = db.query(ClassSubject).join(Teacher).join(Subject).join(Class).join(Semester)
 
     if keyword:
         kw = f"%{keyword}%"
@@ -260,10 +247,7 @@ def list_assignments(
 
     total = q.count()
     items = (
-        q.order_by(Teacher.name, Subject.name)
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-        .all()
+        q.order_by(Teacher.name, Subject.name).offset((page - 1) * page_size).limit(page_size).all()
     )
 
     return AssignmentsListResponse(
@@ -346,7 +330,9 @@ def list_workload(
                 course_count=row.course_count or 0,
                 class_count=row.class_count or 0,
                 total_hours=row.total_hours or 0,
-                weekly_hours=(row.total_hours or 0) // 18 if row.total_hours else 0,  # 简化：假设18周
+                weekly_hours=(row.total_hours or 0) // 18
+                if row.total_hours
+                else 0,  # 简化：假设18周
             )
             for row in items
         ],
