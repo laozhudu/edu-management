@@ -48,8 +48,10 @@
                             <td><span class="badge badge-primary" x-text="typeLabel(e.exam_type)"></span></td>
                             <td x-text="e.start_date"></td>
                             <td x-text="e.end_date || '—'"></td>
-                            <td>
+                            <td class="whitespace-nowrap">
                                 <button class="btn btn-ghost btn-sm" @click="viewDetail(e)">详情</button>
+                                <button class="btn btn-ghost btn-sm" @click="openEdit(e)">编辑</button>
+                                <button class="btn btn-ghost btn-sm text-red-500" @click="remove(e.id, e.name)">删除</button>
                             </td>
                         </tr>
                     </template>
@@ -169,6 +171,7 @@
             filters: { keyword: '' },
             showCreate: false,
             creating: false,
+            editingId: null,
             formError: '',
             form: { name: '', exam_type: 'midterm', start_date: '', end_date: '', note: '' },
             detail: null,
@@ -205,11 +208,22 @@
             },
             
             openCreate() {
+                this.editingId = null;
                 this.form = { name: '', exam_type: 'midterm', start_date: '', end_date: '', note: '' };
                 this.formError = '';
                 this.showCreate = true;
             },
-            
+
+            openEdit(e) {
+                this.editingId = e.id;
+                this.form = {
+                    name: e.name || '', exam_type: e.exam_type || 'midterm',
+                    start_date: e.start_date || '', end_date: e.end_date || '', note: e.note || ''
+                };
+                this.formError = '';
+                this.showCreate = true;
+            },
+
             async createExam() {
                 if (!this.form.name.trim() || !this.form.start_date) {
                     this.formError = '考试名称和开始日期必填';
@@ -218,8 +232,10 @@
                 this.creating = true;
                 this.formError = '';
                 try {
-                    const resp = await fetch('/api/exam', {
-                        method: 'POST',
+                    const url = this.editingId ? '/api/exam/' + this.editingId : '/api/exam';
+                    const method = this.editingId ? 'PUT' : 'POST';
+                    const resp = await fetch(url, {
+                        method,
                         credentials: 'include',
                         headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
                         body: JSON.stringify(this.form)
@@ -229,12 +245,31 @@
                         this.load(1);
                     } else {
                         const d = await resp.json();
-                        this.formError = d.detail || d.error || '创建失败';
+                        this.formError = d.detail || d.error || (this.editingId ? '保存失败' : '创建失败');
                     }
                 } catch (e) {
                     this.formError = '请求失败: ' + e.message;
                 } finally {
                     this.creating = false;
+                }
+            },
+
+            async remove(id, name) {
+                if (!confirm(`确定删除考试「${name}」？`)) return;
+                try {
+                    const resp = await fetch('/api/exam/' + id, {
+                        method: 'DELETE',
+                        credentials: 'include',
+                        headers: authHeaders()
+                    });
+                    if (resp.ok || resp.status === 204) {
+                        this.load(this.page);
+                    } else {
+                        const d = await resp.json().catch(() => ({}));
+                        alert(d.detail || '删除失败');
+                    }
+                } catch (e) {
+                    alert('删除失败: ' + e.message);
                 }
             },
             

@@ -296,6 +296,25 @@ def get_exam(
     return exam
 
 
+@router.delete("/{exam_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_exam(
+    exam_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission(Permission.EXAM_ARRANGE)),
+):
+    """删除考试（级联删除关联成绩/考场/监考）"""
+    exam = db.query(Exam).filter(Exam.id == exam_id).first()
+    if not exam:
+        raise HTTPException(status_code=404, detail="考试不存在")
+    # 级联删除：先删关联成绩，再删考试
+    from edu_system.models import Score
+
+    db.query(Score).filter(Score.exam_id == exam_id).delete(synchronize_session=False)
+    db.delete(exam)
+    db.commit()
+    return None
+
+
 @router.put("/{exam_id}", response_model=ExamResponse)
 def update_exam(
     exam_id: int,
