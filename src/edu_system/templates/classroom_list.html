@@ -1,71 +1,75 @@
-<!-- 教室位置页（M5-G 双端一致：Web 端） -->
+<!-- 教室位置页（P3-A5 双端一致：显示班级→教室映射） -->
 {% extends "index.html" %}
 
 {% block title %}教室位置 - 教务管理系统{% endblock %}
 
 {% block content %}
 <div class="space-y-4 max-w-6xl mx-auto px-4" x-data="classroomList()">
-    <!-- 配置信息卡片 -->
-    <div class="card">
-        <div class="card-header flex items-center justify-between">
-            <h2 class="text-lg font-semibold">系统配置信息</h2>
-            <button class="btn btn-secondary btn-sm" @click="loadConfig()">刷新</button>
+    <!-- 统计卡片 -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-sm text-gray-500 dark:text-gray-400">班级总数</div>
+                <div class="text-2xl font-bold mt-1" x-text="classes.length"></div>
+            </div>
         </div>
-        <div class="card-body grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                <div class="text-sm text-gray-500 dark:text-gray-400">学校名称</div>
-                <div class="font-medium mt-1" x-text="config.app?.school_name || '—'"></div>
+        <div class="card">
+            <div class="card-body">
+                <div class="text-sm text-gray-500 dark:text-gray-400">已分配教室</div>
+                <div class="text-2xl font-bold mt-1" x-text="assignedCount()"></div>
             </div>
-            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                <div class="text-sm text-gray-500 dark:text-gray-400">学期切换</div>
-                <div class="font-medium mt-1" x-text="config.app?.allow_semester_switch !== false ? '启用' : '停用'"></div>
-            </div>
-            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                <div class="text-sm text-gray-500 dark:text-gray-400">数据来源</div>
-                <div class="font-medium mt-1">GET /api/meta/ui-config</div>
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <div class="text-sm text-gray-500 dark:text-gray-400">待分配教室</div>
+                <div class="text-2xl font-bold mt-1" x-text="unassignedCount()"></div>
             </div>
         </div>
     </div>
 
-    <!-- 教室列表（占位表格） -->
+    <!-- 教室列表 -->
     <div class="card">
         <div class="card-header flex items-center justify-between">
-            <h2 class="text-lg font-semibold">教室列表</h2>
-            <span class="badge badge-warning">示例数据</span>
+            <h2 class="text-lg font-semibold">教室分配（按班级）</h2>
+            <div class="flex items-center gap-2">
+                <input type="text" class="input input-sm w-48" placeholder="搜索班级/教室"
+                       x-model="filters.keyword" @keydown.enter="applyFilter()">
+                <button class="btn btn-secondary btn-sm" @click="load()">刷新</button>
+            </div>
         </div>
-        <div class="overflow-x-auto max-h-[480px]">
+        <div class="overflow-x-auto">
             <table class="table">
                 <thead>
                     <tr>
-                        <th>教室名称</th>
-                        <th>容纳人数</th>
-                        <th>所属学期</th>
-                        <th>状态</th>
+                        <th>班级</th>
+                        <th>年级</th>
+                        <th>教室</th>
+                        <th>班主任</th>
+                        <th>座位数</th>
+                        <th>操作</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <template x-for="r in classrooms" :key="r.name">
+                    <template x-for="c in filteredClasses()" :key="c.id">
                         <tr>
-                            <td class="font-medium" x-text="r.name"></td>
-                            <td><span class="badge badge-primary" x-text="r.capacity + ' 人'"></span></td>
-                            <td x-text="r.semester"></td>
-                            <td>
-                                <span class="badge" :class="r.status === '使用中' ? 'badge-success' : 'badge-gray'"
-                                      x-text="r.status"></span>
+                            <td class="font-medium" x-text="c.name"></td>
+                            <td x-text="c.grade_name || '—'"></td>
+                            <td x-text="c.room || '—'"></td>
+                            <td x-text="c.head_teacher || '—'"></td>
+                            <td x-text="c.capacity || '—'"></td>
+                            <td class="whitespace-nowrap">
+                                <button class="btn btn-ghost btn-sm" @click="openEditRoom(c)">改教室</button>
                             </td>
                         </tr>
                     </template>
+                    <tr x-show="!loading && classes.length === 0">
+                        <td colspan="6" class="text-center py-8 text-gray-500 dark:text-gray-400">暂无班级数据</td>
+                    </tr>
+                    <tr x-show="loading">
+                        <td colspan="6" class="py-8"><div class="skeleton-text w-2/3 mx-auto"></div></td>
+                    </tr>
                 </tbody>
             </table>
-        </div>
-    </div>
-
-    <!-- 说明 -->
-    <div class="card">
-        <div class="card-header"><h2 class="text-lg font-semibold">说明</h2></div>
-        <div class="card-body text-sm text-gray-500 dark:text-gray-400 space-y-1">
-            <p>· 当前系统暂无教室管理专用 API，此处展示系统配置信息与示例占位表格。</p>
-            <p>· 后续接入教室管理接口后，将替换为实时数据（教室名称 / 容纳人数 / 所属学期）。</p>
         </div>
     </div>
 </div>
@@ -75,36 +79,66 @@
 <script>
     function classroomList() {
         return {
-            config: {},
+            classes: [],
             loading: false,
-            // 占位示例数据：待教室管理 API 接入后替换为实时数据
-            classrooms: [
-                { name: '教学楼A-101', capacity: 50, semester: '2025-2026学年第一学期', status: '使用中' },
-                { name: '教学楼A-102', capacity: 50, semester: '2025-2026学年第一学期', status: '使用中' },
-                { name: '教学楼B-201', capacity: 60, semester: '2025-2026学年第一学期', status: '使用中' },
-                { name: '实验楼C-301', capacity: 45, semester: '2025-2026学年第一学期', status: '空闲' },
-                { name: '阶梯教室-1', capacity: 200, semester: '2025-2026学年第一学期', status: '使用中' }
-            ],
+            filters: { keyword: '' },
 
-            async loadConfig() {
+            async load() {
                 this.loading = true;
                 try {
-                    const resp = await fetch('/api/meta/ui-config', {
+                    const resp = await fetch('/api/class?page_size=500', {
                         credentials: 'include', headers: authHeaders()
                     });
                     if (resp.ok) {
-                        this.config = await resp.json();
+                        const d = await resp.json();
+                        this.classes = d.items || [];
                     } else if (resp.status === 401) {
                         window.location.href = '/login';
                     }
                 } catch (e) {
-                    console.error('加载系统配置失败:', e);
+                    console.error('加载班级失败:', e);
                 } finally {
                     this.loading = false;
                 }
             },
 
-            init() { this.loadConfig(); }
+            assignedCount() {
+                return this.classes.filter(c => c.room).length;
+            },
+
+            unassignedCount() {
+                return this.classes.filter(c => !c.room).length;
+            },
+
+            filteredClasses() {
+                const kw = (this.filters.keyword || '').trim().toLowerCase();
+                if (!kw) return this.classes;
+                return this.classes.filter(c =>
+                    (c.name || '').toLowerCase().includes(kw) ||
+                    (c.room || '').toLowerCase().includes(kw)
+                );
+            },
+
+            async openEditRoom(c) {
+                const room = prompt('为「' + c.name + '」设置教室（原值: ' + (c.room || '未设置') + '）', c.room || '');
+                if (room === null) return;
+                try {
+                    const resp = await fetch('/api/class/' + c.id, {
+                        method: 'PUT',
+                        credentials: 'include',
+                        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                        body: JSON.stringify({ room })
+                    });
+                    if (resp.ok) {
+                        this.load();
+                    } else {
+                        const d = await resp.json().catch(() => ({}));
+                        alert(d.detail || '设置失败');
+                    }
+                } catch (e) { alert('设置失败: ' + e.message); }
+            },
+
+            init() { this.load(); }
         };
     }
 </script>

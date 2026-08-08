@@ -43,7 +43,7 @@ class TestSystemTabs:
         [
             ("/page/system/semester", "semesterManage", "/api/semester/list"),
             ("/page/classes/classes", "classList", "/api/class"),
-            ("/page/classrooms/classrooms", "classroomList", "/api/meta/ui-config"),
+            ("/page/classrooms/classrooms", "classroomList", "/api/class"),
             ("/page/system/users", "userPermission", "/api/auth/me"),
             ("/page/system/data_maintenance", "dataMaintenance", "/api/stats/cache/stats"),
             ("/page/system/init", "systemInit", "此操作将清空所有业务数据"),
