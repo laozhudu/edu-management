@@ -122,7 +122,7 @@ class UIConfig(BaseModel):
     theme: Any = None
     login: Any = None
     domains: list[dict[str, Any]] = Field(default_factory=list)
-    statusbar: dict[str, list[dict[str, str]]] = Field(default_factory=dict)
+    statusbar: Any = None
 
     # 模板渲染用的变量值缓存
     _tmpl_vars: dict[str, str] = {}
