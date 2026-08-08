@@ -160,3 +160,64 @@ def set_active_semester_api(
         ),
         message="激活学期已切换",
     )
+
+
+class SemesterCreateRequest(BaseModel):
+    """创建学期请求"""
+
+    label: str
+    year_start: int
+    semester: str = "1"
+    sort_order: int = 1
+    start_date: str | None = None
+    end_date: str | None = None
+
+
+@router.post("", status_code=201)
+def create_semester(
+    body: SemesterCreateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """创建学期（Web 学期设置页新建）"""
+    from datetime import date
+
+    from edu_system.models import AcademicYear
+
+    label = body.label.strip()
+    if not label:
+        raise HTTPException(status_code=400, detail="学期名称不能为空")
+    dup = db.query(Semester).filter(Semester.label == label).first()
+    if dup:
+        raise HTTPException(status_code=400, detail=f"学期「{label}」已存在")
+
+    # 查找或创建学年（name 格式：2027-2028）
+    ay_name = f"{body.year_start}-{body.year_start + 1}"
+    ay = db.query(AcademicYear).filter(AcademicYear.name == ay_name).first()
+    if ay is None:
+        ay = AcademicYear(name=ay_name, sort_order=body.year_start)
+        db.add(ay)
+        db.flush()
+
+    def _parse_date(v: str | None) -> date | None:
+        if not v:
+            return None
+        try:
+            return date.fromisoformat(v)
+        except ValueError:
+            return None
+
+    sem = Semester(
+        academic_year_id=ay.id,
+        year_start=body.year_start,
+        semester=body.semester,
+        label=label,
+        sort_order=body.sort_order,
+        start_date=_parse_date(body.start_date),
+        end_date=_parse_date(body.end_date),
+        is_active=False,
+    )
+    db.add(sem)
+    db.commit()
+    db.refresh(sem)
+    return {"id": sem.id, "label": sem.label}

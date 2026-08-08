@@ -42,7 +42,15 @@
     <div class="card">
         <div class="card-header flex items-center justify-between">
             <h2 class="text-lg font-semibold">学期列表</h2>
-            <button class="btn btn-secondary btn-sm" @click="loadList()">刷新</button>
+            <div class="flex items-center gap-2">
+                <button class="btn btn-secondary btn-sm" @click="loadList()">刷新</button>
+                <button class="btn btn-primary btn-sm" @click="openCreate()">
+                    <svg class="w-4 h-4 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    新建学期
+                </button>
+            </div>
         </div>
         <div class="overflow-x-auto max-h-[480px]">
             <table class="table">
@@ -90,6 +98,48 @@
             </table>
         </div>
     </div>
+
+    <!-- 新建学期模态框 -->
+    <div x-show="showCreate" class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
+         @click.away="showCreate = false">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">新建学期</h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="label" for="sem-label">学期名称 *</label>
+                    <input id="sem-label" type="text" class="input" x-model="createForm.label"
+                           placeholder="如：2027-2028 第1学期">
+                </div>
+                <div>
+                    <label class="label" for="sem-year">起始年份 *</label>
+                    <input id="sem-year" type="number" class="input" x-model="createForm.year_start"
+                           placeholder="如：2027">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="label" for="sem-no">学期序</label>
+                        <select id="sem-no" class="select w-full" x-model="createForm.semester">
+                            <option value="1">第1学期</option>
+                            <option value="2">第2学期</option>
+                            <option value="夏">暑期</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label" for="sem-order">排序</label>
+                        <input id="sem-order" type="number" class="input" x-model="createForm.sort_order">
+                    </div>
+                </div>
+            </div>
+            <div x-show="formError" class="mt-3 text-sm text-red-500" x-text="formError"></div>
+            <div class="mt-6 flex justify-end gap-2">
+                <button class="btn btn-secondary" @click="showCreate = false">取消</button>
+                <button class="btn btn-primary" @click="create()" :disabled="creating">
+                    <span x-show="!creating">保存</span>
+                    <span x-show="creating">保存中...</span>
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -102,6 +152,49 @@
             loading: false,
             loadingActive: false,
             switching: null,
+            showCreate: false,
+            creating: false,
+            formError: '',
+            createForm: { label: '', year_start: '', semester: '1', sort_order: 1 },
+
+            openCreate() {
+                this.createForm = { label: '', year_start: '', semester: '1', sort_order: 1 };
+                this.formError = '';
+                this.showCreate = true;
+            },
+
+            async create() {
+                if (!this.createForm.label.trim() || !this.createForm.year_start) {
+                    this.formError = '学期名称和起始年份必填';
+                    return;
+                }
+                this.creating = true;
+                this.formError = '';
+                try {
+                    const resp = await fetch('/api/semester', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                        body: JSON.stringify({
+                            label: this.createForm.label,
+                            year_start: parseInt(this.createForm.year_start),
+                            semester: this.createForm.semester,
+                            sort_order: parseInt(this.createForm.sort_order || 1)
+                        })
+                    });
+                    if (resp.ok || resp.status === 201) {
+                        this.showCreate = false;
+                        this.loadList();
+                    } else {
+                        const d = await resp.json().catch(() => ({}));
+                        this.formError = d.detail || '创建失败';
+                    }
+                } catch (e) {
+                    this.formError = '请求失败: ' + e.message;
+                } finally {
+                    this.creating = false;
+                }
+            },
 
             async loadList() {
                 this.loading = true;
