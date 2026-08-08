@@ -70,5 +70,8 @@ QTableWidget {{
 QHeaderView::section {{
     background: {C["table_header_bg"]}; font-weight: bold; font-size: 9pt;
     padding: 4px; border: 1px solid {C["table_header_border"]};
+    color: {C["text"]};
 }}
+QTableWidget::item {{ padding: 2px 5px; }}
+QTableWidget::item:selected {{ background: {C["accent_blue"]}; color: white; }}
 """

@@ -113,24 +113,14 @@
       "tabs": [
         {
           "id": "score_entry",
-          "title": "成绩录入",
+          "title": "成绩管理",
           "view": "score_entry",
           "default": true
-        },
-        {
-          "id": "score_query",
-          "title": "成绩查询",
-          "view": "score_query"
         },
         {
           "id": "score_stats",
           "title": "成绩统计",
           "view": "score_stats"
-        },
-        {
-          "id": "score_rank",
-          "title": "排名分析",
-          "view": "score_rank"
         }
       ]
     },
@@ -145,6 +135,21 @@
           "title": "考试管理",
           "view": "exam_manage",
           "default": true
+        },
+        {
+          "id": "exam_rooms",
+          "title": "分考场座位",
+          "view": "exam_rooms"
+        },
+        {
+          "id": "exam_invigilation",
+          "title": "监考安排",
+          "view": "exam_invigilation"
+        },
+        {
+          "id": "exam_admit",
+          "title": "准考证",
+          "view": "exam_admit"
         }
       ]
     },
@@ -159,6 +164,11 @@
           "title": "教师管理",
           "view": "teacher_list",
           "default": true
+        },
+        {
+          "id": "teacher_assign",
+          "title": "任课分配",
+          "view": "teacher_assign"
         }
       ]
     },
@@ -255,5 +265,10 @@
         "label": "数据库 WAL"
       }
     ]
+  },
+  "login": {
+    "brand_enabled": true,
+    "brand_title_font_size": 16,
+    "brand_subtitle_font_size": 10
   }
 }

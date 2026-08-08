@@ -19,7 +19,7 @@ from PyQt5.QtWidgets import (
 )
 from sqlalchemy.orm import Session
 
-from edu_system.gui.theme import C, font
+from edu_system.gui.theme import TABLE_STYLE, C, font
 from edu_system.models import Class as ClassModel
 from edu_system.models import ClassSubject, Grade, Semester, Subject, Teacher
 
@@ -36,21 +36,6 @@ def _btn(txt, color, w=None):
     if w:
         b.setFixedWidth(w)
     return b
-
-
-TABLE_STYLE = """
-    QTableWidget {
-        font-size: 9pt; border: 1px solid #DDD;
-        gridline-color: #EEE; background: white;
-        alternate-background-color: #EBF5FB;
-    }
-    QHeaderView::section {
-        background: #D9E1F2; font-weight: bold; font-size: 9pt;
-        padding: 4px; border: 1px solid #CCC; color: #2C3E50;
-    }
-    QTableWidget::item { padding: 2px 5px; }
-    QTableWidget::item:selected { background: #3498DB; color: white; }
-"""
 
 
 class TeacherView(QWidget):

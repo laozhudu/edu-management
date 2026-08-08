@@ -112,6 +112,10 @@ class LoginDialogConfig(BaseModel):
     cancel_height: int = 30
     hint_font_size: int = 8
     error_font_size: int = 9
+    # 品牌区（卡片式观感，对齐 Web 端登录框）
+    brand_enabled: bool = True
+    brand_title_font_size: int = 16
+    brand_subtitle_font_size: int = 10
 
 
 class UIConfig(BaseModel):

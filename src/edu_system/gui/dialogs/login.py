@@ -68,7 +68,8 @@ class LoginDialog(QDialog):
         # 零代码 UI 配置：样式全部来自 config/ui_config.json 的 login 节
         from edu_system.config.ui_config import get_config
 
-        self.cfg = get_config().login
+        self._ui_cfg = get_config()
+        self.cfg = self._ui_cfg.login
         self.setWindowTitle("登录")
         self.setFixedSize(self.cfg.window_width, self.cfg.window_height)
         self.setModal(True)
@@ -86,6 +87,23 @@ class LoginDialog(QDialog):
 
         # 整体垂直居中：上下各留弹性空间
         layout.addStretch(1)
+
+        # 品牌区（卡片式观感：校名 + 系统名，对齐 Web 登录框）
+        if getattr(self.cfg, "brand_enabled", True):
+            app_cfg = getattr(self._ui_cfg, "app", None) or {}
+            school = getattr(app_cfg, "school_name", "") or "教务管理系统"
+            sysname = getattr(app_cfg, "name", "") or "教务管理系统"
+            title = QLabel(school)
+            title.setFont(font(self.cfg.brand_title_font_size, True))
+            title.setAlignment(Qt.AlignHCenter)
+            title.setStyleSheet(f"color: {C['accent_blue']};")
+            layout.addWidget(title)
+            sub = QLabel(sysname)
+            sub.setFont(font(self.cfg.brand_subtitle_font_size))
+            sub.setAlignment(Qt.AlignHCenter)
+            sub.setStyleSheet(f"color: {C['text_light']};")
+            layout.addWidget(sub)
+            layout.addSpacing(16)
 
         # 用户名（可编辑下拉：记住的多用户直接选择）
         layout.addWidget(self._label("用户名"))
