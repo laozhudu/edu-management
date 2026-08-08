@@ -50,11 +50,22 @@ def _grp(title, layout):
 
 
 class ExamView(QWidget):
-    def __init__(self, session: Session):
+    def __init__(self, session: Session, view_id: str = "exam_manage"):
         super().__init__()
         self.session = session
+        self.view_id = view_id
         self._tabs = None
         self._build_ui()
+        # 按 view_id 定位内部 Tab（exam_rooms→分考场, exam_invigilation→监考, exam_admit→准考证）
+        if self._tabs is not None:
+            tab_map = {
+                "exam_rooms": 2,  # 分考场座位
+                "exam_invigilation": 3,  # 监考准考证
+                "exam_admit": 3,  # 准考证（复用监考准考证 Tab）
+            }
+            idx = tab_map.get(view_id)
+            if idx is not None:
+                self._tabs.setCurrentIndex(idx)
 
     def refresh(self):
         self._refresh_list_tab()

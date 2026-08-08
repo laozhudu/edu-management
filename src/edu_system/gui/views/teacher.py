@@ -39,11 +39,15 @@ def _btn(txt, color, w=None):
 
 
 class TeacherView(QWidget):
-    def __init__(self, session: Session):
+    def __init__(self, session: Session, view_id: str = "teacher_list"):
         super().__init__()
         self.session = session
+        self.view_id = view_id
         self._tabs = None
         self._build_ui()
+        # teacher_assign → 定位任课分配 Tab（index 1）
+        if self._tabs is not None and view_id == "teacher_assign":
+            self._tabs.setCurrentIndex(1)
 
     def refresh(self):
         self._refresh()

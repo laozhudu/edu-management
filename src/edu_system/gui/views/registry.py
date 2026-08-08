@@ -22,9 +22,13 @@ VIEW_REGISTRY = {
     "score_stats": ("edu_system.gui.views.report", "ReportView", ["session"]),
     "score_rank": ("edu_system.gui.views.score", "ScoreView", ["session"]),
     # 考试管理域
-    "exam_manage": ("edu_system.gui.views.exam", "ExamView", ["session"]),
+    "exam_manage": ("edu_system.gui.views.exam", "ExamView", ["session", "view_id"]),
+    "exam_rooms": ("edu_system.gui.views.exam", "ExamView", ["session", "view_id"]),
+    "exam_invigilation": ("edu_system.gui.views.exam", "ExamView", ["session", "view_id"]),
+    "exam_admit": ("edu_system.gui.views.exam", "ExamView", ["session", "view_id"]),
     # 教师管理域
-    "teacher_list": ("edu_system.gui.views.teacher", "TeacherView", ["session"]),
+    "teacher_list": ("edu_system.gui.views.teacher", "TeacherView", ["session", "view_id"]),
+    "teacher_assign": ("edu_system.gui.views.teacher", "TeacherView", ["session", "view_id"]),
     # 班级管理域
     "class_list": ("edu_system.gui.views.class_management", "ClassView", ["session"]),
     # 教室管理域
@@ -67,8 +71,13 @@ def build_view(view_id: str, session: Any) -> Any:
     module = __import__(module_path, fromlist=[class_name])
     view_class = getattr(module, class_name)
 
-    # 构造参数
-    kwargs = {name: session for name in param_names}
+    # 构造参数：session 必传 + 视图 id（用于定位视类内部 Tab）
+    kwargs = {}
+    for name in param_names or ["session"]:
+        if name == "session":
+            kwargs[name] = session
+        elif name == "view_id":
+            kwargs[name] = view_id
 
     return view_class(**kwargs)
 
