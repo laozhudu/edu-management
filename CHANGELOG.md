@@ -1,5 +1,40 @@
 # 变更日志
 
+## [3.2.0] - 2026-08-08
+
+### 底座加固（CI 质量门禁全面恢复）
+
+#### 代码质量门禁
+- **ruff 全仓覆盖恢复**（此前 CI 排除了 api/gui/services/repository/schemas 核心层，lint 名存实亡）
+  - 自动修复 + 人工清理全部 lint 错误（重复类定义/重复 dict key/未用 import/变量遮蔽等真实 bug）
+  - pyproject 配置弃用警告迁移、风格规则显式豁免（有理由）
+- **mypy 类型检查恢复**（CI typecheck job 重新启用，core/config/database 严格模式）
+  - 从 145 errors 清零至 Success，修复漏 import `wraps`(NameError 隐患) 等真实 bug
+
+#### 安全加固
+- **diskcache 反序列化漏洞 CVE-2025-69872**：SafeJSONDisk 以 JSON 序列化替代 pickle（实测验证）
+- **meta.py SQL 注入防护**：字段名白名单正则校验
+- **bandit 修复 + CI 拦截生效**（移除 `|| true` 兜底）：修 B608、逐条审查标注
+- **pip-audit 漏洞审计拦截**：发现并评估 2 个漏洞（diskcache/ecdsa），豁免并记录理由
+- **gitleaks 秘密扫描** 加入 CI
+- **monitoring.py 修复**：'项目根目录'伪路径 bug（psutil.disk_usage 会崩）+ 补 psutil 依赖
+
+### 功能打磨（Web 双端一致）
+
+#### Web 页签功能补全
+- **成绩查询 keyword 生效**：/api/score 增加关键字搜索（姓名/学号/班级名模糊过滤），修复搜索框 inert
+- **学期端点归一**：base.html/overview.html 修正为 /api/semester/active
+- **学生信息页完整 CRUD**（此前仅只读查询，桌面端 CRUD 未暴露为 API）
+  - 后端：student_service 服务层 + POST/PUT/DELETE/GET 详情 API + 班级列表 API
+  - 前端：新增/编辑模态框、行操作按钮、表单校验、错误提示
+- **端点一致性脚本** scripts/check_api_alignment.py：扫描模板 fetch 端点逐一探测，404 即拦截（可接入 CI）
+
+### 验证
+- 全量测试 571 passed（+6 新契约测试）
+- 链路抽测 14/14：6 域核心 API 增→查→改→删真操作走通
+- 性能冒烟：启动 6.3s、全部关键 API 平均延迟 <100ms、缓存正常
+- ruff/mypy/bandit/pip-audit 全绿
+
 ## [3.1.0] - 2026-08-07
 
 ### 新增功能
