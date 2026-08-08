@@ -26,6 +26,9 @@
         <div class="card-header flex items-center justify-between">
             <h2 class="text-lg font-semibold">成绩明细</h2>
             <div class="flex gap-2">
+                <button class="btn btn-secondary btn-sm" @click="togglePublish()" :disabled="!scores.length">
+                    <span x-text="hasPublished ? '取消发布' : '发布全部'"></span>
+                </button>
                 <button class="btn btn-secondary btn-sm" @click="showPaste = !showPaste">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -60,6 +63,7 @@
                         <th>折算分</th>
                         <th>补考</th>
                         <th>发布</th>
+                        <th>操作</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -78,15 +82,19 @@
                                 <span class="badge" :class="s.is_published ? 'badge-success' : 'badge-gray'"
                                       x-text="s.is_published ? '已发布' : '未发布'"></span>
                             </td>
+                            <td class="whitespace-nowrap">
+                                <button class="btn btn-ghost btn-sm" @click="openEdit(s)">编辑</button>
+                                <button class="btn btn-ghost btn-sm text-red-500" @click="removeScore(s.id)">删除</button>
+                            </td>
                         </tr>
                     </template>
                     <tr x-show="!loading && scores.length === 0">
-                        <td colspan="7" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                        <td colspan="8" class="text-center py-8 text-gray-500 dark:text-gray-400">
                             暂无成绩数据，可点击右上角「粘贴录入」
                         </td>
                     </tr>
                     <tr x-show="loading">
-                        <td colspan="7" class="py-8">
+                        <td colspan="8" class="py-8">
                             <div class="skeleton-text w-2/3 mx-auto"></div>
                         </td>
                     </tr>
@@ -107,6 +115,68 @@
             pasteText: '',
             pasteMsg: '',
             pasteLoading: false,
+
+            get hasPublished() {
+                return this.scores.length > 0 && this.scores.every(s => s.is_published);
+            },
+
+            async openEdit(s) {
+                const newScore = prompt('修改成绩（原值: ' + s.score + '）', s.score);
+                if (newScore === null) return;
+                const val = parseFloat(newScore);
+                if (isNaN(val)) { alert('请输入有效数字'); return; }
+                try {
+                    const resp = await fetch('/api/score/' + s.id, {
+                        method: 'PUT',
+                        credentials: 'include',
+                        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                        body: JSON.stringify({ score: val })
+                    });
+                    if (resp.ok) {
+                        this.loadScores();
+                    } else {
+                        const d = await resp.json().catch(() => ({}));
+                        alert(d.detail || '修改失败');
+                    }
+                } catch (e) { alert('修改失败: ' + e.message); }
+            },
+
+            async removeScore(id) {
+                if (!confirm('确定删除这条成绩？')) return;
+                try {
+                    const resp = await fetch('/api/score/' + id, {
+                        method: 'DELETE',
+                        credentials: 'include',
+                        headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        this.loadScores();
+                    } else {
+                        const d = await resp.json().catch(() => ({}));
+                        alert(d.detail || '删除失败');
+                    }
+                } catch (e) { alert('删除失败: ' + e.message); }
+            },
+
+            async togglePublish() {
+                if (!this.examId || !this.scores.length) return;
+                const published = !this.hasPublished;
+                try {
+                    const resp = await fetch('/api/score/publish', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                        body: JSON.stringify({ exam_id: parseInt(this.examId), published })
+                    });
+                    const d = await resp.json();
+                    if (resp.ok) {
+                        this.pasteMsg = d.message || (published ? '已发布' : '已取消发布');
+                        this.loadScores();
+                    } else {
+                        alert(d.detail || '发布失败');
+                    }
+                } catch (e) { alert('操作失败: ' + e.message); }
+            },
             
             async loadExams() {
                 try {
