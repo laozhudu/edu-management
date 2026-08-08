@@ -82,6 +82,7 @@ temp/
 *.db-shm
 *.val
 data/cache/
+data/uvi*
 exports/
 *.xlsx
 *.xls
