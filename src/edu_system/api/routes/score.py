@@ -91,6 +91,7 @@ def list_scores(
     class_id: int | None = Query(None),
     is_makeup: bool | None = Query(None),
     is_published: bool | None = Query(None),
+    keyword: str | None = Query(None, description="关键字：学生姓名/学号/班级名模糊搜索"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -119,6 +120,21 @@ def list_scores(
     # 班级筛选（通过学生关联）
     if class_id:
         query = query.filter(Student.class_id == class_id)
+
+    # 关键字模糊搜索（学生姓名/学号/班级名）
+    if keyword:
+        from sqlalchemy import or_
+
+        kw = f"%{keyword.strip()}%"
+        # 需 join Class（通过 Student.class_id）以支持班级名搜索
+        query = query.outerjoin(Class, Student.class_id == Class.id)
+        query = query.filter(
+            or_(
+                Student.name.like(kw),
+                Student.student_no.like(kw),
+                Class.name.like(kw),
+            )
+        )
 
     total = query.count()
     scores = (

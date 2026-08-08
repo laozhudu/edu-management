@@ -6,6 +6,7 @@
 
 用法: ./venv/bin/python scripts/migrate_exam_extension.py
 """
+
 from pathlib import Path
 
 import sqlalchemy as sa

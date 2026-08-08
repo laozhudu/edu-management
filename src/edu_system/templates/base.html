@@ -93,7 +93,7 @@
                 
                 async loadSemester() {
                     try {
-                        const resp = await fetch('/api/meta/semester/active', {
+                        const resp = await fetch('/api/semester/active', {
                             credentials: 'include',
                             headers: authHeaders()
                         });

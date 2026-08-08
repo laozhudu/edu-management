@@ -187,12 +187,8 @@ def main():
         "action", choices=["daily", "semester", "verify", "cleanup"], help="操作类型"
     )
     parser.add_argument("--semester-id", type=int, help="学期ID（semester 操作必需）")
-    parser.add_argument(
-        "--db-path", default="项目根目录/data/school_data.db", help="数据库路径"
-    )
-    parser.add_argument(
-        "--backup-root", default="项目根目录/backups", help="备份根目录"
-    )
+    parser.add_argument("--db-path", default="项目根目录/data/school_data.db", help="数据库路径")
+    parser.add_argument("--backup-root", default="项目根目录/backups", help="备份根目录")
     parser.add_argument("--verbose", action="store_true", help="详细输出")
     args = parser.parse_args()
 

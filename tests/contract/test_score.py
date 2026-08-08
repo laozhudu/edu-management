@@ -62,6 +62,33 @@ class TestScoreContract:
             data = response.json()
             assert "items" in data
 
+    def test_list_scores_with_keyword(self):
+        """关键字搜索：姓名/学号/班级名模糊过滤"""
+        response = self.client.get(
+            "/api/score",
+            params={"keyword": "示例"},
+            headers=self.headers,
+        )
+        # 契约：200（有权限）或 403（权限配置）均合法，但不得 404/422
+        assert response.status_code in (200, 403), f"keyword 查询异常: {response.status_code}"
+        if response.status_code == 200:
+            data = response.json()
+            assert "items" in data
+            assert "total" in data
+
+    def test_list_scores_keyword_no_match(self):
+        """关键字无匹配应返回空列表而非报错"""
+        response = self.client.get(
+            "/api/score",
+            params={"keyword": "绝无此名xyz999"},
+            headers=self.headers,
+        )
+        assert response.status_code in (200, 403)
+        if response.status_code == 200:
+            data = response.json()
+            assert data["total"] == 0
+            assert data["items"] == []
+
     def test_get_score(self):
         """获取单条成绩"""
         # 先获取列表拿一个 ID

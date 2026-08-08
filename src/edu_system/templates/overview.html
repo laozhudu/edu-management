@@ -87,7 +87,7 @@
             },
             async loadSemester() {
                 try {
-                    const resp = await fetch('/api/meta/semester/active', { credentials: 'include', headers: authHeaders() });
+                    const resp = await fetch('/api/semester/active', { credentials: 'include', headers: authHeaders() });
                     if (resp.ok) {
                         const data = await resp.json();
                         this.semester = data.semester || data;

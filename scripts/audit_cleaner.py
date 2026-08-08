@@ -91,7 +91,7 @@ class AuditCleaner:
         view_sql = f"""
         DROP VIEW IF EXISTS audit_logs_all;
         CREATE VIEW audit_logs_all AS
-        {' UNION ALL '.join(union_parts)}
+        {" UNION ALL ".join(union_parts)}
         ORDER BY created_at DESC;
         """
         session.execute(text(view_sql))

@@ -152,12 +152,8 @@ def main():
     parser.add_argument("--semester-id", type=int, help="学期ID（archive 必需）")
     parser.add_argument("--force", action="store_true", help="强制重新归档")
     parser.add_argument("--archive-name", help="验证指定归档目录")
-    parser.add_argument(
-        "--db-path", default="项目根目录/data/school_data.db", help="数据库路径"
-    )
-    parser.add_argument(
-        "--archive-root", default="项目根目录/archives", help="归档根目录"
-    )
+    parser.add_argument("--db-path", default="项目根目录/data/school_data.db", help="数据库路径")
+    parser.add_argument("--archive-root", default="项目根目录/archives", help="归档根目录")
     parser.add_argument("--verbose", action="store_true", help="详细输出")
     args = parser.parse_args()
 

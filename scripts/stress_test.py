@@ -17,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from sqlalchemy import text
 
-from edu_system.database import init_db, get_session
+from edu_system.database import get_session, init_db
 
 CONCURRENCY = 20
 WRITES_PER_THREAD = 10
