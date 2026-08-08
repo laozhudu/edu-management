@@ -13,7 +13,38 @@
         </div>
         <div class="card-body text-sm text-gray-500 dark:text-gray-400 space-y-1">
             <p>· 建议每日备份数据库与缓存目录，备份文件请存放于独立存储介质。</p>
-            <p>· 当前版本提供手动备份入口（模拟），自动定时备份策略待接入。</p>
+            <p>· 备份文件保存在项目 backups/ 目录（每日增量）。</p>
+        </div>
+    </div>
+
+    <!-- 备份记录 -->
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">备份记录</h2>
+            <button class="btn btn-secondary btn-sm" @click="loadBackups()">刷新</button>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>备份目录</th>
+                        <th>文件数</th>
+                        <th>文件</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="b in backups" :key="b.name">
+                        <tr>
+                            <td class="font-medium" x-text="b.name"></td>
+                            <td x-text="b.file_count"></td>
+                            <td class="text-xs text-gray-500 dark:text-gray-400" x-text="(b.files || []).join(', ')"></td>
+                        </tr>
+                    </template>
+                    <tr x-show="!loadingBackups && backups.length === 0">
+                        <td colspan="3" class="text-center py-6 text-gray-500 dark:text-gray-400">暂无备份记录</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
@@ -99,6 +130,30 @@
             message: '',
             messageType: 'success',
 
+            backups: [],
+            loadingBackups: false,
+            currentUser: null,
+
+            async loadBackups() {
+                this.loadingBackups = true;
+                try {
+                    const resp = await fetch('/api/maintenance/backups', {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        const d = await resp.json();
+                        this.backups = d.items || [];
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载备份列表失败:', e);
+                    this.showMessage('加载备份列表失败', 'error');
+                } finally {
+                    this.loadingBackups = false;
+                }
+            },
+
             async loadCacheStats() {
                 try {
                     const resp = await fetch('/api/stats/cache/stats', { credentials: 'include', headers: authHeaders() });
@@ -134,15 +189,44 @@
                 return (bytes / 1024 / 1024).toFixed(2) + ' MB';
             },
 
-            runBackup() {
-                if (!confirm('确认立即执行数据备份？（当前为模拟操作）')) return;
-                this.showMessage('备份任务已提交（模拟），完成后将生成备份文件。');
+            async runBackup() {
+                if (!confirm('确认立即执行数据备份？')) return;
+                try {
+                    const resp = await fetch('/api/maintenance/backup', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: authHeaders()
+                    });
+                    const d = await resp.json().catch(() => ({}));
+                    if (resp.ok) {
+                        this.showMessage('备份完成：' + (d.message || ''), 'success');
+                        this.loadBackups();
+                    } else {
+                        this.showMessage(d.detail || d.error || '备份失败', 'error');
+                    }
+                } catch (e) {
+                    this.showMessage('备份请求失败: ' + e.message, 'error');
+                }
             },
 
-            clean(action) {
+            async clean(action) {
                 if (!confirm('确认执行「' + action + '」？该操作不可恢复。')) return;
-                this.showMessage('「' + action + '」已提交（模拟），清理完成后将刷新统计。');
-                this.loadCacheStats();
+                try {
+                    const resp = await fetch('/api/maintenance/clean/cache', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: authHeaders()
+                    });
+                    const d = await resp.json().catch(() => ({}));
+                    if (resp.ok) {
+                        this.showMessage(d.message || '清理完成', 'success');
+                    } else {
+                        this.showMessage(d.detail || d.error || '清理失败', 'error');
+                    }
+                    this.loadCacheStats();
+                } catch (e) {
+                    this.showMessage('清理请求失败: ' + e.message, 'error');
+                }
             },
 
             showMessage(text, type) {
@@ -155,6 +239,7 @@
             init() {
                 this.loadCacheStats();
                 this.loadHealth();
+                this.loadBackups();
             }
         };
     }

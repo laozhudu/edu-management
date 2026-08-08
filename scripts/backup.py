@@ -14,6 +14,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+from sqlalchemy import text
+
 from edu_system.database import get_session, init_db_with_defaults
 from edu_system.models import Semester
 
@@ -222,6 +224,4 @@ def main():
 
 
 if __name__ == "__main__":
-    from sqlalchemy import text
-
     sys.exit(main())
