@@ -43,10 +43,19 @@ class TestUIConfigAPI:
         # 品牌/版本：与 ui_config.json 配置源一致
         assert data["app"]["school_name"] == _SRC_CFG["app"]["school_name"]
         assert data["app"]["version"] == _SRC_CFG["app"]["version"]
-        # 6 域导航（home/students/scores/exams/teachers/system）
-        assert len(data["domains"]) == 6
+        # 8 域导航（home/students/scores/exams/teachers/classes/classrooms/system）
+        assert len(data["domains"]) == 8
         domain_ids = [d["id"] for d in data["domains"]]
-        assert domain_ids == ["home", "students", "scores", "exams", "teachers", "system"]
+        assert domain_ids == [
+            "home",
+            "students",
+            "scores",
+            "exams",
+            "teachers",
+            "classes",
+            "classrooms",
+            "system",
+        ]
         # 按 order 升序排列
         orders = [d["order"] for d in data["domains"]]
         assert orders == sorted(orders)

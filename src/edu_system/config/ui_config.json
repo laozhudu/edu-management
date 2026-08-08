@@ -1,7 +1,6 @@
 {
   "$schema": "https://laozhudu.github.io/edu-management/ui_config.schema.json",
   "$comment": "UI 导航配置 — 配置驱动，桌面端(PyQt5)与 Web 端共享。所有可见元素(品牌/学校/版本/域/页签/图标/状态栏)均在此配置，改此文件即可调整，无需改代码。",
-
   "app": {
     "name": "教务管理系统",
     "name_short": "教务管理",
@@ -11,7 +10,6 @@
     "version_display": "开发版",
     "footer": "{school} · {version_display}"
   },
-
   "theme": {
     "brand": "{school}{name}",
     "accent_color": "#3498DB",
@@ -20,7 +18,6 @@
     "content_bg": "#F5F6FA",
     "density": "compact"
   },
-
   "topbar": {
     "show_semester_switcher": true,
     "semester_placeholder": "{year} 第{n}学期",
@@ -35,7 +32,6 @@
       "refresh": "F5"
     }
   },
-
   "domains": [
     {
       "id": "home",
@@ -43,9 +39,22 @@
       "icon": "◈",
       "order": 0,
       "tabs": [
-        { "id": "dashboard", "title": "学期概览", "view": "overview", "default": true },
-        { "id": "quick_actions", "title": "快捷操作", "view": "quick" },
-        { "id": "data_status", "title": "待办/数据状态", "view": "status" }
+        {
+          "id": "dashboard",
+          "title": "学期概览",
+          "view": "overview",
+          "default": true
+        },
+        {
+          "id": "quick_actions",
+          "title": "快捷操作",
+          "view": "quick"
+        },
+        {
+          "id": "data_status",
+          "title": "待办/数据状态",
+          "view": "status"
+        }
       ]
     },
     {
@@ -54,12 +63,46 @@
       "icon": "▤",
       "order": 1,
       "badge_source": "student_count",
-      "permissions": ["admin", "academic_staff"],
+      "permissions": [
+        "admin",
+        "academic_staff"
+      ],
       "tabs": [
-        { "id": "student_list", "title": "学生信息", "view": "student_list", "default": true, "permissions": ["admin", "academic_staff"] },
-        { "id": "student_register", "title": "新生注册", "view": "student_register", "permissions": ["admin"] },
-        { "id": "student_movement", "title": "学籍变动", "view": "student_movement", "permissions": ["admin", "academic_staff"] },
-        { "id": "student_promotion", "title": "升留级/毕业", "view": "student_promotion", "permissions": ["admin"] }
+        {
+          "id": "student_list",
+          "title": "学生信息",
+          "view": "student_list",
+          "default": true,
+          "permissions": [
+            "admin",
+            "academic_staff"
+          ]
+        },
+        {
+          "id": "student_register",
+          "title": "新生注册",
+          "view": "student_register",
+          "permissions": [
+            "admin"
+          ]
+        },
+        {
+          "id": "student_movement",
+          "title": "学籍变动",
+          "view": "student_movement",
+          "permissions": [
+            "admin",
+            "academic_staff"
+          ]
+        },
+        {
+          "id": "student_promotion",
+          "title": "升留级/毕业",
+          "view": "student_promotion",
+          "permissions": [
+            "admin"
+          ]
+        }
       ]
     },
     {
@@ -68,10 +111,27 @@
       "icon": "▦",
       "order": 2,
       "tabs": [
-        { "id": "score_entry", "title": "成绩录入", "view": "score_entry", "default": true },
-        { "id": "score_query", "title": "成绩查询", "view": "score_query" },
-        { "id": "score_stats", "title": "成绩统计", "view": "score_stats" },
-        { "id": "score_rank", "title": "排名分析", "view": "score_rank" }
+        {
+          "id": "score_entry",
+          "title": "成绩录入",
+          "view": "score_entry",
+          "default": true
+        },
+        {
+          "id": "score_query",
+          "title": "成绩查询",
+          "view": "score_query"
+        },
+        {
+          "id": "score_stats",
+          "title": "成绩统计",
+          "view": "score_stats"
+        },
+        {
+          "id": "score_rank",
+          "title": "排名分析",
+          "view": "score_rank"
+        }
       ]
     },
     {
@@ -80,7 +140,12 @@
       "icon": "◈",
       "order": 3,
       "tabs": [
-        { "id": "exam_manage", "title": "考试管理", "view": "exam_manage", "default": true }
+        {
+          "id": "exam_manage",
+          "title": "考试管理",
+          "view": "exam_manage",
+          "default": true
+        }
       ]
     },
     {
@@ -89,36 +154,106 @@
       "icon": "◇",
       "order": 4,
       "tabs": [
-        { "id": "teacher_list", "title": "教师管理", "view": "teacher_list", "default": true }
+        {
+          "id": "teacher_list",
+          "title": "教师管理",
+          "view": "teacher_list",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "classes",
+      "title": "班级科目",
+      "icon": "▤",
+      "order": 5,
+      "tabs": [
+        {
+          "id": "classes",
+          "title": "班级科目",
+          "view": "class_list",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "classrooms",
+      "title": "教室位置",
+      "icon": "□",
+      "order": 6,
+      "tabs": [
+        {
+          "id": "classrooms",
+          "title": "教室位置",
+          "view": "classroom_list",
+          "default": true
+        }
       ]
     },
     {
       "id": "system",
       "title": "系统设置",
       "icon": "⚙",
-      "order": 5,
+      "order": 7,
       "tabs": [
-        { "id": "semester", "title": "学期设置", "view": "semester", "default": true },
-        { "id": "classes", "title": "班级科目", "view": "class_list" },
-        { "id": "classrooms", "title": "教室位置", "view": "classroom_list" },
-        { "id": "users", "title": "用户权限", "view": "users" },
-        { "id": "data_maintenance", "title": "数据维护", "view": "data_maintenance" },
-        { "id": "system_config", "title": "系统设置", "view": "system_config" },
-        { "id": "init", "title": "初始化系统", "view": "init" },
-        { "id": "report", "title": "报表模板", "view": "report" }
+        {
+          "id": "semester",
+          "title": "学期设置",
+          "view": "semester",
+          "default": true
+        },
+        {
+          "id": "users",
+          "title": "用户权限",
+          "view": "users"
+        },
+        {
+          "id": "data_maintenance",
+          "title": "数据维护",
+          "view": "data_maintenance"
+        },
+        {
+          "id": "system_config",
+          "title": "系统设置",
+          "view": "system_config"
+        },
+        {
+          "id": "init",
+          "title": "初始化系统",
+          "view": "init"
+        },
+        {
+          "id": "report",
+          "title": "报表模板",
+          "view": "report"
+        }
       ]
     }
   ],
-
   "statusbar": {
     "left": [
-      { "type": "connection", "label": "已连接" },
-      { "type": "server", "label": "服务运行中" }
+      {
+        "type": "connection",
+        "label": "已连接"
+      },
+      {
+        "type": "server",
+        "label": "服务运行中"
+      }
     ],
     "right": [
-      { "type": "semester_count", "label": "学期 {n}" },
-      { "type": "memory", "label": "内存 {mb}MB" },
-      { "type": "db_mode", "label": "数据库 WAL" }
+      {
+        "type": "semester_count",
+        "label": "学期 {n}"
+      },
+      {
+        "type": "memory",
+        "label": "内存 {mb}MB"
+      },
+      {
+        "type": "db_mode",
+        "label": "数据库 WAL"
+      }
     ]
   }
 }

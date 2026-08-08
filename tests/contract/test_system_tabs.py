@@ -1,10 +1,10 @@
 """
-系统域 6 个新页签契约测试
+系统域页签契约测试（P3-0 信息架构重组：classes/classrooms 已提升为独立域）
 
-覆盖（system 域，view 字段指向各模板）：
+覆盖（view 字段指向各模板）：
 - /page/system/semester        → semester.html        （学期设置）
-- /page/system/classes         → class_list.html      （班级科目）
-- /page/system/classrooms      → classroom_list.html  （教室位置）
+- /page/classes/classes        → class_list.html      （班级科目，独立域）
+- /page/classrooms/classrooms  → classroom_list.html  （教室位置，独立域）
 - /page/system/users           → users.html           （用户权限）
 - /page/system/data_maintenance→ data_maintenance.html（数据维护）
 - /page/system/init            → init.html            （初始化系统）
@@ -42,8 +42,8 @@ class TestSystemTabs:
         "path,component,fetch_marker",
         [
             ("/page/system/semester", "semesterManage", "/api/semester/list"),
-            ("/page/system/classes", "classList", "/api/students"),
-            ("/page/system/classrooms", "classroomList", "/api/meta/ui-config"),
+            ("/page/classes/classes", "classList", "/api/students"),
+            ("/page/classrooms/classrooms", "classroomList", "/api/meta/ui-config"),
             ("/page/system/users", "userPermission", "/api/auth/me"),
             ("/page/system/data_maintenance", "dataMaintenance", "/api/stats/cache/stats"),
             ("/page/system/init", "systemInit", "此操作将清空所有业务数据"),

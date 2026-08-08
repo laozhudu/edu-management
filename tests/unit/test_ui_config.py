@@ -15,12 +15,21 @@ class TestUIConfig:
         assert cfg.brand_text == "示例学校教务管理系统"
 
     def test_domains_loaded(self):
-        """6 个域正确加载并按 order 排序"""
+        """8 个域正确加载并按 order 排序"""
         cfg = get_config()
         domains = cfg.domains_parsed
-        assert len(domains) == 6
+        assert len(domains) == 8
         titles = [d["title"] for d in domains]
-        assert titles == ["首页", "学生管理", "成绩管理", "考试管理", "教师管理", "系统设置"]
+        assert titles == [
+            "首页",
+            "学生管理",
+            "成绩管理",
+            "考试管理",
+            "教师管理",
+            "班级科目",
+            "教室位置",
+            "系统设置",
+        ]
 
     def test_students_permissions(self):
         """学生管理域的权限正确"""
@@ -36,18 +45,18 @@ class TestUIConfig:
         assert reg_tab.permissions == ["admin"]
 
     def test_admin_sees_all(self):
-        """admin 角色看到全部 6 个域"""
+        """admin 角色看到全部 8 个域"""
         cfg = get_config()
         visible = cfg.filter_domains(["admin"])
-        assert len(visible) == 6
+        assert len(visible) == 8
 
     def test_teacher_filtered(self):
-        """teacher 角色被过滤掉学生管理域"""
+        """teacher 角色被过滤掉学生管理域（其余 7 域可见）"""
         cfg = get_config()
         visible = cfg.filter_domains(["teacher"])
         titles = [d["title"] for d in visible]
         assert "学生管理" not in titles
-        assert len(visible) == 5
+        assert len(visible) == 7
 
     def test_academic_staff_sees_students(self):
         """academic_staff 角色看到学生管理"""
@@ -65,11 +74,16 @@ class TestUIConfig:
         assert shortcuts["refresh"] == "F5"
 
     def test_default_fallback(self):
-        """无配置文件时内嵌默认兜底"""
-        cfg = reload_config("/nonexistent/path.json")
-        assert isinstance(cfg, UIConfig)
-        assert cfg.window_title == "示例学校 教务管理系统 v3.0.0"
-        assert len(cfg.domains_parsed) == 6
+        """无配置文件时内嵌默认兜底（精简 6 域，仅保证可用）"""
+        try:
+            cfg = reload_config("/nonexistent/path.json")
+            assert isinstance(cfg, UIConfig)
+            assert cfg.window_title == "示例学校 教务管理系统 v3.0.0"
+            # 兜底保持精简 6 域（无外部文件时的最小可用集，非完整 8 域）
+            assert len(cfg.domains_parsed) == 6
+        finally:
+            # 恢复真实配置，避免污染后续测试（reload_config 改全局单例）
+            reload_config()
 
     def test_app_config_fields(self):
         """AppConfig 字段完整"""

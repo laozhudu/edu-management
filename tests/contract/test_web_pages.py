@@ -60,13 +60,22 @@ class TestIndexPage:
 
 
 class TestUIConfigAPI:
-    def test_ui_config_has_6_domains(self, client, auth_headers):
+    def test_ui_config_has_8_domains(self, client, auth_headers):
         r = client.get("/api/meta/ui-config", headers=auth_headers)
         assert r.status_code == 200
         data = r.json()
-        assert len(data["domains"]) == 6
+        assert len(data["domains"]) == 8
         ids = [d["id"] for d in data["domains"]]
-        assert set(ids) >= {"home", "students", "scores", "exams", "teachers", "system"}
+        assert set(ids) >= {
+            "home",
+            "students",
+            "scores",
+            "exams",
+            "teachers",
+            "classes",
+            "classrooms",
+            "system",
+        }
 
     def test_ui_config_has_tabs(self, client, auth_headers):
         r = client.get("/api/meta/ui-config", headers=auth_headers)
@@ -107,8 +116,8 @@ class TestPagePlaceholder:
             "/page/exams/exam_manage",
             "/page/teachers/teacher_list",
             "/page/system/semester",
-            "/page/system/classes",
-            "/page/system/classrooms",
+            "/page/classes/classes",
+            "/page/classrooms/classrooms",
             "/page/system/users",
             "/page/system/data_maintenance",
             "/page/system/system_config",
