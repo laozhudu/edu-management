@@ -73,7 +73,7 @@ class InitView(QWidget):
         tables = sorted(inspector.get_table_names())
         lines = ["当前数据库状态:"]
         for tbl in tables:
-            cnt = self.session.execute(text(f"SELECT COUNT(*) FROM [{tbl}]")).fetchone()[0]
+            cnt = self.session.execute(text(f"SELECT COUNT(*) FROM [{tbl}]")).fetchone()[0]  # nosec B608 — 表名/字段名来自 SQLAlchemy 元数据或白名单校验，非用户输入
             if cnt > 0:
                 lines.append(f"  {tbl}: {cnt} 条")
         il.addWidget(QLabel("\n".join(lines) if len(lines) > 1 else "数据库为空"))
@@ -174,9 +174,9 @@ class InitView(QWidget):
         cleared = []
         for tbl in inspector.get_table_names():
             if tbl not in protected:
-                cnt = self.session.execute(text(f"SELECT COUNT(*) FROM [{tbl}]")).fetchone()[0]
+                cnt = self.session.execute(text(f"SELECT COUNT(*) FROM [{tbl}]")).fetchone()[0]  # nosec B608 — 表名/字段名来自 SQLAlchemy 元数据或白名单校验，非用户输入
                 if cnt > 0:
-                    self.session.execute(text(f"DELETE FROM [{tbl}]"))
+                    self.session.execute(text(f"DELETE FROM [{tbl}]"))  # nosec B608 — 表名/字段名来自 SQLAlchemy 元数据或白名单校验，非用户输入
                     cleared.append(f"{tbl}({cnt})")
         self.session.commit()
         QMessageBox.information(

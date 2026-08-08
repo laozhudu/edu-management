@@ -42,7 +42,7 @@ class RowLevelSecurity:
             .first()
         )
         if row:
-            return row[0]
+            return str(row[0])
         return None
 
     def get_scope_by_role_name(self, role_name: str, entity_type: str) -> str:

@@ -4,7 +4,8 @@
 """
 
 import hashlib
-from datetime import datetime
+import json
+from datetime import date, datetime
 from functools import wraps
 from typing import Any
 
@@ -14,6 +15,29 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response as StarletteResponse
 
 from edu_system.database import get_active_school, get_active_semester
+
+
+class SafeJSONDisk(diskcache.JSONDisk):
+    """JSON 序列化磁盘存储（规避 diskcache 默认 pickle 反序列化漏洞 CVE-2025-69872）
+
+    除 JSON 外额外支持 datetime/date 序列化（转 ISO 字符串）。
+    若值含非 JSON 类型(如任意对象)则回退 pickle 存储以保功能——此类数据不应进安全缓存。
+    """
+
+    @staticmethod
+    def _default(obj: Any) -> Any:
+        if isinstance(obj, (datetime, date)):
+            return obj.isoformat()
+        raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
+
+    def store(self, value, read, key=diskcache.UNKNOWN):  # type: ignore[override]
+        if not read:
+            json_bytes = json.dumps(value, default=self._default).encode("utf-8")
+            import zlib
+
+            value = zlib.compress(json_bytes, self.compress_level)
+        return super(diskcache.JSONDisk, self).store(value, read, key=key)  # type: ignore[override]
+
 
 # 全局缓存实例
 _stats_cache = None
@@ -35,6 +59,7 @@ def get_stats_cache() -> diskcache.Cache:
             timeout=30,
             size_limit=2**30,  # 1GB
             disk_min_file_size=0,
+            disk=SafeJSONDisk,
             disk_pickle_protocol=4,
         )
     return _stats_cache
@@ -53,6 +78,7 @@ def get_http_cache() -> diskcache.Cache:
             directory=cache_dir,
             timeout=30,
             size_limit=512 * 1024 * 1024,  # 512MB
+            disk=SafeJSONDisk,
         )
     return _http_cache
 
@@ -202,9 +228,16 @@ class CacheService:
 class HttpCacheMiddleware(BaseHTTPMiddleware):
     """HTTP 响应缓存中间件：支持 ETag / Last-Modified / 304"""
 
-    def __init__(self, app, cache_dir: str = "项目根目录/data/cache/http"):
+    def __init__(self, app, cache_dir: str | None = None):
         super().__init__(app)
-        self.cache = diskcache.Cache(directory=cache_dir, size_limit=512 * 1024 * 1024)
+        if cache_dir is None:
+            import os
+
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            cache_dir = os.path.join(project_root, "data", "cache", "http")
+        self.cache = diskcache.Cache(
+            directory=cache_dir, size_limit=512 * 1024 * 1024, disk=SafeJSONDisk
+        )
         self._enabled_paths = ["/api/stats/", "/api/classes/", "/api/students/", "/api/exams/"]
 
     def _should_cache(self, request: Request) -> bool:

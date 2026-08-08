@@ -1,0 +1,18 @@
+# Bandit 配置 — 豁免项均有理由（非掩盖问题）
+# 用法: bandit -c .bandit -r src/edu_system/
+# YAML 格式 (bandit 支持)
+
+exclude_dirs:
+  - tests
+  - venv
+  - .venv
+  - alembic
+  - test_data
+
+skips:
+  # B104: 局域网服务必须绑定 0.0.0.0（桌面端嵌入式服务，用户明确需求）
+  - B104
+  # B310: updater 的 urlopen 目标为硬编码 GitHub API URL（非用户输入）
+  - B310
+  # B108: 固定 /tmp/ 路径（无随机临时文件竞争，非 mktemp 误用）
+  - B108

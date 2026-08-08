@@ -103,6 +103,8 @@ pyasn1==0.6.4
     #   rsa
 pycparser==3.0 ; implementation_name != 'PyPy'
     # via cffi
+psutil==7.2.2
+    # via edu-system (pyproject.toml)
 pydantic==2.13.4
     # via
     #   edu-system (pyproject.toml)

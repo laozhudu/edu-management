@@ -30,6 +30,8 @@ class Result(Generic[T]):
         """成功时返回数据，失败抛异常（仅用于确信必成功的场景）"""
         if not self.ok:
             raise RuntimeError(f"Result unwrap failed: {self.error} [{self.code}]")
+        if self.data is None:
+            raise RuntimeError(f"Result unwrap failed: data is None [{self.code}]")
         return self.data
 
 

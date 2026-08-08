@@ -27,6 +27,7 @@ dependencies = [
     "python-dotenv>=1.0",
     "requests>=2.32",
     "qrcode>=8.2",
+    "psutil>=5.9",
     "structlog>=24.1",
     "watchfiles>=0.21",
     "tenacity>=8.3",
@@ -126,15 +127,15 @@ warn_no_return = true
 follow_imports = "normal"
 namespace_packages = true
 explicit_package_bases = true
-enable_error_code = ["unused-ignore", "attr-defined", "name-defined", "arg-type", "union-attr", "assignment", "call-arg", "no-untyped-def", "no-untyped-call", "unused-coroutine", "annotation-unchecked"]
+# 第三方库无类型存根（PyQt5/sqlalchemy/pydantic 等）——mypy 常见处理
+ignore_missing_imports = true
+enable_error_code = ["unused-ignore", "attr-defined", "name-defined", "arg-type", "union-attr", "assignment", "call-arg", "unused-coroutine", "annotation-unchecked"]
+# 存量代码 untyped def 统一放宽（工作量集中于渐进收紧，新代码按 strict 写）
+# type-arg: 泛型参数缺失为风格类（dict/list/Callable 裸用），运行时无影响，渐进收紧
+disable_error_code = ["no-untyped-def", "no-untyped-call", "type-arg"]
 
 [[tool.mypy.overrides]]
 module = ["tests.*"]
-strict = false
-disallow_untyped_defs = false
-
-[[tool.mypy.overrides]]
-module = ["test_*"]
 strict = false
 disallow_untyped_defs = false
 

@@ -109,16 +109,16 @@ def audit_init(engine):
     # 幂等：避免 init_db_with_defaults 多次调用时重复注册导致 before_flush 叠加
     if not getattr(_audit_listener, "_registered", False):
         event.listen(Session, "before_flush", _audit_listener)
-        _audit_listener._registered = True
+        setattr(_audit_listener, "_registered", True)
         print("[Audit] 审计监听器已启用")
 
 
 def query_audit_logs(
     session: Session,
-    table_name: str = None,
-    record_id: int = None,
-    action: str = None,
-    operator: str = None,
+    table_name: str | None = None,
+    record_id: int | None = None,
+    action: str | None = None,
+    operator: str | None = None,
     start_date=None,
     end_date=None,
     page: int = 1,
@@ -155,9 +155,9 @@ def manual_audit(
     table_name: str,
     record_id: int,
     action: str,
-    old_values: dict = None,
-    new_values: dict = None,
-    operator: str = None,
+    old_values: dict | None = None,
+    new_values: dict | None = None,
+    operator: str | None = None,
 ):
     """手动记录审计日志（用于复杂业务操作）"""
     import json

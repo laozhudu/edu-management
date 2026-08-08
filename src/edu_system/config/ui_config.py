@@ -380,11 +380,3 @@ def reload_config(path: str | Path | None = None) -> Any:
     global _config_instance  # noqa: PLW0603
     _config_instance = load_config(path)
     return _config_instance
-
-
-# 默认配置文件路径
-_DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent / "ui_config.json"
-
-
-# 导出单例（惰性初始化）
-_config_instance: Any = None

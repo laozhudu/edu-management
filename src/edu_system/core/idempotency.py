@@ -129,6 +129,6 @@ def cleanup_expired_keys() -> int:
             .delete()
         )
         session.commit()
-        return deleted
+        return int(deleted)
     finally:
         session.close()

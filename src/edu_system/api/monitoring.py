@@ -12,6 +12,7 @@ from fastapi import APIRouter, Response
 from fastapi.responses import PlainTextResponse
 from sqlalchemy import text
 
+from edu_system.config import settings
 from edu_system.database import get_active_semester, get_session
 from edu_system.services.cache import cache_service
 from edu_system.services.scheduler import get_scheduler
@@ -66,7 +67,7 @@ def health_check():
 
     # 4. 磁盘空间检查
     try:
-        disk = psutil.disk_usage("项目根目录")
+        disk = psutil.disk_usage(str(settings.PROJECT_ROOT))
         free_gb = disk.free / (1024**3)
         checks["disk"] = {
             "status": "up" if free_gb > 1 else "warning",
@@ -145,7 +146,7 @@ def metrics():
         lines.append("# TYPE system_memory_usage_percent gauge")
         lines.append(f"system_memory_usage_percent {mem.percent}")
 
-        disk = psutil.disk_usage("项目根目录")
+        disk = psutil.disk_usage(str(settings.PROJECT_ROOT))
         lines.append("# HELP system_disk_free_bytes 磁盘剩余字节数")
         lines.append("# TYPE system_disk_free_bytes gauge")
         lines.append(f"system_disk_free_bytes {disk.free}")
@@ -255,8 +256,8 @@ def metrics_summary() -> dict[str, Any]:
                 "percent": psutil.virtual_memory().percent,
             },
             "disk": {
-                "free_gb": round(psutil.disk_usage("项目根目录").free / (1024**3), 2),
-                "percent": psutil.disk_usage("项目根目录").percent,
+                "free_gb": round(psutil.disk_usage(str(settings.PROJECT_ROOT)).free / (1024**3), 2),
+                "percent": psutil.disk_usage(str(settings.PROJECT_ROOT)).percent,
             },
         }
     except:

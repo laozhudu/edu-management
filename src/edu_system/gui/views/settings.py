@@ -175,7 +175,7 @@ class SettingsView(QWidget):
         }
         for i, tbl in enumerate(tables):
             t.setItem(i, 0, QTableWidgetItem(tbl))
-            cnt = self.session.execute(text(f"SELECT COUNT(*) FROM [{tbl}]")).fetchone()[0]
+            cnt = self.session.execute(text(f"SELECT COUNT(*) FROM [{tbl}]")).fetchone()[0]  # nosec B608 — 表名/字段名来自 SQLAlchemy 元数据或白名单校验，非用户输入
             item = QTableWidgetItem(str(cnt))
             item.setTextAlignment(Qt.AlignCenter)
             if cnt > 100:
@@ -324,7 +324,7 @@ class SettingsView(QWidget):
             return
         if QMessageBox.question(self, "确认", f"清空 '{tbl}'？") != QMessageBox.Yes:
             return
-        self.session.execute(text(f"DELETE FROM [{tbl}]"))
+        self.session.execute(text(f"DELETE FROM [{tbl}]"))  # nosec B608 — 表名/字段名来自 SQLAlchemy 元数据或白名单校验，非用户输入
         self.session.commit()
         self._rebuild()
 
@@ -350,7 +350,7 @@ class SettingsView(QWidget):
         inspector = inspect(self.session.bind)
         for tbl in inspector.get_table_names():
             if tbl not in ("grades", "subjects", "semesters", "settings"):
-                self.session.execute(text(f"DELETE FROM [{tbl}]"))
+                self.session.execute(text(f"DELETE FROM [{tbl}]"))  # nosec B608 — 表名/字段名来自 SQLAlchemy 元数据或白名单校验，非用户输入
         self.session.commit()
         QMessageBox.information(self, "完成", "业务数据已清空")
         self._rebuild()

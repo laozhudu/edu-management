@@ -78,7 +78,7 @@ class EventBus:
         threading.Thread(target=cls.publish, args=(event,), daemon=True).start()
 
     @classmethod
-    def get_history(cls, event_type: str = None, limit: int = 100) -> list[DomainEvent]:
+    def get_history(cls, event_type: str | None = None, limit: int = 100) -> list[DomainEvent]:
         """获取事件历史（调试用）"""
         with cls._lock:
             events = cls._history

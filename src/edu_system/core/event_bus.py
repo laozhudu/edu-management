@@ -138,11 +138,11 @@ class EventBus:
         finally:
             session.close()
 
-    def get_dead_letters(self, limit: int = 100) -> list:
+    def get_dead_letters(self, limit: int = 100) -> list[OutboxEvent]:
         """获取死信事件"""
         session = get_session()
         try:
-            return (
+            return list(
                 session.query(OutboxEvent)
                 .filter(OutboxEvent.dead_letter.is_(True))
                 .order_by(OutboxEvent.created_at.desc())

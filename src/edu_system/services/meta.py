@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -260,6 +261,10 @@ class FieldService:
 
         from sqlalchemy import text
 
+        # 字段名白名单校验（防 SQL 注入：field_key 仅允许字母数字下划线）
+        if not re.fullmatch(r"[A-Za-z0-9_]+", field_key or ""):
+            raise FieldValidationError(f"非法字段名: {field_key!r}")
+
         # SQLite JSON1: json_extract(ext_json, '$.key')
         if value is None:
             cond = f"json_extract(ext_json, '$.{field_key}') IS NULL"
@@ -267,7 +272,7 @@ class FieldService:
         else:
             cond = f"json_extract(ext_json, '$.{field_key}') = :val"
             params = {"val": str(value)}
-        sql = text(f"SELECT id FROM {model.__tablename__} WHERE {cond} LIMIT :lim")
+        sql = text(f"SELECT id FROM {model.__tablename__} WHERE {cond} LIMIT :lim")  # nosec B608 — 表名/字段名来自 SQLAlchemy 元数据或白名单校验，非用户输入
         ids = [row[0] for row in self._session.execute(sql, {**params, "lim": limit}).fetchall()]
         if not ids:
             return []

@@ -55,6 +55,18 @@ def _reset_database(full: bool = True) -> None:
         except Exception:
             pass
 
+    # 清理磁盘缓存（diskcache pickle 旧格式可能不兼容 JSONDisk，确保隔离）
+    data_dir = Path(DB_PATH).parent
+    for cache_db in [
+        data_dir / "cache" / "stats" / "cache.db",
+        data_dir / "cache" / "http" / "cache.db",
+    ]:
+        try:
+            if cache_db.exists():
+                cache_db.unlink()
+        except Exception:
+            pass
+
     # 重建 + 加载测试数据
     init_db_with_defaults()
     loader = DataLoader()

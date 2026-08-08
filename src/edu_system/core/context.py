@@ -8,6 +8,7 @@
 import threading
 from contextvars import ContextVar
 from dataclasses import dataclass, field
+from functools import wraps
 from typing import Optional
 
 # ContextVar 用于异步上下文传递
@@ -73,7 +74,7 @@ def get_trace_id() -> str:
     return ctx.trace_id if ctx else ""
 
 
-def set_current_user(user_id: int, username: str = "", role_codes: list = None):
+def set_current_user(user_id: int, username: str = "", role_codes: list[str] | None = None):
     """设置当前用户（快捷方法）"""
     ctx = get_current_context() or SystemContext()
     ctx.user_id = user_id

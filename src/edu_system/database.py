@@ -10,6 +10,7 @@
 import threading
 from contextlib import contextmanager
 from datetime import date
+from typing import cast
 
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import Query, Session, sessionmaker
@@ -87,7 +88,7 @@ def get_engine():
     return _engine
 
 
-def get_session_factory():
+def get_session_factory() -> sessionmaker:
     """获取会话工厂"""
     global _session_factory
     if _session_factory is None:
@@ -100,7 +101,7 @@ def get_session_factory():
 
 def get_session() -> Session:
     """获取数据库会话（上下文管理器用）"""
-    return get_session_factory()()
+    return cast("Session", get_session_factory()())
 
 
 # ============================================================
@@ -395,11 +396,3 @@ def _ensure_defaults(session: Session) -> None:
 
     if not session.query(GlobalSetting).filter_by(key="absent_marks").first():
         session.add(GlobalSetting(key="absent_marks", value="-1,0"))
-
-
-# SQLite 外键级联必须手动开启
-@event.listens_for(get_engine(), "connect")
-def _set_sqlite_pragma(dbapi_conn, connection_record):
-    cursor = dbapi_conn.cursor()
-    cursor.execute("PRAGMA foreign_keys = ON")
-    cursor.close()

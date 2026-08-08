@@ -32,7 +32,7 @@ class AuditLogService:
 
         rows = self.session.execute(
             text(
-                f"SELECT id, old_values, new_values, operator, ip, created_at "
+                f"SELECT id, old_values, new_values, operator, ip, created_at "  # nosec B608 — 表名/字段名来自 SQLAlchemy 元数据或白名单校验，非用户输入
                 f"FROM audit_logs {where}"
             ),
             params,
@@ -72,6 +72,7 @@ class AuditLogService:
             where += " AND new_values LIKE :svc"
             params["svc"] = f"%{service_code}%"
         row = self.session.execute(
-            text(f"SELECT COUNT(*) FROM audit_logs {where}"), params
+            text(f"SELECT COUNT(*) FROM audit_logs {where}"),
+            params,  # nosec B608 — 表名/字段名来自 SQLAlchemy 元数据或白名单校验，非用户输入
         ).scalar()
         return int(row or 0)

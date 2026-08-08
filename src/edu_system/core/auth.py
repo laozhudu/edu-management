@@ -64,12 +64,12 @@ class DeviceInfo:
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """验证密码"""
-    return pwd_context.verify(plain_password, hashed_password)
+    return bool(pwd_context.verify(plain_password, hashed_password))
 
 
 def get_password_hash(password: str) -> str:
     """生成密码哈希"""
-    return pwd_context.hash(password)
+    return str(pwd_context.hash(password))
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
@@ -80,7 +80,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     else:
         expire = datetime.now(UTC) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire, "type": "access"})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return str(jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM))
 
 
 def create_refresh_token(data: dict) -> str:
@@ -88,7 +88,7 @@ def create_refresh_token(data: dict) -> str:
     to_encode = data.copy()
     expire = datetime.now(UTC) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire, "type": "refresh"})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return str(jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM))
 
 
 def decode_token(token: str) -> dict:
@@ -98,7 +98,7 @@ def decode_token(token: str) -> dict:
     except JWTError:
         raise ValueError("Invalid token")
     else:
-        return payload
+        return dict(payload)
 
 
 def generate_device_fingerprint(request_data: dict[str, Any]) -> str:
@@ -125,7 +125,10 @@ def generate_device_id() -> str:
 
 
 def create_token_pair(
-    user_id: int, device_id: str | None = None, permissions: list = None, roles: list = None
+    user_id: int,
+    device_id: str | None = None,
+    permissions: list[str] | None = None,
+    roles: list[str] | None = None,
 ) -> TokenPair:
     """创建令牌对 (Access + Refresh)"""
     now = datetime.now(UTC)
