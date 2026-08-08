@@ -34,8 +34,35 @@
 - 前端：semester.html 新建学期模态框
 
 #### 测试
-- +22 契约测试（class/teacher/exam/semester CRUD）
-- 全量 590 passed；8 个核心业务页签全部具备写操作
+- +22 契约测试（class/teacher/exam/semester CRUD）+ 4 孤儿页签页面契约
+- 全量 599+ passed；8 个核心业务页签全部具备写操作
+
+### 第三阶段续：全局能力 Web 化（P3-B）
+
+#### 数据维护真实化
+- 新增 maintenance 路由：POST /backup（BackupManager 每日增量）/ GET /backups（列表）/ POST /clean/cache
+- service_registry 注册 maintenance 服务码
+- 修复 scripts/backup.py：text 仅 __main__ 导入导致库调用 NameError
+- 前端备份/清理从模拟改为真实 API + 备份记录表
+
+#### 用户管理完整功能
+- 新增 users 路由：列表/创建/更新（角色/停启用）/重置密码/角色列表
+- 修复 passlib 1.7.4 + bcrypt 4.x 不兼容（get_password_hash 必崩）→ 直连 bcrypt 库
+- 前端用户管理占位 → 真实列表 + 增删改 + 停用/重置密码
+
+#### 报表下载
+- 修复 5 处中文文件名 latin-1 编码 500 → RFC 5987（filename*=UTF-8''）
+- score_entry 加「下载报表」按钮（考试标准报表 Excel）
+
+#### 孤儿页签契约补全（P3-0）
+- 4 个孤儿模板（分考场/监考/准考证/任课分配）接入后补页面契约测试
+
+#### 桌面联动（P3-C）
+- 8 域导航桌面端加载验证：GUI 66 passed，ui_config 单一源两端同步
+
+#### 测试
+- 新增 10 契约测试（维护3/用户6/报表2 去重后净增）
+- 全量 599 passed + 孤儿页签 4 passed
 
 ## [3.2.0] - 2026-08-08
 

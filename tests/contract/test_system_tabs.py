@@ -47,6 +47,11 @@ class TestSystemTabs:
             ("/page/system/users", "userPermission", "/api/auth/me"),
             ("/page/system/data_maintenance", "dataMaintenance", "/api/stats/cache/stats"),
             ("/page/system/init", "systemInit", "此操作将清空所有业务数据"),
+            # 孤儿模板接入（P3-0）
+            ("/page/exams/exam_rooms", "examRooms", "/api/exam"),
+            ("/page/exams/exam_invigilation", "examInvigilation", "/api/exam"),
+            ("/page/exams/exam_admit", "examAdmit", "/api/exam"),
+            ("/page/teachers/teacher_assign", "teacherAssign", "/api/teachers/assignments"),
         ],
     )
     def test_tab_renders_specific_template(
