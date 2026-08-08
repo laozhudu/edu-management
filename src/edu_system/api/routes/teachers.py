@@ -375,7 +375,8 @@ def create_teacher(
     current_user: User = Depends(get_current_user),
 ):
     """创建教师（Web 教师管理页新增）"""
-    from edu_system.services.teacher_service import TeacherError, create_teacher as svc_create
+    from edu_system.services.teacher_service import TeacherError
+    from edu_system.services.teacher_service import create_teacher as svc_create
 
     try:
         teacher = svc_create(db, body.model_dump(exclude_unset=True))
@@ -392,7 +393,8 @@ def update_teacher(
     current_user: User = Depends(get_current_user),
 ):
     """更新教师（Web 教师管理页编辑）"""
-    from edu_system.services.teacher_service import TeacherError, update_teacher as svc_update
+    from edu_system.services.teacher_service import TeacherError
+    from edu_system.services.teacher_service import update_teacher as svc_update
 
     try:
         teacher = svc_update(db, teacher_id, body.model_dump(exclude_unset=True))

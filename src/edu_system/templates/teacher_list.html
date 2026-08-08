@@ -52,6 +52,12 @@
                     查询
                 </button>
                 <button class="btn btn-secondary" @click="resetFilters()">重置</button>
+                <button class="btn btn-primary" @click="openEdit(null)">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    新增教师
+                </button>
             </div>
         </div>
 
@@ -66,6 +72,7 @@
                             <th>职称</th>
                             <th>学历/学位</th>
                             <th>电话</th>
+                            <th>操作</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -77,15 +84,19 @@
                                 <td><span class="badge badge-primary" x-text="t.title || '—'"></span></td>
                                 <td x-text="(t.education || '') + '/' + (t.degree || '')"></td>
                                 <td x-text="t.phone || '—'"></td>
+                                <td class="whitespace-nowrap">
+                                    <button class="btn btn-ghost btn-sm" @click="openEdit(t.id)">编辑</button>
+                                    <button class="btn btn-ghost btn-sm text-red-500" @click="remove(t.id, t.name)">删除</button>
+                                </td>
                             </tr>
                         </template>
                         <tr x-show="!loadingList && teacherList.length === 0">
-                            <td colspan="6" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                            <td colspan="7" class="text-center py-8 text-gray-500 dark:text-gray-400">
                                 暂无教师数据
                             </td>
                         </tr>
                         <tr x-show="loadingList">
-                            <td colspan="6" class="py-8"><div class="skeleton-text w-2/3 mx-auto"></div></td>
+                            <td colspan="7" class="py-8"><div class="skeleton-text w-2/3 mx-auto"></div></td>
                         </tr>
                     </tbody>
                 </table>
@@ -251,12 +262,68 @@
             </div>
         </div>
     </div>
+
+    <!-- 新增/编辑教师对话框 -->
+    <div x-show="showEditor" class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
+         @click.away="showEditor = false">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4"
+                x-text="editingId ? '编辑教师' : '新增教师'"></h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="label" for="edit-name">姓名 *</label>
+                    <input id="edit-name" type="text" class="input" x-model="editForm.name" placeholder="教师姓名">
+                </div>
+                <div>
+                    <label class="label" for="edit-no">工号</label>
+                    <input id="edit-no" type="text" class="input" x-model="editForm.staff_no" placeholder="工号/编号">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="label" for="edit-gender">性别</label>
+                        <select id="edit-gender" class="select w-full" x-model="editForm.gender">
+                            <option value="">—</option>
+                            <option value="男">男</option>
+                            <option value="女">女</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label" for="edit-title">职称</label>
+                        <select id="edit-title" class="select w-full" x-model="editForm.title">
+                            <option value="">—</option>
+                            <option value="正高级">正高级</option>
+                            <option value="高级">高级</option>
+                            <option value="中级">中级</option>
+                            <option value="初级">初级</option>
+                            <option value="无">无</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="label" for="edit-phone">电话</label>
+                    <input id="edit-phone" type="text" class="input" x-model="editForm.phone" placeholder="联系电话">
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end gap-2">
+                <button class="btn btn-secondary" @click="showEditor = false">取消</button>
+                <button class="btn btn-primary" @click="save()" :disabled="saving">
+                    <span x-show="!saving">保存</span>
+                    <span x-show="saving">保存中...</span>
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
     function teacherManage() {
         return {
             activeTab: 'list',  // list | assign | workload
+            // --- 教师编辑 ---
+            showEditor: false,
+            editingId: null,
+            editForm: { name: '', staff_no: '', gender: '', title: '', phone: '' },
+            saving: false,
             
             // --- 教师列表 ---
             teacherList: [],
@@ -283,7 +350,71 @@
             loadingWl: false,
             wlFilters: { keyword: '', semester_id: '' },
             semesters: [],
-            
+
+            openEdit(id) {
+                this.editingId = id;
+                if (id) {
+                    const t = this.teacherList.find(x => x.id === id);
+                    this.editForm = {
+                        name: t?.name || '', staff_no: t?.staff_no || '',
+                        gender: t?.gender || '', title: t?.title || '', phone: t?.phone || ''
+                    };
+                } else {
+                    this.editForm = { name: '', staff_no: '', gender: '', title: '', phone: '' };
+                }
+                this.showEditor = true;
+            },
+
+            async save() {
+                if (!this.editForm.name) {
+                    alert('教师姓名不能为空');
+                    return;
+                }
+                this.saving = true;
+                try {
+                    const url = this.editingId ? `/api/teachers/${this.editingId}` : '/api/teachers';
+                    const method = this.editingId ? 'PUT' : 'POST';
+                    const resp = await fetch(url, {
+                        method,
+                        credentials: 'include',
+                        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+                        body: JSON.stringify(this.editForm)
+                    });
+                    if (resp.ok || resp.status === 201) {
+                        this.showEditor = false;
+                        this.loadList(this.pageList);
+                    } else {
+                        const d = await resp.json().catch(() => ({}));
+                        alert(d.detail || '保存失败');
+                    }
+                } catch (e) {
+                    console.error('保存教师失败:', e);
+                    alert('保存失败: ' + e.message);
+                } finally {
+                    this.saving = false;
+                }
+            },
+
+            async remove(id, name) {
+                if (!confirm(`确定删除教师「${name}」？`)) return;
+                try {
+                    const resp = await fetch(`/api/teachers/${id}`, {
+                        method: 'DELETE',
+                        credentials: 'include',
+                        headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        this.loadList(this.pageList);
+                    } else {
+                        const d = await resp.json().catch(() => ({}));
+                        alert(d.detail || '删除失败');
+                    }
+                } catch (e) {
+                    console.error('删除教师失败:', e);
+                    alert('删除失败: ' + e.message);
+                }
+            },
+
             async loadList(p) {
                 this.pageList = p || 1;
                 this.loadingList = true;

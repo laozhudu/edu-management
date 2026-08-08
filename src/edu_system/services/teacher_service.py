@@ -3,6 +3,7 @@
 
 参考 student_service 模式，供 FastAPI 路由复用。
 """
+
 from sqlalchemy.orm import Session
 
 from edu_system.models import Teacher
