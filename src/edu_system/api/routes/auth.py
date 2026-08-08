@@ -190,6 +190,17 @@ async def login(
         path="/api/auth",
     )
 
+    # 设置 access_token Cookie（非 HttpOnly，供整页跳转的页面路由识别登录态）
+    response.set_cookie(
+        key="access_token",
+        value=token_pair.access_token,
+        httponly=False,
+        secure=False,
+        samesite="lax",
+        max_age=token_pair.expires_in,  # 15 分钟，与 token 同步
+        path="/",
+    )
+
     # 返回用户信息 + Access Token
     return LoginResponse(
         access_token=token_pair.access_token,

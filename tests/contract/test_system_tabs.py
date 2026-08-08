@@ -56,6 +56,7 @@ class TestSystemTabs:
         assert fetch_marker in r.text, f"{path} 缺少数据源调用 {fetch_marker}"
 
     def test_tab_redirects_when_anonymous(self, client):
+        client.cookies.clear()  # 确保匿名（隔离共享 client 的 cookie）
         r = client.get("/page/system/semester", follow_redirects=False)
         assert r.status_code == 307
         assert r.headers["location"] == "/login"

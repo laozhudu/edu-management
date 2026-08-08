@@ -35,6 +35,7 @@ def auth_headers(client):
 
 class TestLoginPage:
     def test_anonymous_login_page_200(self, client):
+        client.cookies.clear()  # 确保无登录态（隔离共享 client 的 cookie）
         r = client.get("/login")
         assert r.status_code == 200
         assert "text/html" in r.headers["content-type"]
@@ -47,6 +48,7 @@ class TestLoginPage:
 
 class TestIndexPage:
     def test_anonymous_redirects_to_login(self, client):
+        client.cookies.clear()  # 确保匿名（隔离共享 client 的 cookie）
         r = client.get("/", follow_redirects=False)
         assert r.status_code == 307
         assert r.headers["location"] == "/login"

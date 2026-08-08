@@ -22,11 +22,14 @@ templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 def _optional_user(request: Request):
     """尝试解析当前用户，未登录返回 None（不抛 401）"""
     try:
-        # 从 Authorization header 读取 Bearer token
+        # 优先从 Authorization header 读取 Bearer token
+        token = None
         auth = request.headers.get("Authorization", "")
-        if not auth.startswith("Bearer "):
-            return None
-        token = auth[7:]
+        if auth.startswith("Bearer "):
+            token = auth[7:]
+        # 回退：从 Cookie 读取 access_token（整页跳转时浏览器自动携带）
+        if not token:
+            token = request.cookies.get("access_token", "")
         if not token:
             return None
         from edu_system.api.deps import decode_token

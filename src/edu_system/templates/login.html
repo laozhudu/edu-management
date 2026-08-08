@@ -124,12 +124,18 @@
 <!-- 登录页面专用脚本 - 必须在 Alpine.js 之后加载以注册组件 -->
 <script>
 document.addEventListener('alpine:init', () => {
-    // 全局错误存储
-    Alpine.store('error', null);
+    // 全局错误存储（初始化失败不能阻断后续组件注册）
+    try {
+        Alpine.store('error', '');
+    } catch (e) {
+        console.warn('Alpine.store init error:', e);
+    }
     
     // 监听全局错误事件
     window.addEventListener('notify', (e) => {
-        Alpine.store('error', e.detail.message);
+        try {
+            Alpine.store('error', e.detail.message);
+        } catch (_) {}
     });
 
     // 认证头辅助函数（供全局使用）
