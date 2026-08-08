@@ -6,10 +6,11 @@ FastAPI 依赖注入
 from collections.abc import Generator
 from datetime import datetime, timedelta
 
+# 密码加密（直接使用 bcrypt 库，绕过 passlib 1.7.4 + bcrypt 4.x 不兼容）
+import bcrypt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
 from edu_system.config import settings
@@ -18,8 +19,18 @@ from edu_system.core.permissions import Permission
 from edu_system.database import get_active_semester, get_session, set_active_semester
 from edu_system.models import User
 
-# 密码加密
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def _check_bcrypt(password: str) -> None:
+    """bcrypt 72 字节硬限制预检查"""
+    if len(password.encode("utf-8")) > 72:
+        raise ValueError("密码不能超过 72 字节")
+
+
+def get_password_hash(password: str) -> str:
+    """生成 bcrypt 密码哈希"""
+    _check_bcrypt(password)
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
 
 # OAuth2
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
@@ -47,12 +58,11 @@ def set_current_semester_dep(semester_id: int):
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """验证密码"""
-    return pwd_context.verify(plain_password, hashed_password)
-
-
-def get_password_hash(password: str) -> str:
-    """生成密码哈希"""
-    return pwd_context.hash(password)
+    try:
+        return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+    except (ValueError, TypeError):
+        # 哈希格式不合法（如空串/旧格式），回退 passlib 兼容解析
+        return False
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:

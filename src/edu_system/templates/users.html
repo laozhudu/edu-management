@@ -70,14 +70,96 @@
         </div>
     </div>
 
-    <!-- 用户管理占位 -->
+    <!-- 用户管理 -->
     <div class="card">
         <div class="card-header flex items-center justify-between">
             <h2 class="text-lg font-semibold">用户管理</h2>
-            <button class="btn btn-primary btn-sm" @click="showPlaceholder()">新增用户</button>
+            <div class="flex items-center gap-2">
+                <button class="btn btn-secondary btn-sm" @click="loadUsers()">刷新</button>
+                <button class="btn btn-primary btn-sm" @click="openCreate()">
+                    <svg class="w-4 h-4 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    新增用户
+                </button>
+            </div>
         </div>
-        <div class="card-body text-sm text-gray-500 dark:text-gray-400">
-            用户管理功能（新增 / 停用 / 重置密码 / 分配角色）待接入，当前仅支持查看当前登录用户信息。
+        <div class="overflow-x-auto">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>用户名</th>
+                        <th>显示名</th>
+                        <th>角色</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="u in users" :key="u.id">
+                        <tr>
+                            <td class="font-medium" x-text="u.username"></td>
+                            <td x-text="u.display_name || '—'"></td>
+                            <td><span class="badge badge-primary" x-text="roleLabel(u.role)"></span></td>
+                            <td>
+                                <span class="badge" :class="u.is_active ? 'badge-success' : 'badge-gray'"
+                                      x-text="u.is_active ? '启用' : '停用'"></span>
+                            </td>
+                            <td class="whitespace-nowrap">
+                                <button class="btn btn-ghost btn-sm" @click="openEdit(u)">编辑</button>
+                                <button class="btn btn-ghost btn-sm" @click="resetPwd(u)">重置密码</button>
+                                <button class="btn btn-ghost btn-sm" :class="u.is_active ? 'text-red-500' : 'text-green-600'"
+                                        @click="toggleActive(u)"><span x-text="u.is_active ? '停用' : '启用'"></span></button>
+                            </td>
+                        </tr>
+                    </template>
+                    <tr x-show="!loadingUsers && users.length === 0">
+                        <td colspan="5" class="text-center py-8 text-gray-500 dark:text-gray-400">暂无用户</td>
+                    </tr>
+                    <tr x-show="loadingUsers">
+                        <td colspan="5" class="py-8"><div class="skeleton-text w-2/3 mx-auto"></div></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 新增/编辑用户模态框 -->
+    <div x-show="showEditor" class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
+         @click.away="showEditor = false">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4"
+                x-text="editingId ? '编辑用户' : '新增用户'"></h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="label" for="u-name">用户名 *</label>
+                    <input id="u-name" type="text" class="input" x-model="editForm.username"
+                           :disabled="!!editingId" placeholder="登录名">
+                </div>
+                <div x-show="!editingId">
+                    <label class="label" for="u-pwd">密码 *</label>
+                    <input id="u-pwd" type="password" class="input" x-model="editForm.password" placeholder="初始密码">
+                </div>
+                <div>
+                    <label class="label" for="u-display">显示名</label>
+                    <input id="u-display" type="text" class="input" x-model="editForm.display_name">
+                </div>
+                <div>
+                    <label class="label" for="u-role">角色</label>
+                    <select id="u-role" class="select w-full" x-model="editForm.role_name">
+                        <template x-for="r in roles" :key="r.id">
+                            <option :value="r.name" x-text="roleLabel(r.name)"></option>
+                        </template>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end gap-2">
+                <button class="btn btn-secondary" @click="showEditor = false">取消</button>
+                <button class="btn btn-primary" @click="save()" :disabled="saving">
+                    <span x-show="!saving">保存</span>
+                    <span x-show="saving">保存中...</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -131,13 +213,161 @@
                     : '<span class="text-gray-300 dark:text-gray-600">—</span>';
             },
 
-            showPlaceholder() {
-                this.message = '用户管理功能待接入，敬请期待。';
-                clearTimeout(this._timer);
-                this._timer = setTimeout(() => (this.message = ''), 3000);
+            users: [],
+            roles: [],
+            loadingUsers: false,
+            showEditor: false,
+            editingId: null,
+            saving: false,
+            editForm: { username: '', password: '', display_name: '', role_name: 'reader' },
+
+            async loadUsers() {
+                this.loadingUsers = true;
+                try {
+                    const resp = await fetch('/api/users', { credentials: 'include', headers: authHeaders() });
+                    if (resp.ok) {
+                        this.users = (await resp.json()).items || [];
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载用户列表失败:', e);
+                } finally {
+                    this.loadingUsers = false;
+                }
             },
 
-            init() { this.loadMe(); }
+            async loadRoles() {
+                try {
+                    const resp = await fetch('/api/users/roles', { credentials: 'include', headers: authHeaders() });
+                    if (resp.ok) {
+                        this.roles = (await resp.json()).items || [];
+                    }
+                } catch (e) {
+                    console.error('加载角色失败:', e);
+                }
+            },
+
+            openCreate() {
+                this.editingId = null;
+                this.editForm = { username: '', password: '', display_name: '', role_name: this.roles[0]?.name || 'reader' };
+                this.showEditor = true;
+            },
+
+            openEdit(u) {
+                this.editingId = u.id;
+                this.editForm = {
+                    username: u.username, password: '',
+                    display_name: u.display_name || '', role_name: u.role || 'reader'
+                };
+                this.showEditor = true;
+            },
+
+            async save() {
+                if (this.editingId) {
+                    await this.updateUser();
+                } else {
+                    await this.createUser();
+                }
+            },
+
+            async createUser() {
+                if (!this.editForm.username || !this.editForm.password) {
+                    alert('用户名和密码必填');
+                    return;
+                }
+                this.saving = true;
+                try {
+                    const resp = await fetch('/api/users', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                        body: JSON.stringify(this.editForm)
+                    });
+                    if (resp.ok || resp.status === 201) {
+                        this.showEditor = false;
+                        this.loadUsers();
+                    } else {
+                        const d = await resp.json().catch(() => ({}));
+                        alert(d.detail || '创建失败');
+                    }
+                } catch (e) {
+                    alert('创建失败: ' + e.message);
+                } finally {
+                    this.saving = false;
+                }
+            },
+
+            async updateUser() {
+                this.saving = true;
+                try {
+                    const resp = await fetch('/api/users/' + this.editingId, {
+                        method: 'PUT',
+                        credentials: 'include',
+                        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                        body: JSON.stringify({
+                            display_name: this.editForm.display_name,
+                            role_name: this.editForm.role_name
+                        })
+                    });
+                    if (resp.ok) {
+                        this.showEditor = false;
+                        this.loadUsers();
+                    } else {
+                        const d = await resp.json().catch(() => ({}));
+                        alert(d.detail || '保存失败');
+                    }
+                } catch (e) {
+                    alert('保存失败: ' + e.message);
+                } finally {
+                    this.saving = false;
+                }
+            },
+
+            async toggleActive(u) {
+                if (!confirm(`确定${u.is_active ? '停用' : '启用'}用户「${u.username}」？`)) return;
+                try {
+                    const resp = await fetch('/api/users/' + u.id, {
+                        method: 'PUT',
+                        credentials: 'include',
+                        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                        body: JSON.stringify({ is_active: !u.is_active })
+                    });
+                    if (resp.ok) {
+                        this.loadUsers();
+                    } else {
+                        const d = await resp.json().catch(() => ({}));
+                        alert(d.detail || '操作失败');
+                    }
+                } catch (e) {
+                    alert('操作失败: ' + e.message);
+                }
+            },
+
+            async resetPwd(u) {
+                const pwd = prompt(`为「${u.username}」设置新密码：`);
+                if (pwd === null || !pwd) return;
+                try {
+                    const resp = await fetch('/api/users/' + u.id + '/password', {
+                        method: 'PUT',
+                        credentials: 'include',
+                        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                        body: JSON.stringify({ password: pwd })
+                    });
+                    if (resp.ok) {
+                        this.message = '密码已重置';
+                        clearTimeout(this._timer);
+                        this._timer = setTimeout(() => (this.message = ''), 3000);
+                    } else {
+                        const d = await resp.json().catch(() => ({}));
+                        alert(d.detail || '重置失败');
+                    }
+                } catch (e) {
+                    alert('重置失败: ' + e.message);
+                }
+            },
+
+            init() { this.loadMe(); this.loadUsers(); this.loadRoles(); }
         };
     }
 </script>

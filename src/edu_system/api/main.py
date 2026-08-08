@@ -115,6 +115,7 @@ def create_app() -> FastAPI:
         semester_inherit,
         students,
         teachers,
+        users,
     )
 
     app.include_router(students.router, prefix="/api")
@@ -132,6 +133,7 @@ def create_app() -> FastAPI:
     app.include_router(meta.router, prefix="/api")
     app.include_router(config.router, prefix="/api")
     app.include_router(semester.router, prefix="/api")
+    app.include_router(users.router, prefix="/api")
     from edu_system.api.routes.license import router as license_router
 
     app.include_router(license_router, prefix="/api")
