@@ -12,6 +12,7 @@
 import io
 import tempfile
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -20,6 +21,12 @@ from sqlalchemy.orm import Session
 
 from edu_system.api.deps import get_current_user, get_db
 from edu_system.models import User
+
+
+def _content_disposition(filename: str) -> str:
+    """生成兼容中文文件名的 Content-Disposition（RFC 5987）"""
+    return f"attachment; filename*=UTF-8''{quote(filename)}"
+
 
 router = APIRouter(prefix="/reports", tags=["报表"])
 
@@ -93,7 +100,7 @@ def generate_report(
                 return StreamingResponse(
                     io.BytesIO(data),
                     media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    headers={"Content-Disposition": 'attachment; filename="考试标准报表.xlsx"'},
+                    headers={"Content-Disposition": _content_disposition("考试标准报表.xlsx")},
                 )
 
             elif request.report_type == "change":
@@ -108,7 +115,7 @@ def generate_report(
                 return StreamingResponse(
                     io.BytesIO(data),
                     media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    headers={"Content-Disposition": 'attachment; filename="学籍变动情况表.xlsx"'},
+                    headers={"Content-Disposition": _content_disposition("学籍变动情况表.xlsx")},
                 )
 
             elif request.report_type == "report_card":
@@ -137,7 +144,7 @@ def generate_report(
                     io.BytesIO(data),
                     media_type=media,
                     headers={
-                        "Content-Disposition": f'attachment; filename="{Path(files[0]).name}"'
+                        "Content-Disposition": _content_disposition(Path(files[0]).name),
                     },
                 )
 
@@ -160,7 +167,7 @@ def generate_report(
                     io.BytesIO(data),
                     media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                     headers={
-                        "Content-Disposition": f'attachment; filename="{Path(files[0]).name}"'
+                        "Content-Disposition": _content_disposition(Path(files[0]).name),
                     },
                 )
 

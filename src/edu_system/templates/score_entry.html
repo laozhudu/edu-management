@@ -18,6 +18,12 @@
                 </select>
             </div>
             <button class="btn btn-secondary" @click="loadExams()">刷新考试</button>
+            <button class="btn btn-primary" @click="downloadReport()" :disabled="!examId">
+                <svg class="w-4 h-4 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12m-4-4l4 4 4-4"/>
+                </svg>
+                下载报表
+            </button>
         </div>
     </div>
 
@@ -246,6 +252,36 @@
                 }
             },
             
+            async downloadReport() {
+                if (!this.examId) return;
+                try {
+                    const resp = await fetch('/api/reports/generate', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                        body: JSON.stringify({ report_type: 'exam', exam_id: parseInt(this.examId) })
+                    });
+                    if (!resp.ok) {
+                        const d = await resp.json().catch(() => ({}));
+                        alert(d.detail || d.error || '报表生成失败');
+                        return;
+                    }
+                    // 触发浏览器下载
+                    const blob = await resp.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = resp.headers.get('content-disposition')?.match(/filename="?([^";]+)/)?.[1] || 'exam_report.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    a.remove();
+                    this.pasteMsg = '报表已下载';
+                } catch (e) {
+                    alert('下载失败: ' + e.message);
+                }
+            },
+
             init() {
                 this.loadExams();
             }
