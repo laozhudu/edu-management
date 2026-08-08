@@ -1,5 +1,42 @@
 # 变更日志
 
+## [3.3.0] - 2026-08-09
+
+### 第三阶段：双端操作对等（P3-A 高频页签 CRUD 补全）
+
+#### 信息架构重组（P3-0 + UI 整改）
+- **6 域 → 8 域**：班级/教室从系统域提升为独立域（用户反馈系统域太杂、业务域单薄）
+- **孤儿 Web 模板接入**：分考场/监考/准考证/任课分配 4 个有代码无菜单的功能接入导航
+- **成绩域精简**：score_query/score_rank 从菜单移除（ScoreView 内部 Tab 已涵盖）
+- **样式统一**：表格样式 TABLE_STYLE 集中到 theme.py（删 3 处本地重复硬编码）
+- **登录框升级**：品牌区（校名+副标题）卡片式观感，对齐 Web 端
+
+#### 班级管理完整 CRUD（P3-A1）
+- 后端：POST/PUT/DELETE /api/class + 年级下拉 /api/class/grades（重名校验/学期注入/有学生班级禁删）
+- 前端：class_list.html 重写为真实班级 CRUD（新增/编辑模态框 + 行操作）
+
+#### 教师管理完整 CRUD（P3-A2）
+- 后端：teacher_service.py + POST/PUT/DELETE /api/teachers
+- 前端：teacher_list.html 教师列表 Tab 增删改
+
+#### 成绩录入增强（P3-A3）
+- 单条编辑/删除 + 发布全部/取消发布切换（复用既有 PUT/DELETE/publish API）
+
+#### 考试管理编辑/删除（P3-A4）
+- 后端：DELETE /api/exam/{id}（级联删成绩）
+- 前端：exam_manage.html 编辑/删除 + 新建模态框复用为编辑
+
+#### 教室位置页真实化（P3-A5）
+- 占位页 → 班级教室映射（统计卡片/改教室/搜索）
+
+#### 学期管理新建（P3-A6）
+- 后端：POST /api/semester（学年自动查找创建）
+- 前端：semester.html 新建学期模态框
+
+#### 测试
+- +22 契约测试（class/teacher/exam/semester CRUD）
+- 全量 590 passed；8 个核心业务页签全部具备写操作
+
 ## [3.2.0] - 2026-08-08
 
 ### 底座加固（CI 质量门禁全面恢复）
