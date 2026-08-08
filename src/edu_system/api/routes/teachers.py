@@ -14,7 +14,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from edu_system.api.deps import get_current_user, get_db
-from edu_system.models import Class, ClassSubject, Semester, Subject, Teacher
+from edu_system.models import Class, ClassSubject, Semester, Subject, Teacher, User
 
 router = APIRouter(prefix="/teachers", tags=["教师管理"])
 
@@ -340,3 +340,76 @@ def list_workload(
         page=page,
         page_size=page_size,
     )
+
+
+class TeacherCreateRequest(BaseModel):
+    """创建教师请求"""
+
+    name: str
+    staff_no: str = ""
+    gender: str = ""
+    phone: str = ""
+    title: str = ""
+    education: str = ""
+    degree: str = ""
+    political_status: str = ""
+
+
+class TeacherUpdateRequest(BaseModel):
+    """更新教师请求（部分字段）"""
+
+    name: str | None = None
+    staff_no: str | None = None
+    gender: str | None = None
+    phone: str | None = None
+    title: str | None = None
+    education: str | None = None
+    degree: str | None = None
+    political_status: str | None = None
+
+
+@router.post("", status_code=201)
+def create_teacher(
+    body: TeacherCreateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """创建教师（Web 教师管理页新增）"""
+    from edu_system.services.teacher_service import TeacherError, create_teacher as svc_create
+
+    try:
+        teacher = svc_create(db, body.model_dump(exclude_unset=True))
+    except TeacherError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"id": teacher.id, "name": teacher.name}
+
+
+@router.put("/{teacher_id}")
+def update_teacher(
+    teacher_id: int,
+    body: TeacherUpdateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """更新教师（Web 教师管理页编辑）"""
+    from edu_system.services.teacher_service import TeacherError, update_teacher as svc_update
+
+    try:
+        teacher = svc_update(db, teacher_id, body.model_dump(exclude_unset=True))
+    except TeacherError as e:
+        raise HTTPException(status_code=404 if "不存在" in str(e) else 400, detail=str(e))
+    return {"id": teacher.id, "name": teacher.name}
+
+
+@router.delete("/{teacher_id}")
+def delete_teacher(
+    teacher_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """删除教师（Web 教师管理页删除）"""
+    from edu_system.services.teacher_service import delete_teacher as svc_delete
+
+    if not svc_delete(db, teacher_id):
+        raise HTTPException(status_code=404, detail=f"教师不存在: {teacher_id}")
+    return {"ok": True}

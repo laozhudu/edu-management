@@ -1,4 +1,4 @@
-<!-- 班级科目页（M5-G 双端一致：Web 端） -->
+<!-- 班级科目页（P3-A1 双端一致：Web 端 CRUD） -->
 {% extends "index.html" %}
 
 {% block title %}班级科目 - 教务管理系统{% endblock %}
@@ -27,14 +27,20 @@
         </div>
     </div>
 
-    <!-- 班级列表 -->
+    <!-- 班级列表 + CRUD -->
     <div class="card">
         <div class="card-header flex items-center justify-between">
-            <h2 class="text-lg font-semibold">班级列表（按学生档案统计）</h2>
+            <h2 class="text-lg font-semibold">班级管理</h2>
             <div class="flex items-center gap-2">
                 <input type="text" class="input input-sm w-48" placeholder="搜索班级名称"
                        x-model="filters.keyword" @keydown.enter="load()">
                 <button class="btn btn-secondary btn-sm" @click="load()">刷新</button>
+                <button class="btn btn-primary btn-sm" @click="openEdit(null)">
+                    <svg class="w-4 h-4 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    新增班级
+                </button>
             </div>
         </div>
         <div class="overflow-x-auto max-h-[480px]">
@@ -43,45 +49,74 @@
                     <tr>
                         <th>序号</th>
                         <th>班级名称</th>
+                        <th>年级</th>
+                        <th>班主任</th>
+                        <th>教室</th>
                         <th>学生人数</th>
-                        <th>占比</th>
-                        <th>科目配置</th>
+                        <th>操作</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <template x-for="(c, idx) in filteredClasses()" :key="c.name">
+                    <template x-for="(c, idx) in filteredClasses()" :key="c.id">
                         <tr>
                             <td x-text="idx + 1"></td>
-                            <td class="font-medium" x-text="c.name || '未分班'"></td>
-                            <td><span class="badge badge-primary" x-text="c.count + ' 人'"></span></td>
+                            <td class="font-medium" x-text="c.name"></td>
+                            <td x-text="c.grade_name || '—'"></td>
+                            <td x-text="c.head_teacher || '—'"></td>
+                            <td x-text="c.room || '—'"></td>
+                            <td><span class="badge badge-primary" x-text="c.student_count + ' 人'"></span></td>
                             <td class="whitespace-nowrap">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-24 h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
-                                        <div class="h-full bg-primary-500 rounded-full" :style="'width:' + percent(c.count) + '%'"></div>
-                                    </div>
-                                    <span class="text-xs text-gray-500 dark:text-gray-400" x-text="percent(c.count) + '%'"></span>
-                                </div>
+                                <button class="btn btn-ghost btn-sm" @click="openEdit(c.id)">编辑</button>
+                                <button class="btn btn-ghost btn-sm text-red-500" @click="remove(c.id, c.name)">删除</button>
                             </td>
-                            <td><span class="badge badge-gray">待接入</span></td>
                         </tr>
                     </template>
                     <tr x-show="!loading && classes.length === 0">
-                        <td colspan="5" class="text-center py-8 text-gray-500 dark:text-gray-400">暂无班级数据</td>
+                        <td colspan="7" class="text-center py-8 text-gray-500 dark:text-gray-400">暂无班级数据</td>
                     </tr>
                     <tr x-show="loading">
-                        <td colspan="5" class="py-8"><div class="skeleton-text w-2/3 mx-auto"></div></td>
+                        <td colspan="7" class="py-8"><div class="skeleton-text w-2/3 mx-auto"></div></td>
                     </tr>
                 </tbody>
             </table>
         </div>
     </div>
 
-    <!-- 说明 -->
-    <div class="card">
-        <div class="card-header"><h2 class="text-lg font-semibold">说明</h2></div>
-        <div class="card-body text-sm text-gray-500 dark:text-gray-400 space-y-1">
-            <p>· 当前为简化实现：班级数据由学生档案（GET /api/students）按班级字段实时分组统计。</p>
-            <p>· 班级科目配置接口待接入，后续将支持按班级维护开课科目与任课教师。</p>
+    <!-- 新增/编辑对话框 -->
+    <div x-show="showEditor" class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
+         @click.away="showEditor = false">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4"
+                x-text="editingId ? '编辑班级' : '新增班级'"></h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="label" for="edit-name">班级名称 *</label>
+                    <input id="edit-name" type="text" class="input" x-model="editForm.name" placeholder="如：初一4班">
+                </div>
+                <div>
+                    <label class="label" for="edit-grade">年级 *</label>
+                    <select id="edit-grade" class="select w-full" x-model="editForm.grade_id">
+                        <template x-for="g in grades" :key="g.id">
+                            <option :value="g.id" x-text="g.name"></option>
+                        </template>
+                    </select>
+                </div>
+                <div>
+                    <label class="label" for="edit-head">班主任</label>
+                    <input id="edit-head" type="text" class="input" x-model="editForm.head_teacher" placeholder="班主任姓名">
+                </div>
+                <div>
+                    <label class="label" for="edit-room">教室</label>
+                    <input id="edit-room" type="text" class="input" x-model="editForm.room" placeholder="如：A101">
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end gap-2">
+                <button class="btn btn-secondary" @click="showEditor = false">取消</button>
+                <button class="btn btn-primary" @click="save()" :disabled="saving">
+                    <span x-show="!saving">保存</span>
+                    <span x-show="saving">保存中...</span>
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -95,48 +130,116 @@
             totalStudents: 0,
             loading: false,
             filters: { keyword: '' },
+            grades: [],
+            showEditor: false,
+            editingId: null,
+            editForm: { name: '', grade_id: '', head_teacher: '', room: '' },
+            saving: false,
 
             async load() {
                 this.loading = true;
                 try {
-                    const params = new URLSearchParams({ page: 1, page_size: 500 });
-                    const resp = await fetch('/api/students?' + params, {
+                    const resp = await fetch('/api/class?page_size=500', {
                         credentials: 'include', headers: authHeaders()
                     });
                     if (resp.ok) {
                         const d = await resp.json();
-                        this.groupByClass(d.items || []);
+                        this.classes = d.items || [];
+                        this.totalStudents = this.classes.reduce((s, c) => s + (c.student_count || 0), 0);
                     } else if (resp.status === 401) {
                         window.location.href = '/login';
                     }
                 } catch (e) {
-                    console.error('加载学生数据失败:', e);
+                    console.error('加载班级失败:', e);
                 } finally {
                     this.loading = false;
                 }
             },
 
-            groupByClass(items) {
-                const map = new Map();
-                this.totalStudents = items.length;
-                items.forEach(s => {
-                    const name = s.class_name || '未分班';
-                    map.set(name, (map.get(name) || 0) + 1);
-                });
-                this.classes = [...map.entries()]
-                    .map(([name, count]) => ({ name, count }))
-                    .sort((a, b) => b.count - a.count);
+            async loadGrades() {
+                try {
+                    const resp = await fetch('/api/grades?page_size=100', {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        const d = await resp.json();
+                        this.grades = d.items || d || [];
+                    }
+                } catch (e) {
+                    console.error('加载年级失败:', e);
+                }
+            },
+
+            openEdit(id) {
+                this.editingId = id;
+                if (id) {
+                    const c = this.classes.find(x => x.id === id);
+                    this.editForm = {
+                        name: c?.name || '',
+                        grade_id: c?.grade_id || this.grades[0]?.id || '',
+                        head_teacher: c?.head_teacher || '',
+                        room: c?.room || ''
+                    };
+                } else {
+                    this.editForm = { name: '', grade_id: this.grades[0]?.id || '', head_teacher: '', room: '' };
+                }
+                this.showEditor = true;
+            },
+
+            async save() {
+                if (!this.editForm.name || !this.editForm.grade_id) {
+                    alert('班级名称和年级为必填项');
+                    return;
+                }
+                this.saving = true;
+                try {
+                    const url = this.editingId ? `/api/class/${this.editingId}` : '/api/class';
+                    const method = this.editingId ? 'PUT' : 'POST';
+                    const resp = await fetch(url, {
+                        method,
+                        credentials: 'include',
+                        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+                        body: JSON.stringify(this.editForm)
+                    });
+                    if (resp.ok || resp.status === 201) {
+                        this.showEditor = false;
+                        this.load();
+                    } else {
+                        const d = await resp.json().catch(() => ({}));
+                        alert(d.detail || '保存失败');
+                    }
+                } catch (e) {
+                    console.error('保存班级失败:', e);
+                    alert('保存失败: ' + e.message);
+                } finally {
+                    this.saving = false;
+                }
+            },
+
+            async remove(id, name) {
+                if (!confirm(`确定删除班级「${name}」？`)) return;
+                try {
+                    const resp = await fetch(`/api/class/${id}`, {
+                        method: 'DELETE',
+                        credentials: 'include',
+                        headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        this.load();
+                    } else {
+                        const d = await resp.json().catch(() => ({}));
+                        alert(d.detail || '删除失败');
+                    }
+                } catch (e) {
+                    console.error('删除班级失败:', e);
+                    alert('删除失败: ' + e.message);
+                }
             },
 
             filteredClasses() {
                 const kw = (this.filters.keyword || '').trim().toLowerCase();
                 if (!kw) return this.classes;
-                return this.classes.filter(c => c.name.toLowerCase().includes(kw));
-            },
-
-            percent(count) {
-                if (!this.totalStudents) return 0;
-                return Math.round((count / this.totalStudents) * 1000) / 10;
+                return this.classes.filter(c => (c.name || '').toLowerCase().includes(kw));
             },
 
             avgStudents() {
@@ -144,7 +247,7 @@
                 return Math.round((this.totalStudents / this.classes.length) * 10) / 10;
             },
 
-            init() { this.load(); }
+            init() { this.loadGrades(); this.load(); }
         };
     }
 </script>

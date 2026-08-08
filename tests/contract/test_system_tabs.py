@@ -42,7 +42,7 @@ class TestSystemTabs:
         "path,component,fetch_marker",
         [
             ("/page/system/semester", "semesterManage", "/api/semester/list"),
-            ("/page/classes/classes", "classList", "/api/students"),
+            ("/page/classes/classes", "classList", "/api/class"),
             ("/page/classrooms/classrooms", "classroomList", "/api/meta/ui-config"),
             ("/page/system/users", "userPermission", "/api/auth/me"),
             ("/page/system/data_maintenance", "dataMaintenance", "/api/stats/cache/stats"),
