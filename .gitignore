@@ -86,3 +86,4 @@ data/uvi*
 exports/
 *.xlsx
 *.xls
+backups/
