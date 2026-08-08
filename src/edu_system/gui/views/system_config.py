@@ -26,6 +26,7 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
+from edu_system.gui.theme import C
 from edu_system.gui.views.base import BaseView
 
 
@@ -108,16 +109,16 @@ class SystemConfigView(BaseView):
         # 标题
         title = QLabel("系统配置")
         title.setFont(QFont("Microsoft YaHei", 18, QFont.Bold))
-        title.setStyleSheet("color: #1a1a2e; margin-bottom: 8px;")
+        title.setStyleSheet(f"color: {C['antd_title']}; margin-bottom: 8px;")
         layout.addWidget(title)
 
         # 标签页
         self.tabs = QTabWidget()
         self.tabs.setStyleSheet(
-            """
-            QTabWidget::pane { border: 1px solid #d9d9d9; border-radius: 4px; }
-            QTabBar::tab { padding: 8px 16px; margin-right: 4px; }
-            QTabBar::tab:selected { background: #1890ff; color: white; }
+            f"""
+            QTabWidget::pane {{ border: 1px solid {C["antd_border"]}; border-radius: 4px; }}
+            QTabBar::tab {{ padding: 8px 16px; margin-right: 4px; }}
+            QTabBar::tab:selected {{ background: {C["antd_blue"]}; color: white; }}
         """
         )
 
@@ -144,10 +145,10 @@ class SystemConfigView(BaseView):
         btn_layout.addStretch()
         self.btn_save = QPushButton("保存配置")
         self.btn_save.setStyleSheet(
-            """
-            QPushButton { background: #1890ff; color: white; padding: 8px 24px; 
-                          border-radius: 4px; font-weight: 500; }
-            QPushButton:hover { background: #40a9ff; }
+            f"""
+            QPushButton {{ background: {C["antd_blue"]}; color: white; padding: 8px 24px; 
+                          border-radius: 4px; font-weight: 500; }}
+            QPushButton:hover {{ background: {C["antd_blue_hover"]}; }}
         """
         )
         self.btn_save.clicked.connect(self._save_config)
@@ -481,7 +482,7 @@ class SystemConfigView(BaseView):
             title_lbl.setStyleSheet("color: #666; font-size: 14px;")
             value_lbl = QLabel("加载中...")
             value_lbl.setObjectName(f"card_{key}")
-            value_lbl.setStyleSheet("font-size: 24px; font-weight: bold; color: #1890ff;")
+            value_lbl.setStyleSheet(f"font-size: 24px; font-weight: bold; color: {C['antd_blue']};")
             card_layout.addWidget(title_lbl)
             card_layout.addWidget(value_lbl)
             self.storage_cards[key] = value_lbl
@@ -493,7 +494,7 @@ class SystemConfigView(BaseView):
         btn_refresh = QPushButton("刷新统计")
         btn_refresh.clicked.connect(self._refresh_storage_stats)
         btn_cleanup = QPushButton("清理孤儿文件")
-        btn_cleanup.setStyleSheet("background: #faad14; color: white;")
+        btn_cleanup.setStyleSheet(f"background: {C['antd_warn']}; color: white;")
         btn_cleanup.clicked.connect(self._cleanup_orphans)
         btn_layout.addWidget(btn_refresh)
         btn_layout.addWidget(btn_cleanup)
@@ -560,7 +561,9 @@ class SystemConfigView(BaseView):
         group_layout = QFormLayout(group)
 
         self.lbl_lan_url = QLabel("等待服务启动...")
-        self.lbl_lan_url.setStyleSheet("font-family: monospace; font-size: 14px; color: #1890ff;")
+        self.lbl_lan_url.setStyleSheet(
+            f"font-family: monospace; font-size: 14px; color: {C['antd_blue']};"
+        )
         self.lbl_lan_url.setTextInteractionFlags(Qt.TextSelectableByMouse)
         group_layout.addRow("局域网访问地址:", self.lbl_lan_url)
 
@@ -598,11 +601,15 @@ class SystemConfigView(BaseView):
         svc_layout = QHBoxLayout(service_group)
 
         self.btn_start = QPushButton("启动服务")
-        self.btn_start.setStyleSheet("background: #52c41a; color: white; padding: 8px 24px;")
+        self.btn_start.setStyleSheet(
+            f"background: {C['antd_green']}; color: white; padding: 8px 24px;"
+        )
         self.btn_start.clicked.connect(self._start_service)
 
         self.btn_stop = QPushButton("停止服务")
-        self.btn_stop.setStyleSheet("background: #ff4d4f; color: white; padding: 8px 24px;")
+        self.btn_stop.setStyleSheet(
+            f"background: {C['antd_red']}; color: white; padding: 8px 24px;"
+        )
         self.btn_stop.clicked.connect(self._stop_service)
         self.btn_stop.setEnabled(False)
 
@@ -617,7 +624,7 @@ class SystemConfigView(BaseView):
 
         # 状态显示
         self.lbl_service_status = QLabel("服务状态: 未启动")
-        self.lbl_service_status.setStyleSheet("color: #ff4d4f; font-weight: bold;")
+        self.lbl_service_status.setStyleSheet(f"color: {C['antd_red']}; font-weight: bold;")
         layout.addWidget(self.lbl_service_status)
 
         self.tabs.addTab(tab, "网络设置")
@@ -641,12 +648,14 @@ class SystemConfigView(BaseView):
                 self.lbl_lan_url.setText(url)
                 self._generate_qr_code(url)
                 self.lbl_service_status.setText(f"服务状态: 运行中 (http://{local_ip}:{port})")
-                self.lbl_service_status.setStyleSheet("color: #52c41a; font-weight: bold;")
+                self.lbl_service_status.setStyleSheet(
+                    f"color: {C['antd_green']}; font-weight: bold;"
+                )
                 self.btn_start.setEnabled(False)
                 self.btn_stop.setEnabled(True)
             else:
                 self.lbl_service_status.setText("服务状态: 未启动")
-                self.lbl_service_status.setStyleSheet("color: #ff4d4f; font-weight: bold;")
+                self.lbl_service_status.setStyleSheet(f"color: {C['antd_red']}; font-weight: bold;")
                 self.btn_start.setEnabled(True)
                 self.btn_stop.setEnabled(False)
 
@@ -656,7 +665,7 @@ class SystemConfigView(BaseView):
         self.lbl_lan_url.setText(url)
         self._generate_qr_code(url)
         self.lbl_service_status.setText(f"服务状态: 运行中 ({url})")
-        self.lbl_service_status.setStyleSheet("color: #52c41a; font-weight: bold;")
+        self.lbl_service_status.setStyleSheet(f"color: {C['antd_green']}; font-weight: bold;")
         self.btn_start.setEnabled(False)
         self.btn_stop.setEnabled(True)
 
@@ -664,7 +673,7 @@ class SystemConfigView(BaseView):
         self.lbl_lan_url.setText("服务未运行")
         self.lbl_qr.clear()
         self.lbl_service_status.setText("服务状态: 未启动")
-        self.lbl_service_status.setStyleSheet("color: #ff4d4f; font-weight: bold;")
+        self.lbl_service_status.setStyleSheet(f"color: {C['antd_red']}; font-weight: bold;")
         self.btn_start.setEnabled(True)
         self.btn_stop.setEnabled(False)
 

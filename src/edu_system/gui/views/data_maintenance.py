@@ -39,7 +39,7 @@ def _btn(txt, color, w=None):
     b.setStyleSheet(
         f"""QPushButton {{ background: {color}; color: white; border: none;
         border-radius: 3px; padding: 6px 12px; font-size: 9pt; }}
-        QPushButton:hover {{ background: #34495E; }}"""
+        QPushButton:hover {{ background: {C["sidebar_hover"]}; }}"""
     )
     b.setCursor(Qt.PointingHandCursor)
     b.setMinimumHeight(28)
@@ -130,7 +130,7 @@ class DataMaintenanceView(QWidget):
         # 标题
         title = QLabel("数据维护")
         title.setFont(font(16, True))
-        title.setStyleSheet("color: #1a1a2e; margin-bottom: 8px;")
+        title.setStyleSheet(f"color: {C['antd_title']}; margin-bottom: 8px;")
         layout.addWidget(title)
 
         # 标签页
@@ -584,9 +584,9 @@ class DataMaintenanceView(QWidget):
         self.audit_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.audit_table.horizontalHeader().setStretchLastSection(True)
         self.audit_table.verticalHeader().hide()
-        self.audit_table.setStyleSheet("""
-            QTableWidget { font-size:9pt; border:1px solid #DDD; background:white; }
-            QHeaderView::section { background:#D9E1F2; font-weight:bold; padding:4px; border:1px solid #CCC; }
+        self.audit_table.setStyleSheet(f"""
+            QTableWidget {{ font-size:9pt; border:1px solid {C["table_border"]}; background:white; }}
+            QHeaderView::section {{ background:{C["table_header_bg"]}; font-weight:bold; padding:4px; border:1px solid {C["table_header_border"]}; }}
         """)
         lay.addWidget(self.audit_table)
 
@@ -654,7 +654,9 @@ class DataMaintenanceView(QWidget):
         self.db_maint_log.setReadOnly(True)
         self.db_maint_log.setFont(font(9))
         self.db_maint_log.setMaximumHeight(200)
-        self.db_maint_log.setStyleSheet("border:1px solid #DDD; background:#FAFAFA;")
+        self.db_maint_log.setStyleSheet(
+            f"border:1px solid {C['table_border']}; background:{C['bg_muted']};"
+        )
         gl.addWidget(self.db_maint_log)
 
         lay.addWidget(grp)

@@ -50,6 +50,17 @@ C = {
     # 状态背景
     "bg_error": "#FFF0F0",
     "bg_muted": "#F5F5F5",
+    # AntD 风格系统页（system_config/data_maintenance/system_settings_layout 共用）
+    "antd_blue": "#1890ff",  # 主蓝（选中/按钮/标签值）
+    "antd_blue_hover": "#40a9ff",
+    "antd_red": "#ff4d4f",  # 危险/停止
+    "antd_green": "#52c41a",  # 成功/启动
+    "antd_warn": "#faad14",  # 清理警告
+    "antd_title": "#1a1a2e",  # 深色标题
+    "antd_border": "#d9d9d9",  # 边框
+    "antd_bg_warn": "#FFF3CD",  # 警告底色
+    "antd_warn_amber": "#FFC107",
+    "antd_teal": "#2E86C1",  # 按钮 Hover（局部）
 }
 
 # ── 侧栏按钮样式 ──

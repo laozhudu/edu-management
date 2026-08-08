@@ -221,10 +221,6 @@ class UIConfig(BaseModel):
         return visible
 
 
-# 默认配置文件路径
-_DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent / "ui_config.json"
-
-
 def _load_config_from_file(path: Path) -> Any:
     """从文件加载配置"""
     with path.open(encoding="utf-8") as f:

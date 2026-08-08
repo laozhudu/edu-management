@@ -5,7 +5,7 @@
 
 from PyQt5.QtWidgets import QVBoxLayout, QWidget
 
-from edu_system.gui.theme import font
+from edu_system.gui.theme import C, font
 
 
 class SystemSettingsViewMixin:
@@ -16,7 +16,7 @@ class SystemSettingsViewMixin:
     SPACING = 12
     TITLE_FONT_SIZE = 16
     TITLE_BOLD = True
-    TITLE_COLOR = "#1a1a2e"
+    TITLE_COLOR = C["antd_title"]
     TITLE_MARGIN_BOTTOM = "8px"
 
     def _create_standard_layout(self) -> QVBoxLayout:
@@ -44,10 +44,10 @@ class SystemSettingsViewMixin:
 
         tabs = QTabWidget()
         tabs.setStyleSheet(
-            """
-            QTabWidget::pane { border: 1px solid #d9d9d9; border-radius: 4px; }
-            QTabBar::tab { padding: 8px 16px; margin-right: 4px; }
-            QTabBar::tab:selected { background: #1890ff; color: white; }
+            f"""
+            QTabWidget::pane {{ border: 1px solid {C["antd_border"]}; border-radius: 4px; }}
+            QTabBar::tab {{ padding: 8px 16px; margin-right: 4px; }}
+            QTabBar::tab:selected {{ background: {C["antd_blue"]}; color: white; }}
             """
         )
         layout.addWidget(tabs, 1)  # stretch factor = 1 使标签页填满剩余空间
@@ -109,16 +109,16 @@ def setup_system_settings_view(
     # 标题
     title = QLabel(title_text)
     title.setFont(font(16, True))
-    title.setStyleSheet("color: #1a1a2e; margin-bottom: 8px;")
+    title.setStyleSheet(f"color: {C['antd_title']}; margin-bottom: 8px;")
     layout.addWidget(title)
 
     # 标签页
     tabs = QTabWidget()
     tabs.setStyleSheet(
-        """
-        QTabWidget::pane { border: 1px solid #d9d9d9; border-radius: 4px; }
-        QTabBar::tab { padding: 8px 16px; margin-right: 4px; }
-        QTabBar::tab:selected { background: #1890ff; color: white; }
+        f"""
+        QTabWidget::pane {{ border: 1px solid {C["antd_border"]}; border-radius: 4px; }}
+        QTabBar::tab {{ padding: 8px 16px; margin-right: 4px; }}
+        QTabBar::tab:selected {{ background: {C["antd_blue"]}; color: white; }}
         """
     )
 
