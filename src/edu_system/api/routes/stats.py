@@ -437,3 +437,81 @@ def health_check():
         "cache_stats": cache_service.get_stats(),
         "timestamp": datetime.now().isoformat(),
     }
+
+
+@router.get("/dashboard")
+def get_dashboard_stats(
+    db: Session = Depends(get_db),
+):
+    """数据看板聚合统计（第四阶段：桌面 + Web 双端共用）
+
+    返回看板图表所需数据：
+    - gender: 学生性别构成（饼图）
+    - score_dist: 成绩分段分布（直方图）
+    - class_subject: 班级/科目概览（柱状图）
+    - exam_count / class_count 等 KPI 补充
+    """
+    sem_id = get_active_semester()
+    if not sem_id:
+        sem_id = (
+            db.query(Semester).filter(Semester.is_active.is_(True)).first().id
+            if db.query(Semester).filter(Semester.is_active.is_(True)).first()
+            else None
+        )
+    if not sem_id:
+        return {"semester_id": None, "gender": [], "score_dist": [], "class_subject": {}}
+
+    from edu_system.models import Class, Exam, Score, Student, Subject, Teacher
+
+    # 学生性别构成
+    students = db.query(Student).join(Class).filter(Class.semester_id == sem_id).all()
+    male = sum(1 for s in students if s.gender == "男")
+    female = sum(1 for s in students if s.gender == "女")
+    other = len(students) - male - female
+
+    # 成绩分段分布（本学期待发布成绩）
+    scores = (
+        db.query(Score).join(Exam).filter(Exam.semester_id == sem_id, Score.score.isnot(None)).all()
+    )
+    dist = {"<60": 0, "60-69": 0, "70-79": 0, "80-89": 0, "90+": 0}
+    for s in scores:
+        v = s.score
+        if v < 60:
+            dist["<60"] += 1
+        elif v < 70:
+            dist["60-69"] += 1
+        elif v < 80:
+            dist["70-79"] += 1
+        elif v < 90:
+            dist["80-89"] += 1
+        else:
+            dist["90+"] += 1
+
+    # 班级科目概览
+    class_count = db.query(Class).filter(Class.semester_id == sem_id).count()
+    subject_count = db.query(Subject).count()
+    teacher_count = db.query(Teacher).filter(Teacher.semester_id == sem_id).count()
+    exam_count = db.query(Exam).filter(Exam.semester_id == sem_id).count()
+
+    # 班级学生数分布（柱状图：按班级）
+    class_sizes = []
+    for cls in db.query(Class).filter(Class.semester_id == sem_id).order_by(Class.name).all():
+        class_sizes.append({"name": cls.name, "count": len(cls.students)})
+
+    return {
+        "semester_id": sem_id,
+        "kpi": {
+            "student_count": len(students),
+            "class_count": class_count,
+            "subject_count": subject_count,
+            "teacher_count": teacher_count,
+            "exam_count": exam_count,
+        },
+        "gender": [
+            {"name": "男", "value": male},
+            {"name": "女", "value": female},
+            {"name": "其他/未填", "value": other},
+        ],
+        "score_dist": [{"name": k, "value": v} for k, v in dist.items()],
+        "class_sizes": class_sizes,
+    }

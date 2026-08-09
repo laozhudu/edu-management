@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from collections import OrderedDict
 
+from PyQt5.QtChart import QBarSeries, QBarSet, QChart, QChartView, QPieSeries
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QFrame,
@@ -105,6 +106,44 @@ class DashboardView(QWidget):
             kpi_layout.addWidget(card)
             self._kpi_labels[key] = val_label
         self._main_layout.addLayout(kpi_layout)
+
+        # 图表区（第四阶段：数据看板）
+        chart_layout = QHBoxLayout()
+        chart_layout.setSpacing(16)
+
+        # 性别构成饼图
+        gender_card = QFrame()
+        gender_card.setStyleSheet(
+            f"QFrame {{ background: {C['white']}; border: 1px solid {C['line']}; border-radius: 8px; padding: 12px; }}"
+        )
+        gc_layout = QVBoxLayout(gender_card)
+        gc_layout.setSpacing(8)
+        gc_title = QLabel("学生性别构成")
+        gc_title.setFont(font(13, True))
+        gc_title.setStyleSheet(f"color: {C['text']};")
+        gc_layout.addWidget(gc_title)
+        self.gender_chart = QChartView()
+        self.gender_chart.setMinimumHeight(220)
+        gc_layout.addWidget(self.gender_chart)
+        chart_layout.addWidget(gender_card, 1)
+
+        # 班级人数柱状图
+        class_card = QFrame()
+        class_card.setStyleSheet(
+            f"QFrame {{ background: {C['white']}; border: 1px solid {C['line']}; border-radius: 8px; padding: 12px; }}"
+        )
+        cc_layout = QVBoxLayout(class_card)
+        cc_layout.setSpacing(8)
+        cc_title = QLabel("班级人数")
+        cc_title.setFont(font(13, True))
+        cc_title.setStyleSheet(f"color: {C['text']};")
+        cc_layout.addWidget(cc_title)
+        self.class_chart = QChartView()
+        self.class_chart.setMinimumHeight(220)
+        cc_layout.addWidget(self.class_chart)
+        chart_layout.addWidget(class_card, 1)
+
+        self._main_layout.addLayout(chart_layout)
 
         # 学期进度 + 快捷操作
         mid_layout = QHBoxLayout()
@@ -306,6 +345,9 @@ class DashboardView(QWidget):
         self.progress_bar.setValue(62)
         self.progress_label.setText("第 14 / 22 周（期中考试已完成）")
 
+        # 图表区数据（第四阶段：数据看板）
+        self._refresh_charts()
+
         # 待办表格
         self.todo_table.setRowCount(4)
         todos = [
@@ -319,9 +361,69 @@ class DashboardView(QWidget):
             self.todo_table.setItem(row, 1, QTableWidgetItem(status))
             self.todo_table.setItem(row, 2, QTableWidgetItem(deadline))
 
+    def _refresh_charts(self):
+        """刷新图表区（性别饼图 + 班级人数柱状图）"""
+        try:
+            sem_id = self._get_current_semester_id()
+            # 性别构成
+            male = (
+                self.session.query(func.count(Student.id))
+                .join(Class)
+                .filter(Student.gender == "男", Class.semester_id == sem_id)
+                .scalar()
+                or 0
+            )
+            female = (
+                self.session.query(func.count(Student.id))
+                .join(Class)
+                .filter(Student.gender == "女", Class.semester_id == sem_id)
+                .scalar()
+                or 0
+            )
+            pie = QChart()
+            pie.setAnimationOptions(QChart.SeriesAnimations)
+            pie.setTitle("性别构成")
+            pie.legend().setAlignment(Qt.AlignBottom)
+            series = QPieSeries()
+            series.append("男", max(male, 0))
+            series.append("女", max(female, 0))
+            other = (
+                self.session.query(func.count(Student.id))
+                .join(Class)
+                .filter(Student.gender.notin_(["男", "女"]), Class.semester_id == sem_id)
+                .scalar()
+                or 0
+            )
+            if other:
+                series.append("其他", other)
+            pie.addSeries(series)
+            self.gender_chart.setChart(pie)
+
+            # 班级人数
+            bar = QChart()
+            bar.setAnimationOptions(QChart.SeriesAnimations)
+            bar.setTitle("班级人数")
+            bar.legend().setAlignment(Qt.AlignBottom)
+            bar_series = QBarSeries()
+            classes = (
+                self.session.query(Class)
+                .filter(Class.semester_id == sem_id)
+                .order_by(Class.name)
+                .all()
+            )
+            for cls in classes:
+                bset = QBarSet(cls.name)
+                bset.append(len(cls.students))
+                bar_series.append(bset)
+            bar.addSeries(bar_series)
+            self.class_chart.setChart(bar)
+        except Exception:
+            # 图表渲染失败不阻塞看板（数据不足/空学期时静默）
+            pass
+
     def _get_current_semester_id(self):
         if self.session:
-            sem = self.session.query(Semester).filter_by(is_current=True).first()
+            sem = self.session.query(Semester).filter_by(is_active=True).first()
             if sem:
                 return sem.id
         return 1

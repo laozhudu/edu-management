@@ -66,6 +66,28 @@
             </div>
         </div>
     </div>
+
+    <!-- 数据看板图表区（第四阶段） -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" x-show="dashLoaded">
+        <div class="card">
+            <div class="card-header"><h2 class="text-lg font-semibold">学生性别构成</h2></div>
+            <div class="card-body">
+                <div id="gender-chart" class="w-full h-64"></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><h2 class="text-lg font-semibold">班级人数</h2></div>
+            <div class="card-body">
+                <div id="class-chart" class="w-full h-64"></div>
+            </div>
+        </div>
+        <div class="card lg:col-span-2">
+            <div class="card-header"><h2 class="text-lg font-semibold">成绩分段分布</h2></div>
+            <div class="card-body">
+                <div id="score-chart" class="w-full h-56"></div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -75,9 +97,11 @@
         return {
             stats: {},
             semester: null,
+            dashLoaded: false,
             async init() {
                 await this.loadStats();
                 await this.loadSemester();
+                await this.loadDashboard();
             },
             async loadStats() {
                 try {
@@ -93,6 +117,58 @@
                         this.semester = data.semester || data;
                     }
                 } catch (e) { console.warn('Failed to load semester:', e); }
+            },
+            async loadDashboard() {
+                try {
+                    const resp = await fetch('/api/stats/dashboard', { credentials: 'include', headers: authHeaders() });
+                    if (!resp.ok) return;
+                    const d = await resp.json();
+                    this.renderCharts(d);
+                    this.dashLoaded = true;
+                } catch (e) { console.warn('Failed to load dashboard:', e); }
+            },
+            renderCharts(d) {
+                const baseTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+                const colors = { light: ['#3498DB', '#E74C3C', '#95A5A6', '#27AE60', '#E67E22', '#8E44AD'], dark: ['#4ea8de', '#ff6b6b', '#6c757d', '#3ddc84', '#ffa94d', '#b197fc'] };
+                const c = colors[baseTheme];
+                // 性别饼图
+                const genderEl = document.getElementById('gender-chart');
+                if (genderEl && window.echarts) {
+                    const chart = echarts.init(genderEl);
+                    chart.setOption({
+                        tooltip: { trigger: 'item' },
+                        legend: { bottom: 0 },
+                        series: [{
+                            type: 'pie', radius: ['35%', '65%'], avoidLabelOverlap: true,
+                            label: { show: true, formatter: '{b}: {c} ({d}%)' },
+                            data: (d.gender || []).filter(g => g.value > 0).map((g, i) => ({ name: g.name, value: g.value, itemStyle: { color: c[i % c.length] } }))
+                        }]
+                    });
+                }
+                // 班级人数柱状图
+                const classEl = document.getElementById('class-chart');
+                if (classEl && window.echarts) {
+                    const chart = echarts.init(classEl);
+                    chart.setOption({
+                        tooltip: { trigger: 'axis' },
+                        grid: { left: 40, right: 16, top: 16, bottom: 32 },
+                        xAxis: { type: 'category', data: (d.class_sizes || []).map(x => x.name), axisLabel: { interval: 0, rotate: 30 } },
+                        yAxis: { type: 'value', minInterval: 1 },
+                        series: [{ type: 'bar', data: (d.class_sizes || []).map(x => x.count), itemStyle: { color: c[0], borderRadius: [4, 4, 0, 0] }, barMaxWidth: 40 }]
+                    });
+                }
+                // 成绩分段分布
+                const scoreEl = document.getElementById('score-chart');
+                if (scoreEl && window.echarts) {
+                    const chart = echarts.init(scoreEl);
+                    chart.setOption({
+                        tooltip: { trigger: 'axis' },
+                        grid: { left: 40, right: 16, top: 16, bottom: 32 },
+                        xAxis: { type: 'category', data: (d.score_dist || []).map(x => x.name) },
+                        yAxis: { type: 'value', minInterval: 1 },
+                        series: [{ type: 'bar', data: (d.score_dist || []).map(x => x.value), itemStyle: { color: c[2], borderRadius: [4, 4, 0, 0] }, barMaxWidth: 40 }]
+                    });
+                }
             }
         };
     }
