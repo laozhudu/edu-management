@@ -1,0 +1,225 @@
+<!-- 报表模板页（第四阶段 B1：报表生成下载 Web 化） -->
+{% extends "index.html" %}
+
+{% block title %}报表模板 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="space-y-4 max-w-4xl mx-auto px-4" x-data="reportManager()">
+    <!-- 报表类型选择 -->
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">报表生成</h2>
+            <button class="btn btn-secondary btn-sm" @click="loadTypes()">刷新类型</button>
+        </div>
+        <div class="card-body space-y-4">
+            <!-- 类型选择 -->
+            <div>
+                <label class="label" for="rp-type">报表类型</label>
+                <select id="rp-type" class="select w-full" x-model="form.report_type" @change="onTypeChange()">
+                    <template x-for="t in types" :key="t.type">
+                        <option :value="t.type" x-text="t.name + (t.formats ? '（' + t.formats.join('/') + '）' : '')"></option>
+                    </template>
+                </select>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1" x-text="currentTypeDesc"></p>
+            </div>
+
+            <!-- 参数区：考试选择 -->
+            <div x-show="needsExam" x-cloak>
+                <label class="label" for="rp-exam">考试</label>
+                <select id="rp-exam" class="select w-full" x-model="form.exam_id">
+                    <option value="">请选择考试...</option>
+                    <template x-for="e in exams" :key="e.id">
+                        <option :value="e.id" x-text="e.name + (e.exam_date ? '（' + e.exam_date + '）' : '')"></option>
+                    </template>
+                </select>
+            </div>
+
+            <!-- 参数区：学期选择 -->
+            <div x-show="needsSemester" x-cloak>
+                <label class="label" for="rp-sem">学期</label>
+                <select id="rp-sem" class="select w-full" x-model="form.semester_id">
+                    <option value="">请选择学期...</option>
+                    <template x-for="s in semesters" :key="s.id">
+                        <option :value="s.id" x-text="s.label || s.display_label"></option>
+                    </template>
+                </select>
+            </div>
+
+            <!-- 格式选择 -->
+            <div x-show="currentFormats.length > 1" x-cloak>
+                <label class="label" for="rp-fmt">格式</label>
+                <select id="rp-fmt" class="select w-full" x-model="form.format">
+                    <template x-for="f in currentFormats" :key="f">
+                        <option :value="f" x-text="f === 'word' ? 'Word 文档' : 'Excel 表格'"></option>
+                    </template>
+                </select>
+            </div>
+
+            <!-- 证书类型 -->
+            <div x-show="form.report_type === 'certificate'" x-cloak>
+                <label class="label" for="rp-cert">证书类型</label>
+                <select id="rp-cert" class="select w-full" x-model="form.certificate_type">
+                    <option value="award">奖状</option>
+                    <option value="certificate">证书</option>
+                </select>
+            </div>
+
+            <!-- 操作 -->
+            <div class="flex flex-wrap gap-2 pt-2">
+                <button class="btn btn-primary" @click="generate()" :disabled="generating">
+                    <span x-show="!generating">生成报表</span>
+                    <span x-show="generating">生成中...</span>
+                </button>
+                <button class="btn btn-secondary" @click="printLocal()" :disabled="!lastFileUrl">
+                    打印（本地）
+                </button>
+            </div>
+            <p x-show="message" class="text-sm" :class="messageType === 'error' ? 'text-red-500' : 'text-green-600'" x-text="message"></p>
+        </div>
+    </div>
+
+    <!-- 说明 -->
+    <div class="card">
+        <div class="card-header"><h2 class="text-lg font-semibold">说明</h2></div>
+        <div class="card-body text-sm text-gray-500 dark:text-gray-400 space-y-1">
+            <p>· 生成后自动下载文件，可用浏览器打印或本地软件打开。</p>
+            <p>· 考试报表/学籍变动 → Excel；成绩单 → Word/Excel；证书 → Word。</p>
+            <p>· 桌面端「批量打印」Tab 支持批量生成成绩单 + ZIP 打包（Web 本期单文件下载）。</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function reportManager() {
+        return {
+            types: [],
+            exams: [],
+            semesters: [],
+            form: { report_type: '', format: 'excel', exam_id: '', semester_id: '', certificate_type: 'award' },
+            generating: false,
+            message: '',
+            messageType: 'success',
+            lastFileUrl: '',
+
+            get currentType() {
+                return this.types.find(t => t.type === this.form.report_type) || null;
+            },
+            get currentTypeDesc() {
+                return this.currentType?.description || '';
+            },
+            get currentFormats() {
+                return this.currentType?.formats || ['excel'];
+            },
+            get needsExam() {
+                return ['exam', 'report_card', 'certificate'].includes(this.form.report_type);
+            },
+            get needsSemester() {
+                return this.form.report_type === 'change';
+            },
+
+            async loadTypes() {
+                try {
+                    const resp = await fetch('/api/reports/types', { credentials: 'include', headers: authHeaders() });
+                    if (resp.ok) {
+                        const d = await resp.json();
+                        this.types = d.report_types || d || [];
+                        if (this.types.length && !this.form.report_type) {
+                            this.form.report_type = this.types[0].type;
+                            this.onTypeChange();
+                        }
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) { console.error('加载报表类型失败:', e); }
+            },
+
+            async loadExams() {
+                try {
+                    const resp = await fetch('/api/exam?page_size=100', { credentials: 'include', headers: authHeaders() });
+                    if (resp.ok) this.exams = (await resp.json()).items || [];
+                } catch (e) { console.error('加载考试失败:', e); }
+            },
+
+            async loadSemesters() {
+                try {
+                    const resp = await fetch('/api/semester/list', { credentials: 'include', headers: authHeaders() });
+                    if (resp.ok) this.semesters = (await resp.json()).items || [];
+                } catch (e) { console.error('加载学期失败:', e); }
+            },
+
+            onTypeChange() {
+                const t = this.currentType;
+                if (t && t.formats && t.formats.length) {
+                    this.form.format = t.formats.includes('word') ? 'word' : t.formats[0];
+                }
+                this.message = '';
+            },
+
+            async generate() {
+                if (!this.form.report_type) { this.showMsg('请选择报表类型', 'error'); return; }
+                if (this.needsExam && !this.form.exam_id) { this.showMsg('请选择考试', 'error'); return; }
+                if (this.needsSemester && !this.form.semester_id) { this.showMsg('请选择学期', 'error'); return; }
+                this.generating = true;
+                this.message = '';
+                try {
+                    const body = {
+                        report_type: this.form.report_type,
+                        format: this.form.format,
+                        exam_id: this.form.exam_id ? parseInt(this.form.exam_id) : null,
+                        semester_id: this.form.semester_id ? parseInt(this.form.semester_id) : null,
+                        certificate_type: this.form.certificate_type,
+                        single_file: true
+                    };
+                    const resp = await fetch('/api/reports/generate', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                        body: JSON.stringify(body)
+                    });
+                    if (!resp.ok) {
+                        const d = await resp.json().catch(() => ({}));
+                        this.showMsg(d.detail || d.error || '生成失败', 'error');
+                        return;
+                    }
+                    const blob = await resp.blob();
+                    const url = URL.createObjectURL(blob);
+                    this.lastFileUrl = url;
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = resp.headers.get('content-disposition')?.match(/filename\*=UTF-8''([^;]+)/)?.[1] ?
+                        decodeURIComponent(resp.headers.get('content-disposition').match(/filename\*=UTF-8''([^;]+)/)[1]) :
+                        (this.form.report_type + '_report');
+                    document.body.appendChild(a);
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    a.remove();
+                    this.showMsg('报表已生成并下载', 'success');
+                } catch (e) {
+                    this.showMsg('生成失败: ' + e.message, 'error');
+                } finally {
+                    this.generating = false;
+                }
+            },
+
+            printLocal() {
+                if (this.lastFileUrl) window.open(this.lastFileUrl, '_blank');
+            },
+
+            showMsg(text, type) {
+                this.message = text;
+                this.messageType = type || 'success';
+                clearTimeout(this._timer);
+                this._timer = setTimeout(() => (this.message = ''), 5000);
+            },
+
+            init() {
+                this.loadTypes();
+                this.loadExams();
+                this.loadSemesters();
+            }
+        };
+    }
+</script>
+{% endblock %}

@@ -41,6 +41,41 @@ class TestReportsContract:
         assert "filename*=" in cd, f"应使用 RFC 5987 编码: {cd}"
         assert len(r.content) > 0
 
+    def test_generate_change_report(self):
+        """生成学籍变动报表（学期参数）"""
+        r = self.client.post(
+            "/api/reports/generate",
+            headers=self.headers,
+            json={"report_type": "change", "semester_id": 1},
+        )
+        assert r.status_code == 200, r.text[:200]
+        assert len(r.content) > 0
+
+    def test_generate_report_card(self):
+        """生成成绩单（word 格式）"""
+        r = self.client.post(
+            "/api/reports/generate",
+            headers=self.headers,
+            json={"report_type": "report_card", "format": "word", "exam_id": 1},
+        )
+        assert r.status_code == 200, r.text[:200]
+        assert len(r.content) > 0
+
+    def test_report_missing_param(self):
+        """缺参数 → 400"""
+        r = self.client.post(
+            "/api/reports/generate",
+            headers=self.headers,
+            json={"report_type": "exam"},  # 缺 exam_id
+        )
+        assert r.status_code == 400, f"{r.status_code} {r.text[:80]}"
+
+    def test_report_page_renders(self):
+        """报表页渲染（report.html 就位后非占位）"""
+        r = self.client.get("/page/system/report", headers=self.headers)
+        assert r.status_code == 200
+        assert "reportManager" in r.text, "报表页应渲染 reportManager 组件（非 index 占位）"
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-x", "-v"])

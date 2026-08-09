@@ -1,5 +1,15 @@
 # 变更日志
 
+## [3.5.0] - 2026-08-09
+
+### 第四阶段（续）：报表打印闭环 Web 化
+
+- **修复 report 页签空白**：ui_config view=report 此前无对应模板，打开是 index 占位 → 新建 `report.html`
+- **报表生成下载页**：类型选择（考试/学籍变动/成绩单/证书）+ 参数区（考试/学期下拉）+ 格式选择（Word/Excel）+ 证书类型 + 生成下载 + 本地打印
+- **契约测试**：+5（change/成绩单选/report 缺参/report 页渲染）+ system_tabs 页面断言
+- **修复后端 bug**：report.py generate_change_report 字符串 SQL 未 text() 包裹 → 新 SQLAlchemy 500（change 报表此前从未被调用暴露）
+- 浏览器实测：report 页渲染 4 类型 + 考试下拉正常，考试报表生成 200 Excel 下载
+
 ## [3.4.0] - 2026-08-09
 
 ### 第四阶段：数据看板双端可视化（Dashboard）

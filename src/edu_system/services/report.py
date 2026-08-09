@@ -10,6 +10,7 @@ from docx.oxml.ns import qn
 from docx.shared import Pt
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from edu_system.models import Exam, Semester
@@ -210,8 +211,10 @@ class ReportService:
             ws.row_dimensions[1].height = 40
 
             classes = self.session.execute(
-                "SELECT c.id, c.name FROM classes c JOIN grades g ON c.grade_id=g.id "
-                "WHERE g.name LIKE :gname ORDER BY c.name",
+                text(
+                    "SELECT c.id, c.name FROM classes c JOIN grades g ON c.grade_id=g.id "
+                    "WHERE g.name LIKE :gname ORDER BY c.name"
+                ),
                 {"gname": f"%{grade_name}%"},
             ).all()
 

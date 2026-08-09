@@ -660,14 +660,14 @@ class DataValidator:
         warnings = sum(1 for r in self.results if r.status == "WARN")
         failed = sum(1 for r in self.results if r.status == "FAIL")
 
-        self.log(f"\n{'='*60}")
+        self.log(f"\n{'=' * 60}")
         self.log("📋 校验报告汇总")
-        self.log(f"{'='*60}")
+        self.log(f"{'=' * 60}")
         self.log(f"总计: {total} 项")
         self.log(f"✅ 通过: {passed}")
         self.log(f"⚠️  警告: {warnings}")
         self.log(f"❌ 失败: {failed}")
-        self.log(f"{'='*60}")
+        self.log(f"{'=' * 60}")
 
         if failed > 0:
             self.log("\n❌ 失败项详情:")
@@ -699,7 +699,7 @@ th {{background: #f5f5f5;}} .pass {{background: #e8f5e9;}} .warn {{background: #
 .status-fail {{background: #f44336; color: white;}}
 </style></head><body>
 <h1>📋 数据校验报告</h1>
-<p>生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+<p>生成时间: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</p>
 <table><thead><tr><th>表</th><th>检查项</th><th>状态</th><th>消息</th><th>数量</th></tr></thead><tbody>
 """
         for r in self.results:

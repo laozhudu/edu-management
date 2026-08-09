@@ -323,6 +323,18 @@ class DataLoader:
                             pass
 
                 obj = model(**item)
+                # 幂等：主键已存在则跳过（防止 fixture 清理时序导致的 UNIQUE 冲突）
+                pk_name = model.__table__.primary_key.columns.keys()[0]
+                pk_value = item.get(pk_name)
+                if pk_value is not None:
+                    exists = (
+                        self.session.query(model)
+                        .filter(getattr(model, pk_name) == pk_value)
+                        .first()
+                    )
+                    if exists:
+                        self.log(f"  ⏭️ 跳过已存在: {model.__name__} id={pk_value}")
+                        continue
                 self.session.add(obj)
                 count += 1
             except Exception as e:
