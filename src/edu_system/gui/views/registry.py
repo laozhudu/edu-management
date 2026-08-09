@@ -19,7 +19,7 @@ VIEW_REGISTRY = {
     # 成绩管理域
     "score_entry": ("edu_system.gui.views.score", "ScoreView", ["session"]),
     "score_query": ("edu_system.gui.views.score", "ScoreView", ["session"]),
-    "score_stats": ("edu_system.gui.views.report", "ReportView", ["session"]),
+    "score_stats": ("edu_system.gui.views.score_stats", "ScoreStatsView", ["session"]),
     "score_rank": ("edu_system.gui.views.score", "ScoreView", ["session"]),
     # 考试管理域
     "exam_manage": ("edu_system.gui.views.exam", "ExamView", ["session", "view_id"]),
@@ -44,7 +44,7 @@ VIEW_REGISTRY = {
     ),
     "system_config": ("edu_system.gui.views.system_config", "SystemConfigView", ["session"]),
     "init": ("edu_system.gui.views.init_system", "InitView", ["session"]),
-    "report": ("edu_system.gui.views.report", "ReportView", ["session"]),
+    "report": ("edu_system.gui.views.report", "ReportView", ["session", "view_id"]),
 }
 
 

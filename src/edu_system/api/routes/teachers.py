@@ -353,6 +353,7 @@ class TeacherCreateRequest(BaseModel):
     education: str = ""
     degree: str = ""
     political_status: str = ""
+    status: str = "active"
 
 
 class TeacherUpdateRequest(BaseModel):
@@ -366,6 +367,7 @@ class TeacherUpdateRequest(BaseModel):
     education: str | None = None
     degree: str | None = None
     political_status: str | None = None
+    status: str | None = None
 
 
 @router.post("", status_code=201)

@@ -44,16 +44,17 @@ class TestUIConfigAPI:
         assert data["app"]["school_name"] == _SRC_CFG["app"]["school_name"]
         assert data["app"]["version"] == _SRC_CFG["app"]["version"]
         # 8 域导航（home/students/scores/exams/teachers/classes/classrooms/system）
-        assert len(data["domains"]) == 8
+        assert len(data["domains"]) == 9
         domain_ids = [d["id"] for d in data["domains"]]
         assert domain_ids == [
             "home",
             "students",
-            "scores",
-            "exams",
             "teachers",
             "classes",
             "classrooms",
+            "exams",
+            "scores",
+            "tools",
             "system",
         ]
         # 按 order 升序排列

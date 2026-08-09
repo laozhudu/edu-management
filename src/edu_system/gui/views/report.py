@@ -46,10 +46,17 @@ def _btn(txt, color, w=None):
 
 
 class ReportView(QWidget):
-    def __init__(self, session: Session):
+    def __init__(self, session: Session, view_id: str = "report"):
         super().__init__()
         self.session = session
+        self.view_id = view_id
+        self._tabs = None
         self._build_ui()
+        # 定位内部 tab：report_generate→0 / report_templates→1 / report_batch→2
+        if self._tabs is not None and view_id != "report":
+            target = {"report_templates": 1, "report_batch": 2}.get(view_id)
+            if target is not None:
+                self._tabs.setCurrentIndex(target)
 
     def _build_ui(self):
         if self.layout():
@@ -63,12 +70,12 @@ class ReportView(QWidget):
         tb.addStretch()
         lay.addLayout(tb)
 
-        tabs = QTabWidget()
-        tabs.setFont(font(9))
-        tabs.addTab(self._build_generate_tab(), "报表生成")
-        tabs.addTab(self._build_template_tab(), "模板管理")
-        tabs.addTab(self._build_batch_tab(), "批量打印")
-        lay.addWidget(tabs)
+        self._tabs = QTabWidget()
+        self._tabs.setFont(font(9))
+        self._tabs.addTab(self._build_generate_tab(), "报表生成")
+        self._tabs.addTab(self._build_template_tab(), "模板管理")
+        self._tabs.addTab(self._build_batch_tab(), "批量打印")
+        lay.addWidget(self._tabs)
 
     # ═══════════════════════════════════
     #  Tab 1: 报表生成

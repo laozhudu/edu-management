@@ -52,8 +52,8 @@ class TestSystemTabs:
             ("/page/exams/exam_invigilation", "examInvigilation", "/api/exam"),
             ("/page/exams/exam_admit", "examAdmit", "/api/exam"),
             ("/page/teachers/teacher_assign", "teacherAssign", "/api/teachers/assignments"),
-            # 报表页（第四阶段 B1 新增）
-            ("/page/system/report", "reportManager", "/api/reports/types"),
+            # 报表工具域（第四阶段 A3：底座集中）
+            ("/page/tools/report_generate", "reportManager", "/api/reports/types"),
         ],
     )
     def test_tab_renders_specific_template(

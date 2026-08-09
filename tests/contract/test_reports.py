@@ -72,7 +72,7 @@ class TestReportsContract:
 
     def test_report_page_renders(self):
         """报表页渲染（report.html 就位后非占位）"""
-        r = self.client.get("/page/system/report", headers=self.headers)
+        r = self.client.get("/page/tools/report_generate", headers=self.headers)
         assert r.status_code == 200
         assert "reportManager" in r.text, "报表页应渲染 reportManager 组件（非 index 占位）"
 

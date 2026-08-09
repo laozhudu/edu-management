@@ -6,8 +6,8 @@
     "name_short": "教务管理",
     "school_name": "示例学校",
     "window_title": "{school} {name} · {version_display}",
-    "version": "3.5.0",
-    "version_display": "3.5.0",
+    "version": "3.6.0",
+    "version_display": "3.6.0",
     "footer": "{school} · {version_display}"
   },
   "theme": {
@@ -60,13 +60,8 @@
     {
       "id": "students",
       "title": "学生管理",
-      "icon": "▤",
+      "icon": "👨🎓",
       "order": 1,
-      "badge_source": "student_count",
-      "permissions": [
-        "admin",
-        "academic_staff"
-      ],
       "tabs": [
         {
           "id": "student_list",
@@ -103,32 +98,65 @@
             "admin"
           ]
         }
+      ],
+      "badge_source": "student_count",
+      "permissions": [
+        "admin",
+        "academic_staff"
       ]
     },
     {
-      "id": "scores",
-      "title": "成绩管理",
-      "icon": "▦",
+      "id": "teachers",
+      "title": "教师管理",
+      "icon": "👩🏫",
       "order": 2,
       "tabs": [
         {
-          "id": "score_entry",
-          "title": "成绩管理",
-          "view": "score_entry",
+          "id": "teacher_list",
+          "title": "教师管理",
+          "view": "teacher_list",
           "default": true
         },
         {
-          "id": "score_stats",
-          "title": "成绩统计",
-          "view": "score_stats"
+          "id": "teacher_assign",
+          "title": "任课分配",
+          "view": "teacher_assign"
+        }
+      ]
+    },
+    {
+      "id": "classes",
+      "title": "班级科目",
+      "icon": "🏫",
+      "order": 3,
+      "tabs": [
+        {
+          "id": "classes",
+          "title": "班级科目",
+          "view": "class_list",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "classrooms",
+      "title": "教室位置",
+      "icon": "📍",
+      "order": 4,
+      "tabs": [
+        {
+          "id": "classrooms",
+          "title": "教室位置",
+          "view": "classroom_list",
+          "default": true
         }
       ]
     },
     {
       "id": "exams",
       "title": "考试管理",
-      "icon": "◈",
-      "order": 3,
+      "icon": "📝",
+      "order": 5,
       "tabs": [
         {
           "id": "exam_manage",
@@ -154,49 +182,45 @@
       ]
     },
     {
-      "id": "teachers",
-      "title": "教师管理",
-      "icon": "◇",
-      "order": 4,
-      "tabs": [
-        {
-          "id": "teacher_list",
-          "title": "教师管理",
-          "view": "teacher_list",
-          "default": true
-        },
-        {
-          "id": "teacher_assign",
-          "title": "任课分配",
-          "view": "teacher_assign"
-        }
-      ]
-    },
-    {
-      "id": "classes",
-      "title": "班级科目",
-      "icon": "▤",
-      "order": 5,
-      "tabs": [
-        {
-          "id": "classes",
-          "title": "班级科目",
-          "view": "class_list",
-          "default": true
-        }
-      ]
-    },
-    {
-      "id": "classrooms",
-      "title": "教室位置",
-      "icon": "□",
+      "id": "scores",
+      "title": "成绩管理",
+      "icon": "📊",
       "order": 6,
       "tabs": [
         {
-          "id": "classrooms",
-          "title": "教室位置",
-          "view": "classroom_list",
+          "id": "score_entry",
+          "title": "成绩管理",
+          "view": "score_entry",
           "default": true
+        },
+        {
+          "id": "score_stats",
+          "title": "成绩统计",
+          "view": "score_stats"
+        }
+      ]
+    },
+    {
+      "id": "tools",
+      "title": "报表工具",
+      "icon": "🧰",
+      "order": 7,
+      "tabs": [
+        {
+          "id": "report_generate",
+          "title": "报表生成",
+          "view": "report",
+          "default": true
+        },
+        {
+          "id": "report_templates",
+          "title": "模板管理",
+          "view": "report"
+        },
+        {
+          "id": "report_batch",
+          "title": "批量打印",
+          "view": "report"
         }
       ]
     },
@@ -204,7 +228,7 @@
       "id": "system",
       "title": "系统设置",
       "icon": "⚙",
-      "order": 7,
+      "order": 8,
       "tabs": [
         {
           "id": "semester",
@@ -231,11 +255,6 @@
           "id": "init",
           "title": "初始化系统",
           "view": "init"
-        },
-        {
-          "id": "report",
-          "title": "报表模板",
-          "view": "report"
         }
       ]
     }

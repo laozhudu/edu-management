@@ -239,8 +239,34 @@ class Teacher(Base):
     graduation_date = Column(Date, nullable=True, comment="毕业时间")
     staff_no = Column(String(20), default="", comment="编号")
     semester_id = Column(Integer, ForeignKey("semesters.id"), nullable=False, comment="所属学期")
+    status = Column(
+        String(10), default="active", comment="在职状态: active在职/resigned离职/retired退休"
+    )
     note = Column(Text, default="")
     ext_json = Column(Text, nullable=True, comment="自定义扩展字段（JSON 对象）")
+
+
+class TeacherMovement(Base):
+    """教师变动记录（对齐 StudentMovement：入职/变动/退休）"""
+
+    __tablename__ = "teacher_movements"
+    id = Column(Integer, primary_key=True)
+    teacher_id = Column(Integer, ForeignKey("teachers.id", ondelete="CASCADE"))
+    semester_id = Column(
+        Integer, ForeignKey("semesters.id"), nullable=False, comment="变动发生学期"
+    )
+    move_type = Column(String(10), comment="变动具体类型")
+    movement_category = Column(
+        String(20),
+        default="",
+        comment="规范分类: onboard入职/promote晋升/transfer调岗/resign离职/retire退休",
+    )
+    move_date = Column(Date, nullable=True)
+    from_title = Column(String(20), default="", comment="原职称/岗位")
+    to_title = Column(String(20), default="", comment="新职称/岗位")
+    reason = Column(Text, default="")
+    operator = Column(String(20), default="")
+    created_at = Column(DateTime, server_default=func.now())
 
 
 # ════════════════════════════════════

@@ -60,11 +60,11 @@ class TestIndexPage:
 
 
 class TestUIConfigAPI:
-    def test_ui_config_has_8_domains(self, client, auth_headers):
+    def test_ui_config_has_9_domains(self, client, auth_headers):
         r = client.get("/api/meta/ui-config", headers=auth_headers)
         assert r.status_code == 200
         data = r.json()
-        assert len(data["domains"]) == 8
+        assert len(data["domains"]) == 9
         ids = [d["id"] for d in data["domains"]]
         assert set(ids) >= {
             "home",
@@ -74,6 +74,7 @@ class TestUIConfigAPI:
             "teachers",
             "classes",
             "classrooms",
+            "tools",
             "system",
         }
 
@@ -122,7 +123,7 @@ class TestPagePlaceholder:
             "/page/system/data_maintenance",
             "/page/system/system_config",
             "/page/system/init",
-            "/page/system/report",
+            "/page/tools/report_generate",
         ],
     )
     def test_page_200_when_logged_in(self, client, auth_headers, path):

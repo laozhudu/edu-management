@@ -93,9 +93,20 @@ class TeacherView(QWidget):
         lay = QVBoxLayout(w)
         lay.setContentsMargins(4, 4, 4, 4)
         teachers = self.session.query(Teacher).order_by(Teacher.name).all()
-        rows = [[t.name, t.gender, t.education, t.title, t.phone or ""] for t in teachers]
-        t = QTableWidget(len(rows), 5)
-        t.setHorizontalHeaderLabels(["姓名", "性别", "学历", "职称", "电话"])
+        _STATUS_CN = {"active": "在职", "resigned": "离职", "retired": "退休"}
+        rows = [
+            [
+                t.name,
+                t.gender,
+                t.education,
+                t.title,
+                t.phone or "",
+                _STATUS_CN.get(t.status or "active", "在职"),
+            ]
+            for t in teachers
+        ]
+        t = QTableWidget(len(rows), 6)
+        t.setHorizontalHeaderLabels(["姓名", "性别", "学历", "职称", "电话", "状态"])
         for i, row in enumerate(rows):
             for j, v in enumerate(row):
                 t.setItem(i, j, QTableWidgetItem(str(v)))

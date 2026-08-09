@@ -10,24 +10,25 @@ class TestUIConfig:
     def test_template_rendering(self):
         """模板变量正确渲染"""
         cfg = get_config()
-        assert cfg.window_title == "示例学校 教务管理系统 · 3.5.0"
-        assert cfg.footer_text == "示例学校 · 3.5.0"
+        assert cfg.window_title == "示例学校 教务管理系统 · 3.6.0"
+        assert cfg.footer_text == "示例学校 · 3.6.0"
         assert cfg.brand_text == "示例学校教务管理系统"
 
     def test_domains_loaded(self):
-        """8 个域正确加载并按 order 排序"""
+        """9 个域正确加载并按 order 排序"""
         cfg = get_config()
         domains = cfg.domains_parsed
-        assert len(domains) == 8
+        assert len(domains) == 9
         titles = [d["title"] for d in domains]
         assert titles == [
             "首页",
             "学生管理",
-            "成绩管理",
-            "考试管理",
             "教师管理",
             "班级科目",
             "教室位置",
+            "考试管理",
+            "成绩管理",
+            "报表工具",
             "系统设置",
         ]
 
@@ -45,18 +46,18 @@ class TestUIConfig:
         assert reg_tab.permissions == ["admin"]
 
     def test_admin_sees_all(self):
-        """admin 角色看到全部 8 个域"""
+        """admin 角色看到全部 9 个域"""
         cfg = get_config()
         visible = cfg.filter_domains(["admin"])
-        assert len(visible) == 8
+        assert len(visible) == 9
 
     def test_teacher_filtered(self):
-        """teacher 角色被过滤掉学生管理域（其余 7 域可见）"""
+        """teacher 角色被过滤掉学生管理域（其余 8 域可见）"""
         cfg = get_config()
         visible = cfg.filter_domains(["teacher"])
         titles = [d["title"] for d in visible]
         assert "学生管理" not in titles
-        assert len(visible) == 7
+        assert len(visible) == 8
 
     def test_academic_staff_sees_students(self):
         """academic_staff 角色看到学生管理"""
