@@ -21,6 +21,10 @@ AUDIT_TABLES = {
     "enrollments",
     "semesters",
     "subjects",
+    # 扩展业务域（A2：图书管理）
+    "books",
+    "borrow_records",
+    "departments",
 }
 
 # 排除的字段（不记录变更）

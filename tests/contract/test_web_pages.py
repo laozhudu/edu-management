@@ -60,11 +60,9 @@ class TestIndexPage:
 
 
 class TestUIConfigAPI:
-    def test_ui_config_has_9_domains(self, client, auth_headers):
-        r = client.get("/api/meta/ui-config", headers=auth_headers)
-        assert r.status_code == 200
-        data = r.json()
-        assert len(data["domains"]) == 9
+    def test_ui_config_has_10_domains(self, client, auth_headers):
+        data = client.get("/api/config", headers=auth_headers).json()
+        assert len(data["domains"]) == 10
         ids = [d["id"] for d in data["domains"]]
         assert set(ids) >= {
             "home",
@@ -76,11 +74,11 @@ class TestUIConfigAPI:
             "classrooms",
             "tools",
             "system",
+            "library",
         }
 
     def test_ui_config_has_tabs(self, client, auth_headers):
-        r = client.get("/api/meta/ui-config", headers=auth_headers)
-        data = r.json()
+        data = client.get("/api/config", headers=auth_headers).json()
         for d in data["domains"]:
             assert d.get("tabs"), f"domain {d['id']} 无页签"
 

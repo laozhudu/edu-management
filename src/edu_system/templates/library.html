@@ -1,0 +1,198 @@
+<!-- 图书管理页（A2：独立业务域演示，复用底座权限/分页/审计） -->
+{% extends "index.html" %}
+
+{% block title %}图书管理 - {{ school_name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-4 max-w-6xl mx-auto px-4" x-data="libraryManager()">
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">图书管理</h2>
+            <div class="flex gap-2">
+                <button class="btn btn-primary btn-sm" @click="openAdd()">新增图书</button>
+                <button class="btn btn-secondary btn-sm" @click="load()">刷新</button>
+            </div>
+        </div>
+        <div class="card-body overflow-x-auto">
+            <table class="table">
+                <thead>
+                    <tr><th>书名</th><th>作者</th><th>ISBN</th><th>分类</th><th>馆藏/可借</th><th>状态</th><th>操作</th></tr>
+                </thead>
+                <tbody>
+                    <template x-for="b in books" :key="b.id">
+                        <tr>
+                            <td class="font-medium" x-text="b.title"></td>
+                            <td x-text="b.author"></td>
+                            <td class="whitespace-nowrap" x-text="b.isbn"></td>
+                            <td x-text="b.category"></td>
+                            <td x-text="b.available_copies + ' / ' + b.total_copies"></td>
+                            <td><span class="badge" :class="b.status === '0' ? 'badge-success' : 'badge-danger'" x-text="b.status === '0' ? '在架' : '下架'"></span></td>
+                            <td class="whitespace-nowrap">
+                                <button class="text-blue-500 hover:underline text-xs mr-2" @click="openBorrow(b)">借出</button>
+                                <button class="text-green-500 hover:underline text-xs mr-2" @click="doReturn(b)">归还</button>
+                                <button class="text-blue-500 hover:underline text-xs mr-2" @click="openEdit(b)">编辑</button>
+                                <button class="text-red-500 hover:underline text-xs" @click="remove(b)">删除</button>
+                            </td>
+                        </tr>
+                    </template>
+                    <tr x-show="!books.length">
+                        <td colspan="7" class="text-center py-6 text-gray-500">暂无图书</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">借阅记录</h2>
+            <button class="btn btn-secondary btn-sm" @click="loadRecords()">刷新</button>
+        </div>
+        <div class="card-body overflow-x-auto max-h-80">
+            <table class="table">
+                <thead>
+                    <tr><th>书名</th><th>借阅人</th><th>借出日期</th><th>应还日期</th><th>归还日期</th><th>状态</th></tr>
+                </thead>
+                <tbody>
+                    <template x-for="r in records" :key="r.id">
+                        <tr>
+                            <td x-text="r.book_title"></td>
+                            <td x-text="r.borrower_name"></td>
+                            <td class="whitespace-nowrap" x-text="r.borrow_date"></td>
+                            <td class="whitespace-nowrap" x-text="r.due_date"></td>
+                            <td class="whitespace-nowrap" x-text="r.return_date || '—'"></td>
+                            <td><span class="badge" :class="r.status === '0' ? 'badge-warning' : r.status === '1' ? 'badge-success' : 'badge-danger'" x-text="r.status === '0' ? '借出' : r.status === '1' ? '已还' : '逾期'"></span></td>
+                        </tr>
+                    </template>
+                    <tr x-show="!records.length">
+                        <td colspan="6" class="text-center py-6 text-gray-500">暂无借阅记录</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 图书模态框 -->
+    <div x-show="modal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="modal = false">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-[440px] p-5">
+            <h3 class="text-lg font-semibold mb-4" x-text="form.id ? '编辑图书' : '新增图书'"></h3>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="col-span-2"><label class="label">书名</label><input class="input w-full" x-model="form.title"></div>
+                <div><label class="label">作者</label><input class="input w-full" x-model="form.author"></div>
+                <div><label class="label">ISBN</label><input class="input w-full" x-model="form.isbn"></div>
+                <div><label class="label">分类</label><input class="input w-full" x-model="form.category"></div>
+                <div><label class="label">出版社</label><input class="input w-full" x-model="form.publisher"></div>
+                <div><label class="label">出版年份</label><input class="input w-full" type="number" x-model="form.publish_year"></div>
+                <div><label class="label">馆藏册数</label><input class="input w-full" type="number" x-model="form.total_copies"></div>
+            </div>
+            <div class="flex justify-end gap-2 mt-5">
+                <button class="btn btn-secondary" @click="modal = false">取消</button>
+                <button class="btn btn-primary" @click="save()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 借出模态框 -->
+    <div x-show="borrowModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="borrowModal = false">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-[380px] p-5">
+            <h3 class="text-lg font-semibold mb-4">借出图书</h3>
+            <div class="space-y-3">
+                <div><label class="label">借阅人</label><input class="input w-full" x-model="borrowForm.borrower_name"></div>
+                <div><label class="label">借期（天）</label><input class="input w-full" type="number" x-model="borrowForm.days"></div>
+            </div>
+            <div class="flex justify-end gap-2 mt-5">
+                <button class="btn btn-secondary" @click="borrowModal = false">取消</button>
+                <button class="btn btn-primary" @click="doBorrow()">确认借出</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function libraryManager() {
+        return {
+            books: [], records: [], modal: false, borrowModal: false, form: {}, borrowForm: { days: 30 },
+
+            async load() {
+                try {
+                    const r = await fetch('/api/books', { credentials: 'include', headers: authHeaders() });
+                    if (r.ok) this.books = (await r.json()).items || [];
+                    else if (r.status === 401) { window.location.href = '/login'; return; }
+                    this.loadRecords();
+                } catch (e) { console.error(e); }
+            },
+
+            async loadRecords() {
+                try {
+                    const r = await fetch('/api/borrow-records', { credentials: 'include', headers: authHeaders() });
+                    if (r.ok) this.records = (await r.json()).items || [];
+                } catch (e) { console.error(e); }
+            },
+
+            openAdd() {
+                this.form = { title: '', author: '', isbn: '', category: '', publisher: '', publish_year: 0, total_copies: 1 };
+                this.modal = true;
+            },
+
+            openEdit(b) {
+                this.form = Object.assign({}, b);
+                this.modal = true;
+            },
+
+            async save() {
+                const isEdit = !!this.form.id;
+                const r = await fetch(isEdit ? '/api/books/' + this.form.id : '/api/books', {
+                    method: isEdit ? 'PUT' : 'POST',
+                    credentials: 'include',
+                    headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                    body: JSON.stringify(this.form)
+                });
+                const d = await r.json().catch(() => ({}));
+                if (!r.ok) { alert(d.detail || d.msg || '保存失败'); return; }
+                this.modal = false;
+                this.load();
+            },
+
+            async remove(b) {
+                if (!confirm('确认删除《' + b.title + '》？')) return;
+                const r = await fetch('/api/books/' + b.id, {
+                    method: 'DELETE', credentials: 'include', headers: authHeaders()
+                });
+                const j = await r.json().catch(() => ({}));
+                if (!r.ok) { alert(j.detail || j.msg || '删除失败'); return; }
+                this.load();
+            },
+
+            openBorrow(b) {
+                this.borrowForm = { book_id: b.id, borrower_name: '', days: 30 };
+                this.borrowModal = true;
+            },
+
+            async doBorrow() {
+                const r = await fetch('/api/books/' + this.borrowForm.book_id + '/borrow', {
+                    method: 'POST', credentials: 'include',
+                    headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                    body: JSON.stringify(this.borrowForm)
+                });
+                const d = await r.json().catch(() => ({}));
+                if (!r.ok) { alert(d.detail || d.msg || '借出失败'); return; }
+                this.borrowModal = false;
+                this.load();
+            },
+
+            async doReturn(b) {
+                const r = await fetch('/api/books/' + b.id + '/return', {
+                    method: 'POST', credentials: 'include', headers: authHeaders()
+                });
+                const d = await r.json().catch(() => ({}));
+                if (!r.ok) { alert(d.detail || d.msg || '归还失败'); return; }
+                this.load();
+            },
+
+            init() { this.load(); }
+        };
+    }
+</script>
+{% endblock %}

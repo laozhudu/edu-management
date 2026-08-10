@@ -34,6 +34,10 @@ from edu_system.models.exam import (
     RoomAssignmentStatus,
     Score,
 )
+from edu_system.models.library import (  # noqa: F401  (A2 演示业务域：图书管理)
+    Book,
+    BorrowRecord,
+)
 from edu_system.models.report import (
     ReportTemplate,
     SemesterStatsCache,

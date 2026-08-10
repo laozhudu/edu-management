@@ -6,8 +6,8 @@
     "name_short": "教务管理",
     "school_name": "示例学校",
     "window_title": "{school} {name} · {version_display}",
-    "version": "4.0.0",
-    "version_display": "4.0.0",
+    "version": "4.1.0",
+    "version_display": "4.1.0",
     "footer": "{school} · {version_display}"
   },
   "theme": {
@@ -277,6 +277,24 @@
           "view": "init"
         }
       ]
+    },
+    {
+      "id": "library",
+      "title": "图书管理",
+      "icon": "📚",
+      "tabs": [
+        {
+          "id": "books",
+          "title": "图书管理",
+          "view": "library"
+        }
+      ],
+      "roles": [
+        "admin",
+        "director",
+        "teacher"
+      ],
+      "order": 9
     }
   ],
   "statusbar": {
