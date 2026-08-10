@@ -1,6 +1,6 @@
 [project]
 name = "edu-system"
-version = "3.6.0"
+version = "3.7.0"
 description = "个人桌面应用项目（模块化重构版）"
 requires-python = ">=3.12"
 dependencies = [

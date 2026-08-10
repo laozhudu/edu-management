@@ -8,13 +8,16 @@ from PyQt5.QtCore import Qt, QThread, QTimer, pyqtSignal
 from PyQt5.QtGui import QFont, QPixmap
 from PyQt5.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDialog,
     QFormLayout,
     QFrame,
+    QGridLayout,
     QGroupBox,
     QHBoxLayout,
     QHeaderView,
     QLabel,
+    QLineEdit,
     QMessageBox,
     QPushButton,
     QSizePolicy,
@@ -133,6 +136,12 @@ class SystemConfigView(BaseView):
 
         # 4. 网络设置标签页
         self._create_network_tab()
+
+        # 5. 界面样式标签页（v3.7.0：菜单/字体/登录框零代码配置）
+        self._create_appearance_tab()
+
+        # 6. 操作审计标签页（v3.7.0：业务操作审计查询）
+        self._create_audit_tab()
 
         layout.addWidget(self.tabs)
 
@@ -744,5 +753,289 @@ class SystemConfigView(BaseView):
     def _save_config(self):
         QMessageBox.information(self, "提示", "配置保存功能开发中...")
 
+    # ═══════════════════════════════════
+    #  Tab 5: 界面样式（v3.7.0 可配置化）
+    # ═══════════════════════════════════
+
+    def _create_appearance_tab(self):
+        tab = QWidget()
+        lay = QVBoxLayout(tab)
+        lay.setContentsMargins(16, 16, 16, 16)
+        lay.setSpacing(12)
+
+        info = QLabel("界面样式零代码配置：修改后点击「保存样式」立即生效（双端同步）。")
+        info.setFont(QFont("Microsoft YaHei", 9))
+        info.setStyleSheet(f"color: {C['text_light']};")
+        lay.addWidget(info)
+
+        # 外观主题
+        theme_grp = QGroupBox("外观主题")
+        theme_grp.setFont(QFont("Microsoft YaHei", 10, QFont.Bold))
+        tg = QGridLayout(theme_grp)
+        tg.setSpacing(8)
+
+        tg.addWidget(QLabel("强调色:"), 0, 0)
+        self._cfg_accent = QLineEdit()
+        self._cfg_accent.setFont(QFont("Microsoft YaHei", 9))
+        tg.addWidget(self._cfg_accent, 0, 1)
+
+        tg.addWidget(QLabel("侧栏背景:"), 0, 2)
+        self._cfg_sidebar = QLineEdit()
+        self._cfg_sidebar.setFont(QFont("Microsoft YaHei", 9))
+        tg.addWidget(self._cfg_sidebar, 0, 3)
+
+        tg.addWidget(QLabel("内容背景:"), 1, 0)
+        self._cfg_content = QLineEdit()
+        self._cfg_content.setFont(QFont("Microsoft YaHei", 9))
+        tg.addWidget(self._cfg_content, 1, 1)
+
+        tg.addWidget(QLabel("密度:"), 1, 2)
+        self._cfg_density = QComboBox()
+        self._cfg_density.addItems(["compact", "comfortable"])
+        self._cfg_density.setFont(QFont("Microsoft YaHei", 9))
+        tg.addWidget(self._cfg_density, 1, 3)
+        lay.addWidget(theme_grp)
+
+        # 登录框
+        login_grp = QGroupBox("登录框")
+        login_grp.setFont(QFont("Microsoft YaHei", 10, QFont.Bold))
+        lg = QGridLayout(login_grp)
+        lg.setSpacing(8)
+        lg.addWidget(QLabel("窗口宽:"), 0, 0)
+        self._cfg_lg_width = QSpinBox()
+        self._cfg_lg_width.setRange(300, 600)
+        self._cfg_lg_width.setFont(QFont("Microsoft YaHei", 9))
+        lg.addWidget(self._cfg_lg_width, 0, 1)
+        lg.addWidget(QLabel("窗口高:"), 0, 2)
+        self._cfg_lg_height = QSpinBox()
+        self._cfg_lg_height.setRange(300, 600)
+        self._cfg_lg_height.setFont(QFont("Microsoft YaHei", 9))
+        lg.addWidget(self._cfg_lg_height, 0, 3)
+        lg.addWidget(QLabel("标题字号:"), 1, 0)
+        self._cfg_lg_title = QSpinBox()
+        self._cfg_lg_title.setRange(10, 24)
+        self._cfg_lg_title.setFont(QFont("Microsoft YaHei", 9))
+        lg.addWidget(self._cfg_lg_title, 1, 1)
+        lg.addWidget(QLabel("副标题字号:"), 1, 2)
+        self._cfg_lg_sub = QSpinBox()
+        self._cfg_lg_sub.setRange(8, 16)
+        self._cfg_lg_sub.setFont(QFont("Microsoft YaHei", 9))
+        lg.addWidget(self._cfg_lg_sub, 1, 3)
+        lg.addWidget(QLabel("输入框圆角:"), 2, 0)
+        self._cfg_lg_radius = QSpinBox()
+        self._cfg_lg_radius.setRange(0, 20)
+        self._cfg_lg_radius.setFont(QFont("Microsoft YaHei", 9))
+        lg.addWidget(self._cfg_lg_radius, 2, 1)
+        lg.addWidget(QLabel("品牌区:"), 2, 2)
+        self._cfg_lg_brand = QCheckBox("启用品牌区")
+        self._cfg_lg_brand.setFont(QFont("Microsoft YaHei", 9))
+        lg.addWidget(self._cfg_lg_brand, 2, 3)
+        lay.addWidget(login_grp)
+
+        # 顶部栏
+        top_grp = QGroupBox("顶部栏")
+        top_grp.setFont(QFont("Microsoft YaHei", 10, QFont.Bold))
+        tl = QHBoxLayout(top_grp)
+        tl.setSpacing(16)
+        self._cfg_tb_sem = QCheckBox("学期切换")
+        self._cfg_tb_sem.setFont(QFont("Microsoft YaHei", 9))
+        tl.addWidget(self._cfg_tb_sem)
+        self._cfg_tb_search = QCheckBox("搜索框")
+        self._cfg_tb_search.setFont(QFont("Microsoft YaHei", 9))
+        tl.addWidget(self._cfg_tb_search)
+        self._cfg_tb_palette = QCheckBox("命令面板")
+        self._cfg_tb_palette.setFont(QFont("Microsoft YaHei", 9))
+        tl.addWidget(self._cfg_tb_palette)
+        tl.addStretch()
+        lay.addWidget(top_grp)
+
+        # 保存按钮
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        b_save = QPushButton("保存样式")
+        b_save.setStyleSheet(
+            f"QPushButton {{ background:{C['antd_blue']}; color:white; padding:6px 20px; "
+            f"border-radius:4px; font-weight:500; }}"
+        )
+        b_save.clicked.connect(self._save_appearance)
+        btn_row.addWidget(b_save)
+        lay.addLayout(btn_row)
+        lay.addStretch()
+
+        self.tabs.addTab(tab, "界面样式")
+
+    def _load_appearance_values(self):
+        """从当前配置填充样式表单（_load_config 中调用）"""
+        try:
+            from edu_system.config.ui_config import get_config
+
+            cfg = get_config()
+            self._cfg_accent.setText(getattr(cfg.theme, "accent_color", ""))
+            self._cfg_sidebar.setText(getattr(cfg.theme, "sidebar_bg", ""))
+            self._cfg_content.setText(getattr(cfg.theme, "content_bg", ""))
+            idx = self._cfg_density.findText(getattr(cfg.theme, "density", "compact"))
+            self._cfg_density.setCurrentIndex(max(idx, 0))
+            self._cfg_lg_width.setValue(getattr(cfg.login, "window_width", 400))
+            self._cfg_lg_height.setValue(getattr(cfg.login, "window_height", 400))
+            self._cfg_lg_title.setValue(getattr(cfg.login, "brand_title_font_size", 16))
+            self._cfg_lg_sub.setValue(getattr(cfg.login, "brand_subtitle_font_size", 10))
+            self._cfg_lg_radius.setValue(getattr(cfg.login, "input_radius", 6))
+            self._cfg_lg_brand.setChecked(getattr(cfg.login, "brand_enabled", True))
+            self._cfg_tb_sem.setChecked(getattr(cfg.topbar, "show_semester_switcher", True))
+            self._cfg_tb_search.setChecked(getattr(cfg.topbar, "show_search", True))
+            self._cfg_tb_palette.setChecked(getattr(cfg.topbar, "show_command_palette", True))
+        except Exception as e:
+            print(f"[样式] 加载配置失败: {e}")
+
+    def _save_appearance(self):
+        """保存界面样式（调 /api/config/save-ui 写回 + reload）"""
+        import json
+        import urllib.request
+
+        payload = {
+            "theme": {
+                "accent_color": self._cfg_accent.text().strip(),
+                "sidebar_bg": self._cfg_sidebar.text().strip(),
+                "content_bg": self._cfg_content.text().strip(),
+                "density": self._cfg_density.currentText(),
+            },
+            "login": {
+                "window_width": self._cfg_lg_width.value(),
+                "window_height": self._cfg_lg_height.value(),
+                "brand_title_font_size": self._cfg_lg_title.value(),
+                "brand_subtitle_font_size": self._cfg_lg_sub.value(),
+                "input_radius": self._cfg_lg_radius.value(),
+                "brand_enabled": self._cfg_lg_brand.isChecked(),
+            },
+            "topbar": {
+                "show_semester_switcher": self._cfg_tb_sem.isChecked(),
+                "show_search": self._cfg_tb_search.isChecked(),
+                "show_command_palette": self._cfg_tb_palette.isChecked(),
+            },
+        }
+        try:
+            req = urllib.request.Request(
+                f"{self.api_base}/api/config/save-ui",
+                data=json.dumps(payload).encode(),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read().decode())
+            if data.get("success"):
+                QMessageBox.information(self, "完成", data.get("message", "样式已保存并生效"))
+                # 同步最新配置到表单
+                from edu_system.config.ui_config import reload_config
+
+                reload_config()
+            else:
+                QMessageBox.warning(self, "提示", str(data))
+        except Exception as e:
+            QMessageBox.warning(self, "错误", f"保存失败: {e}")
+
+    # ═══════════════════════════════════
+    #  Tab 6: 操作审计（v3.7.0）
+    # ═══════════════════════════════════
+
+    def _create_audit_tab(self):
+        tab = QWidget()
+        lay = QVBoxLayout(tab)
+        lay.setContentsMargins(16, 16, 16, 16)
+        lay.setSpacing(8)
+
+        # 工具栏：过滤 + 刷新
+        tb = QHBoxLayout()
+        tb.setSpacing(8)
+        tb.addWidget(QLabel("表:"))
+        self._audit_table_cb = QComboBox()
+        self._audit_table_cb.addItems(
+            ["全部", "students", "teachers", "classes", "exams", "scores", "semesters", "subjects"]
+        )
+        self._audit_table_cb.setFont(QFont("Microsoft YaHei", 9))
+        tb.addWidget(self._audit_table_cb)
+        tb.addWidget(QLabel("操作:"))
+        self._audit_action_cb = QComboBox()
+        self._audit_action_cb.addItems(["全部", "INSERT", "UPDATE", "DELETE"])
+        self._audit_action_cb.setFont(QFont("Microsoft YaHei", 9))
+        tb.addWidget(self._audit_action_cb)
+        tb.addWidget(QLabel("操作者:"))
+        self._audit_operator = QLineEdit()
+        self._audit_operator.setFont(QFont("Microsoft YaHei", 9))
+        self._audit_operator.setFixedWidth(120)
+        tb.addWidget(self._audit_operator)
+        tb.addStretch()
+        b_refresh = QPushButton("查询")
+        b_refresh.setStyleSheet(
+            f"QPushButton {{ background:{C['antd_blue']}; color:white; padding:4px 16px; "
+            f"border-radius:4px; }}"
+        )
+        b_refresh.clicked.connect(self._load_audit_ops)
+        tb.addWidget(b_refresh)
+        lay.addLayout(tb)
+
+        # 审计日志表
+        self._audit_table = QTableWidget(0, 7)
+        self._audit_table.setHorizontalHeaderLabels(
+            ["时间", "操作者", "表", "记录ID", "动作", "IP", "变更详情"]
+        )
+        self._audit_table.setFont(QFont("Microsoft YaHei", 9))
+        self._audit_table.verticalHeader().hide()
+        self._audit_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self._audit_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self._audit_table.horizontalHeader().setStretchLastSection(True)
+        self._audit_table.setStyleSheet(
+            f"QTableWidget {{ font-size:9pt; border:1px solid {C['table_border']}; background:white; }}"
+        )
+        lay.addWidget(self._audit_table)
+
+        self.tabs.addTab(tab, "操作审计")
+        self._load_audit_ops()
+
+    def _load_audit_ops(self):
+        """查询业务操作审计（/api/audit/operations）"""
+        import json
+        import urllib.parse
+        import urllib.request
+
+        params = {}
+        table = self._audit_table_cb.currentText()
+        if table != "全部":
+            params["table_name"] = table
+        action = self._audit_action_cb.currentText()
+        if action != "全部":
+            params["action"] = action
+        if self._audit_operator.text().strip():
+            params["operator"] = self._audit_operator.text().strip()
+
+        try:
+            qs = urllib.parse.urlencode(params)
+            url = f"{self.api_base}/api/audit/operations"
+            if qs:
+                url += "?" + qs
+            req = urllib.request.Request(url, headers={"Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read().decode())
+            items = data.get("items", [])
+            self._audit_table.setRowCount(len(items))
+            _ACTION_CN = {"INSERT": "新增", "UPDATE": "修改", "DELETE": "删除"}
+            for i, it in enumerate(items):
+                self._audit_table.setItem(
+                    i, 0, QTableWidgetItem(str(it.get("created_at", ""))[:19])
+                )
+                self._audit_table.setItem(i, 1, QTableWidgetItem(str(it.get("operator", ""))))
+                self._audit_table.setItem(i, 2, QTableWidgetItem(str(it.get("table_name", ""))))
+                self._audit_table.setItem(i, 3, QTableWidgetItem(str(it.get("record_id", ""))))
+                act = it.get("action", "")
+                self._audit_table.setItem(i, 4, QTableWidgetItem(_ACTION_CN.get(act, act)))
+                self._audit_table.setItem(i, 5, QTableWidgetItem(str(it.get("ip") or "")))
+                nv = it.get("new_values") or {}
+                if isinstance(nv, dict):
+                    changed = ",".join(f"{k}={v}" for k, v in list(nv.items())[:5])
+                else:
+                    changed = str(nv)[:120]
+                self._audit_table.setItem(i, 6, QTableWidgetItem(changed))
+        except Exception as e:
+            print(f"[审计] 查询失败: {e}")
+
     def _load_config(self):
-        pass
+        self._load_appearance_values()

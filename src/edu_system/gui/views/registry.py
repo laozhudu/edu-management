@@ -36,7 +36,7 @@ VIEW_REGISTRY = {
     # 学期设置域
     "semester": ("edu_system.gui.views.semester", "SemesterView", ["session"]),
     # 系统设置域
-    "users": ("edu_system.gui.views.settings", "SettingsView", ["session"]),
+    "users": ("edu_system.gui.views.user_permission", "UserPermissionView", ["session"]),
     "data_maintenance": (
         "edu_system.gui.views.data_maintenance",
         "DataMaintenanceView",

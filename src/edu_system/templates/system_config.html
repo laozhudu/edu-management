@@ -32,6 +32,124 @@
         </div>
     </div>
 
+    <!-- 界面样式配置（v3.7.0） -->
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">界面样式配置</h2>
+            <button class="btn btn-primary btn-sm" @click="saveStyle()">保存样式</button>
+        </div>
+        <div class="card-body space-y-4">
+            <p class="text-xs text-gray-500 dark:text-gray-400">零代码配置：修改后保存，桌面端与 Web 端同时生效（无需重启）。</p>
+            <div class="grid grid-cols-2 gap-4">
+                <!-- 外观主题 -->
+                <div class="space-y-2">
+                    <div class="text-sm font-medium">外观主题</div>
+                    <div>
+                        <label class="label">强调色</label>
+                        <input type="color" class="input h-9 w-full" x-model="styleForm.theme.accent_color">
+                    </div>
+                    <div>
+                        <label class="label">侧栏背景</label>
+                        <input type="color" class="input h-9 w-full" x-model="styleForm.theme.sidebar_bg">
+                    </div>
+                    <div>
+                        <label class="label">内容背景</label>
+                        <input type="color" class="input h-9 w-full" x-model="styleForm.theme.content_bg">
+                    </div>
+                    <div>
+                        <label class="label">密度</label>
+                        <select class="select w-full" x-model="styleForm.theme.density">
+                            <option value="compact">紧凑</option>
+                            <option value="comfortable">宽松</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- 登录框 -->
+                <div class="space-y-2">
+                    <div class="text-sm font-medium">登录框</div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="label">窗口宽</label>
+                            <input type="number" class="input w-full" x-model.number="styleForm.login.window_width">
+                        </div>
+                        <div>
+                            <label class="label">窗口高</label>
+                            <input type="number" class="input w-full" x-model.number="styleForm.login.window_height">
+                        </div>
+                        <div>
+                            <label class="label">标题字号</label>
+                            <input type="number" class="input w-full" x-model.number="styleForm.login.brand_title_font_size">
+                        </div>
+                        <div>
+                            <label class="label">副标题字号</label>
+                            <input type="number" class="input w-full" x-model.number="styleForm.login.brand_subtitle_font_size">
+                        </div>
+                    </div>
+                    <label class="flex items-center gap-2 text-sm">
+                        <input type="checkbox" class="checkbox" x-model="styleForm.login.brand_enabled">
+                        启用品牌区
+                    </label>
+                </div>
+            </div>
+            <p x-show="styleMsg" class="text-sm" :class="styleMsgType === 'error' ? 'text-red-500' : 'text-green-600'" x-text="styleMsg"></p>
+        </div>
+    </div>
+
+    <!-- 操作审计（v3.7.0 业务操作） -->
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">业务操作审计</h2>
+            <div class="flex items-center gap-2">
+                <select class="select select-sm" x-model="opsFilter.table_name">
+                    <option value="">全部表</option>
+                    <option value="students">学生</option>
+                    <option value="teachers">教师</option>
+                    <option value="classes">班级</option>
+                    <option value="exams">考试</option>
+                    <option value="scores">成绩</option>
+                </select>
+                <select class="select select-sm" x-model="opsFilter.action">
+                    <option value="">全部动作</option>
+                    <option value="INSERT">新增</option>
+                    <option value="UPDATE">修改</option>
+                    <option value="DELETE">删除</option>
+                </select>
+                <button class="btn btn-secondary btn-sm" @click="loadOps()">查询</button>
+            </div>
+        </div>
+        <div class="overflow-x-auto max-h-96">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th class="whitespace-nowrap">时间</th>
+                        <th>操作者</th>
+                        <th>表</th>
+                        <th>记录ID</th>
+                        <th>动作</th>
+                        <th>变更详情</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="op in opLogs" :key="op.id">
+                        <tr>
+                            <td class="whitespace-nowrap" x-text="(op.created_at || '—').slice(0, 19)"></td>
+                            <td x-text="op.operator || '—'"></td>
+                            <td><span class="badge badge-primary" x-text="op.table_name || '—'"></span></td>
+                            <td x-text="op.record_id ?? '—'"></td>
+                            <td>
+                                <span class="badge" :class="op.action === 'DELETE' ? 'badge-danger' : (op.action === 'INSERT' ? 'badge-success' : 'badge-warning')" x-text="op.action"></span>
+                            </td>
+                            <td class="max-w-[300px] truncate" x-text="formatOps(op.new_values)"></td>
+                        </tr>
+                    </template>
+                    <tr x-show="!loadingOps && opLogs.length === 0">
+                        <td colspan="6" class="text-center py-8 text-gray-500 dark:text-gray-400">暂无操作审计</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- 审计日志 -->
     <div class="card">
         <div class="card-header flex items-center justify-between">
@@ -75,6 +193,86 @@
             loadingServices: false,
             auditLogs: [],
             loadingAudit: false,
+            opLogs: [],
+            loadingOps: false,
+            opsFilter: { table_name: '', action: '' },
+            styleForm: {
+                theme: { accent_color: '#3498DB', sidebar_bg: '#2C3E50', content_bg: '#F5F6FA', density: 'compact' },
+                login: { window_width: 400, window_height: 400, brand_title_font_size: 16, brand_subtitle_font_size: 10, brand_enabled: true }
+            },
+            styleMsg: '',
+            styleMsgType: 'success',
+
+            async loadStyle() {
+                try {
+                    const resp = await fetch('/api/config', { credentials: 'include', headers: authHeaders() });
+                    if (resp.ok) {
+                        const d = await resp.json();
+                        if (d.theme) Object.assign(this.styleForm.theme, {
+                            accent_color: d.theme.accent_color || this.styleForm.theme.accent_color,
+                            sidebar_bg: d.theme.sidebar_bg || this.styleForm.theme.sidebar_bg,
+                            content_bg: d.theme.content_bg || this.styleForm.theme.content_bg,
+                            density: d.theme.density || 'compact'
+                        });
+                    }
+                } catch (e) { console.error('加载样式配置失败:', e); }
+            },
+
+            async saveStyle() {
+                this.styleMsg = '';
+                try {
+                    const resp = await fetch('/api/config/save-ui', {
+                        method: 'POST', credentials: 'include',
+                        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                        body: JSON.stringify(this.styleForm)
+                    });
+                    const d = await resp.json();
+                    if (resp.ok && d.success) {
+                        this.styleMsg = '样式已保存并生效（双端同步）';
+                        this.styleMsgType = 'success';
+                    } else {
+                        this.styleMsg = d.detail || '保存失败';
+                        this.styleMsgType = 'error';
+                    }
+                } catch (e) {
+                    this.styleMsg = '保存失败: ' + e.message;
+                    this.styleMsgType = 'error';
+                }
+                clearTimeout(this._styletimer);
+                this._styletimer = setTimeout(() => (this.styleMsg = ''), 5000);
+            },
+
+            async loadOps() {
+                this.loadingOps = true;
+                try {
+                    const params = new URLSearchParams();
+                    if (this.opsFilter.table_name) params.set('table_name', this.opsFilter.table_name);
+                    if (this.opsFilter.action) params.set('action', this.opsFilter.action);
+                    const qs = params.toString();
+                    const resp = await fetch('/api/audit/operations?' + qs, {
+                        credentials: 'include', headers: authHeaders()
+                    });
+                    if (resp.ok) {
+                        const d = await resp.json();
+                        this.opLogs = d.items || [];
+                    } else if (resp.status === 401) {
+                        window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error('加载操作审计失败:', e);
+                } finally {
+                    this.loadingOps = false;
+                }
+            },
+
+            formatOps(nv) {
+                if (!nv) return '—';
+                if (typeof nv === 'string') return nv.slice(0, 120);
+                try {
+                    const o = typeof nv === 'object' ? nv : JSON.parse(nv);
+                    return Object.entries(o).slice(0, 5).map(([k, v]) => k + '=' + v).join(', ');
+                } catch (e) { return String(nv).slice(0, 120); }
+            },
             
             async loadServices() {
                 this.loadingServices = true;
@@ -115,6 +313,8 @@
             init() {
                 this.loadServices();
                 this.loadAudit();
+                this.loadStyle();
+                this.loadOps();
             }
         };
     }

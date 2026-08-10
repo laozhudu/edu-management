@@ -14,6 +14,7 @@ import hashlib
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
 from edu_system.api.deps import get_current_user
 from edu_system.config.ui_config import _DEFAULT_CONFIG_PATH, get_config, reload_config
@@ -71,3 +72,50 @@ def reload_ui_config(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"配置加载失败: {e}")
+
+
+class SaveUIConfigRequest(BaseModel):
+    """样式配置保存请求（可写回 theme/topbar/login/statusbar 节）"""
+
+    theme: dict | None = None
+    topbar: dict | None = None
+    login: dict | None = None
+    statusbar: dict | None = None
+
+
+@router.post("/save-ui")
+def save_ui_config(
+    body: SaveUIConfigRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """保存界面样式配置（写回 ui_config.json 合并更新 + reload 生效）
+
+    支持节：theme（品牌/强调色/侧栏/密度）、topbar（开关/快捷键）、
+    login（登录框尺寸/字体/品牌区）、statusbar（状态栏项）。
+    仅覆盖传入字段，其余保留；写文件后自动 reload 双端生效。
+    """
+    import json
+
+    try:
+        raw = json.loads(_CONFIG_FILE.read_text(encoding="utf-8"))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"读取配置失败: {e}")
+
+    payload = body.model_dump(exclude_unset=True)
+    for key in ("theme", "topbar", "login", "statusbar"):
+        if key in payload and payload[key]:
+            merged = dict(raw.get(key) or {})
+            merged.update(payload[key])
+            raw[key] = merged
+
+    try:
+        _CONFIG_FILE.write_text(json.dumps(raw, ensure_ascii=False, indent=2), encoding="utf-8")
+        cfg = reload_config()
+        return {
+            "success": True,
+            "message": "界面样式已保存并生效",
+            "fingerprint": _config_fingerprint(),
+            "theme": cfg.theme.model_dump() if hasattr(cfg.theme, "model_dump") else cfg.theme,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"保存配置失败: {e}")
