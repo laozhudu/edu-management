@@ -54,6 +54,8 @@ class TestSystemTabs:
             ("/page/teachers/teacher_assign", "teacherAssign", "/api/teachers/assignments"),
             # 报表工具域（第四阶段 A3：底座集中）
             ("/page/tools/report_generate", "reportManager", "/api/reports/types"),
+            # 字典管理（M1）
+            ("/page/system/dict", "dictManager", "/api/dict/types"),
         ],
     )
     def test_tab_renders_specific_template(

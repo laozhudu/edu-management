@@ -1,0 +1,301 @@
+<!-- 字典管理页（M1：对齐若依字典） -->
+{% extends "index.html" %}
+
+{% block title %}字典管理 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="space-y-4 max-w-6xl mx-auto px-4" x-data="dictManager()">
+    <!-- 参数管理（M1） -->
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">参数管理</h2>
+            <button class="btn btn-primary btn-sm" @click="openParamModal()">新增参数</button>
+        </div>
+        <div class="card-body overflow-x-auto">
+            <table class="table">
+                <thead>
+                    <tr><th>键</th><th>值</th><th>说明</th><th>操作</th></tr>
+                </thead>
+                <tbody>
+                    <template x-for="p in params" :key="p.key">
+                        <tr>
+                            <td class="font-mono" x-text="p.key"></td>
+                            <td x-text="p.value"></td>
+                            <td x-text="p.description"></td>
+                            <td class="whitespace-nowrap">
+                                <button class="btn btn-ghost btn-xs" @click="openParamModal(p)">编辑</button>
+                                <button class="btn btn-ghost btn-xs text-red-500" @click="deleteParam(p)">删除</button>
+                            </td>
+                        </tr>
+                    </template>
+                    <tr x-show="!params.length">
+                        <td colspan="4" class="text-center py-6 text-gray-500">暂无参数</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">字典管理</h2>
+            <button class="btn btn-primary btn-sm" @click="openTypeModal()">新增类型</button>
+        </div>
+        <div class="card-body grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <!-- 类型列表 -->
+            <div>
+                <div class="text-sm font-medium mb-2">字典类型</div>
+                <div class="overflow-y-auto max-h-96 border rounded">
+                    <table class="table">
+                        <thead>
+                            <tr><th>编码</th><th>名称</th><th>操作</th></tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="t in types" :key="t.id">
+                                <tr :class="selectedTypeId === t.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''">
+                                    <td class="cursor-pointer" @click="selectType(t)" x-text="t.dict_type"></td>
+                                    <td class="cursor-pointer" @click="selectType(t)" x-text="t.dict_name"></td>
+                                    <td class="whitespace-nowrap">
+                                        <button class="btn btn-ghost btn-xs" @click="openTypeModal(t)">编辑</button>
+                                        <button class="btn btn-ghost btn-xs text-red-500" @click="deleteType(t)">删除</button>
+                                    </td>
+                                </tr>
+                            </template>
+                            <tr x-show="!types.length">
+                                <td colspan="3" class="text-center py-6 text-gray-500">暂无字典类型</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- 数据列表 -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <div class="text-sm font-medium" x-text="'数据 — ' + (currentType?.dict_name || '未选择')"></div>
+                    <button class="btn btn-secondary btn-sm" @click="openDataModal()" :disabled="!currentType">新增数据</button>
+                </div>
+                <div class="overflow-y-auto max-h-96 border rounded">
+                    <table class="table">
+                        <thead>
+                            <tr><th>标签</th><th>值</th><th>排序</th><th>状态</th><th>操作</th></tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="d in datas" :key="d.id">
+                                <tr>
+                                    <td x-text="d.dict_label"></td>
+                                    <td x-text="d.dict_value"></td>
+                                    <td x-text="d.sort_order"></td>
+                                    <td><span class="badge" :class="d.status === '1' ? 'badge-danger' : 'badge-success'" x-text="d.status === '1' ? '停用' : '正常'"></span></td>
+                                    <td class="whitespace-nowrap">
+                                        <button class="btn btn-ghost btn-xs" @click="openDataModal(d)">编辑</button>
+                                        <button class="btn btn-ghost btn-xs text-red-500" @click="deleteData(d)">删除</button>
+                                    </td>
+                                </tr>
+                            </template>
+                            <tr x-show="!datas.length">
+                                <td colspan="5" class="text-center py-6 text-gray-500" x-text="currentType ? '暂无数据' : '请先选择左侧类型'"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 参数模态框 -->
+    <div x-show="paramModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="paramModal = false">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-96 p-5">
+            <h3 class="text-lg font-semibold mb-4" x-text="paramForm.key ? '编辑参数' : '新增参数'"></h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="label">键</label>
+                    <input class="input w-full" x-model="paramForm.key" :readonly="!!paramForm.key">
+                </div>
+                <div>
+                    <label class="label">值</label>
+                    <input class="input w-full" x-model="paramForm.value">
+                </div>
+                <div>
+                    <label class="label">说明</label>
+                    <input class="input w-full" x-model="paramForm.description">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-5">
+                <button class="btn btn-secondary" @click="paramModal = false">取消</button>
+                <button class="btn btn-primary" @click="saveParam()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 类型模态框 -->
+    <div x-show="typeModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="typeModal = false">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-96 p-5">
+            <h3 class="text-lg font-semibold mb-4" x-text="typeForm.id ? '编辑类型' : '新增类型'"></h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="label">类型编码</label>
+                    <input class="input w-full" x-model="typeForm.dict_type" placeholder="如 gender">
+                </div>
+                <div>
+                    <label class="label">类型名称</label>
+                    <input class="input w-full" x-model="typeForm.dict_name" placeholder="如 性别">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-5">
+                <button class="btn btn-secondary" @click="typeModal = false">取消</button>
+                <button class="btn btn-primary" @click="saveType()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 数据模态框 -->
+    <div x-show="dataModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="dataModal = false">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-96 p-5">
+            <h3 class="text-lg font-semibold mb-4" x-text="dataForm.id ? '编辑数据' : '新增数据'"></h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="label">标签</label>
+                    <input class="input w-full" x-model="dataForm.dict_label">
+                </div>
+                <div>
+                    <label class="label">值</label>
+                    <input class="input w-full" x-model="dataForm.dict_value" placeholder="留空=标签">
+                </div>
+                <div>
+                    <label class="label">排序</label>
+                    <input type="number" class="input w-full" x-model.number="dataForm.sort_order">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-5">
+                <button class="btn btn-secondary" @click="dataModal = false">取消</button>
+                <button class="btn btn-primary" @click="saveData()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function dictManager() {
+        return {
+            types: [], datas: [], params: [], selectedTypeId: null, currentType: null,
+            typeModal: false, dataModal: false, paramModal: false,
+            typeForm: {}, dataForm: {}, paramForm: {},
+
+            async loadParams() {
+                try {
+                    const r = await fetch('/api/params', { credentials: 'include', headers: authHeaders() });
+                    if (r.ok) this.params = (await r.json()).items || [];
+                } catch (e) { console.error(e); }
+            },
+
+            openParamModal(p) {
+                this.paramForm = p ? { key: p.key, value: p.value, description: p.description } : { key: '', value: '', description: '' };
+                this.paramModal = true;
+            },
+
+            async saveParam() {
+                const body = this.paramForm;
+                const isEdit = !!this.paramForm.key && this.paramForm.key !== '';
+                const url = isEdit ? '/api/params/' + encodeURIComponent(this.paramForm.key) : '/api/params';
+                const method = isEdit ? 'PUT' : 'POST';
+                const payload = isEdit ? { value: body.value, description: body.description } : { key: body.key, value: body.value, description: body.description };
+                const r = await fetch(url, {
+                    method, credentials: 'include',
+                    headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                    body: JSON.stringify(payload)
+                });
+                const d = await r.json().catch(() => ({}));
+                if (!r.ok) { alert(d.detail || '保存失败'); return; }
+                this.paramModal = false;
+                this.loadParams();
+            },
+
+            async deleteParam(p) {
+                if (!confirm('删除参数「' + p.key + '」？')) return;
+                const r = await fetch('/api/params/' + encodeURIComponent(p.key), { method: 'DELETE', credentials: 'include', headers: authHeaders() });
+                if (r.ok) this.loadParams();
+            },
+
+            async loadTypes() {
+                try {
+                    const r = await fetch('/api/dict/types', { credentials: 'include', headers: authHeaders() });
+                    if (r.ok) {
+                        this.types = (await r.json()).items || [];
+                        if (this.types.length && !this.selectedTypeId) this.selectType(this.types[0]);
+                    } else if (r.status === 401) { window.location.href = '/login'; }
+                } catch (e) { console.error(e); }
+            },
+
+            async loadDatas() {
+                if (!this.currentType) { this.datas = []; return; }
+                try {
+                    const r = await fetch('/api/dict/data?dict_type=' + encodeURIComponent(this.currentType.dict_type), { credentials: 'include', headers: authHeaders() });
+                    if (r.ok) this.datas = (await r.json()).items || [];
+                } catch (e) { console.error(e); }
+            },
+
+            selectType(t) {
+                this.selectedTypeId = t.id;
+                this.currentType = t;
+                this.loadDatas();
+            },
+
+            openTypeModal(t) {
+                this.typeForm = t ? { id: t.id, dict_type: t.dict_type, dict_name: t.dict_name } : { dict_type: '', dict_name: '' };
+                this.typeModal = true;
+            },
+
+            async saveType() {
+                const body = this.typeForm;
+                const isEdit = !!this.typeForm.id;
+                const r = await fetch(this.typeForm.id ? '/api/dict/types/' + this.typeForm.id : '/api/dict/types', {
+                    method: this.typeForm.id ? 'PUT' : 'POST', credentials: 'include',
+                    headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                    body: JSON.stringify({ dict_type: body.dict_type, dict_name: body.dict_name })
+                });
+                const d = await r.json().catch(() => ({}));
+                if (!r.ok) { alert(d.detail || '保存失败'); return; }
+                this.typeModal = false;
+                this.loadTypes();
+            },
+
+            async deleteType(t) {
+                if (!confirm('删除类型「' + t.dict_name + '」及其全部数据？')) return;
+                const r = await fetch('/api/dict/types/' + t.id, { method: 'DELETE', credentials: 'include', headers: authHeaders() });
+                if (r.ok) { this.selectedTypeId = null; this.currentType = null; this.datas = []; this.loadTypes(); }
+            },
+
+            openDataModal(d) {
+                this.dataForm = d ? { id: d.id, dict_label: d.dict_label, dict_value: d.dict_value, sort_order: d.sort_order } : { dict_label: '', dict_value: '', sort_order: 0 };
+                this.dataModal = true;
+            },
+
+            async saveData() {
+                const body = this.dataForm;
+                const url = this.dataForm.id ? '/api/dict/data/' + this.dataForm.id : '/api/dict/data';
+                const method = this.dataForm.id ? 'PUT' : 'POST';
+                const payload = this.dataForm.id ? { dict_label: body.dict_label, dict_value: body.dict_value, sort_order: body.sort_order } : { dict_type: this.currentType.dict_type, dict_label: body.dict_label, dict_value: body.dict_value, sort_order: body.sort_order };
+                const r = await fetch(url, {
+                    method, credentials: 'include',
+                    headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                    body: JSON.stringify(payload)
+                });
+                const d = await r.json().catch(() => ({}));
+                if (!r.ok) { alert(d.detail || '保存失败'); return; }
+                this.dataModal = false;
+                this.loadDatas();
+            },
+
+            async deleteData(d) {
+                if (!confirm('删除数据「' + d.dict_label + '」？')) return;
+                const r = await fetch('/api/dict/data/' + d.id, { method: 'DELETE', credentials: 'include', headers: authHeaders() });
+                if (r.ok) this.loadDatas();
+            },
+
+            init() { this.loadTypes(); this.loadParams(); }
+        };
+    }
+</script>
+{% endblock %}

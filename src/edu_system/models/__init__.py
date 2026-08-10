@@ -1018,6 +1018,38 @@ def _ext_json_column() -> Column:
     return Column(Text, nullable=True, comment="自定义扩展字段（JSON 对象）")
 
 
+# ════════════════════════════════════
+# 字典管理（M1：对齐若依 #6 字典）
+# ════════════════════════════════════
+
+
+class DictType(Base):
+    """字典类型"""
+
+    __tablename__ = "dict_types"
+    id = Column(Integer, primary_key=True)
+    dict_type = Column(String(64), unique=True, nullable=False, comment="字典类型编码")
+    dict_name = Column(String(64), default="", comment="字典类型名称")
+    status = Column(String(4), default="0", comment="状态: 0正常/1停用")
+    remark = Column(String(255), default="")
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class DictData(Base):
+    """字典数据"""
+
+    __tablename__ = "dict_data"
+    id = Column(Integer, primary_key=True)
+    dict_type = Column(String(64), nullable=False, comment="字典类型编码", index=True)
+    dict_label = Column(String(64), default="", comment="显示标签（中文）")
+    dict_value = Column(String(64), default="", comment="实际值")
+    sort_order = Column(Integer, default=0, comment="排序")
+    status = Column(String(4), default="0", comment="状态: 0正常/1停用")
+    created_at = Column(DateTime, server_default=func.now())
+    __table_args__ = (Index("idx_dict_type_sort", "dict_type", "sort_order"),)
+
+
 # ── 外部模块模型注册（确保全部表进入 Base.metadata，init_db 可建全量表）──
 # 模型按业务模块分散定义在 services/ 下，必须在此 import 触发注册，
 # 否则 Base.metadata.create_all() 不会创建对应表（如 stored_files）。

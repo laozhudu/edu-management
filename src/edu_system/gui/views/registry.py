@@ -44,6 +44,7 @@ VIEW_REGISTRY = {
     ),
     "system_config": ("edu_system.gui.views.system_config", "SystemConfigView", ["session"]),
     "init": ("edu_system.gui.views.init_system", "InitView", ["session"]),
+    "dict": ("edu_system.gui.views.dict_manager", "DictManagerView", ["session"]),
     "report": ("edu_system.gui.views.report", "ReportView", ["session", "view_id"]),
 }
 

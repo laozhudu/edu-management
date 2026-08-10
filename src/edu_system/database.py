@@ -265,6 +265,8 @@ def _ensure_defaults(session: Session) -> None:
 
     from edu_system.models import (
         AcademicYear,
+        DictData,
+        DictType,
         GlobalSetting,
         Grade,
         School,
@@ -308,6 +310,52 @@ def _ensure_defaults(session: Session) -> None:
     # 默认缺考标记
     if not session.query(GlobalSetting).filter_by(key="absent_marks").first():
         session.add(GlobalSetting(key="absent_marks", value="-1,0"))
+
+    # 默认字典（M1：性别/民族/职称等，表单下拉数据源）
+    _DICT_SEED = {
+        "gender": ("性别", [("男", "M"), ("女", "F")]),
+        "ethnicity": (
+            "民族",
+            [("汉族", "01"), ("壮族", "02"), ("回族", "03"), ("满族", "04"), ("其他", "99")],
+        ),
+        "teacher_title": (
+            "教师职称",
+            [("初级", "junior"), ("中级", "middle"), ("高级", "senior"), ("正高级", "professor")],
+        ),
+        "education": (
+            "学历",
+            [
+                ("中专", "zhongzhuan"),
+                ("大专", "dazhuan"),
+                ("本科", "bachelor"),
+                ("硕士", "master"),
+                ("博士", "doctor"),
+            ],
+        ),
+        "political_status": (
+            "政治面貌",
+            [("中共党员", "party"), ("共青团员", "league"), ("群众", "masses")],
+        ),
+        "exam_type": (
+            "考试类型",
+            [("期中", "midterm"), ("期末", "final"), ("月考", "monthly"), ("模拟考", "mock")],
+        ),
+    }
+    for dict_type, (name, items) in _DICT_SEED.items():
+        if not session.query(DictType).filter_by(dict_type=dict_type).first():
+            session.add(DictType(dict_type=dict_type, dict_name=name))
+            session.flush()
+            for i, (label, value) in enumerate(items):
+                if (
+                    not session.query(DictData)
+                    .filter_by(dict_type=dict_type, dict_value=value)
+                    .first()
+                ):
+                    session.add(
+                        DictData(
+                            dict_type=dict_type, dict_label=label, dict_value=value, sort_order=i
+                        )
+                    )
 
     # 默认学年/学期
     ay = session.query(AcademicYear).filter_by(name="2024-2025").first()
