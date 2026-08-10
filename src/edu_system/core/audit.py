@@ -62,6 +62,16 @@ def _get_changed_data(obj, action: str) -> tuple:
 
 def _audit_listener(session: Session, flush_context, instances):
     """SQLAlchemy before_flush 事件监听器"""
+    # 仅审计应用数据库（school_data.db）；测试内存库/其他引擎跳过，
+    # 避免全局 Session 监听器污染测试内存库的 flush（隔离问题）
+    try:
+        bind = session.get_bind()
+        url = str(bind.engine.url) if bind is not None else ""
+        if ":memory:" in url or "sqlite://" not in url:
+            return
+    except Exception:
+        return
+
     user = get_current_user()
     operator = (
         user.display_name
@@ -84,8 +94,9 @@ def _audit_listener(session: Session, flush_context, instances):
 
         old_values, new_values = _get_changed_data(obj, action)
 
-        # 获取记录 ID
-        pk = inspect(obj).identity[0] if inspect(obj).identity else 0
+        # 获取记录 ID（未 flush 的对象 identity 为空，兼容为 0）
+        identity = inspect(obj).identity
+        pk = identity[0] if identity else 0
 
         # 创建审计日志
         audit = AuditLog(

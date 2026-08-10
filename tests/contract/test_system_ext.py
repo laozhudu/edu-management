@@ -12,9 +12,9 @@ sys.path.insert(0, str(project_root))
 
 @pytest.fixture(scope="module")
 def client():
-    from edu_system.database import init_db_with_defaults
 
-    init_db_with_defaults()
+
+    pass  # 依赖 conftest session 级初始化（隔离）
     c = TestClient(__import__("edu_system.api.main", fromlist=["create_app"]).create_app())
     r = c.post("/api/auth/login", json={"username": "admin", "password": "admin123"})
     assert r.status_code == 200, r.text
