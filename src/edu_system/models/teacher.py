@@ -26,6 +26,7 @@ class Teacher(Base):
     graduation_date = Column(Date, nullable=True, comment="毕业时间")
     staff_no = Column(String(20), default="", comment="编号")
     semester_id = Column(Integer, ForeignKey("semesters.id"), nullable=False, comment="所属学期")
+    dept_id = Column(Integer, ForeignKey("departments.id"), nullable=True, comment="所属部门")
     status = Column(
         String(10), default="active", comment="在职状态: active在职/resigned离职/retired退休"
     )
@@ -73,3 +74,23 @@ class ClassSubject(Base):
     teacher_id = Column(Integer, ForeignKey("teachers.id"), nullable=True)
     __table_args__ = (UniqueConstraint("semester_id", "class_id", "subject_id"),)
     semester = relationship("Semester", back_populates="class_subjects")
+
+
+# ════════════════════════════════════
+# 部门管理（B5：对齐若依 sys_dept 树形）
+# ════════════════════════════════════
+
+
+class Department(Base):
+    """部门（树形，parent_id 自引用）"""
+
+    __tablename__ = "departments"
+    id = Column(Integer, primary_key=True)
+    parent_id = Column(Integer, ForeignKey("departments.id"), nullable=True, comment="上级部门")
+    dept_name = Column(String(50), nullable=False, comment="部门名称")
+    order_num = Column(Integer, default=0, comment="显示顺序")
+    leader = Column(String(20), default="", comment="负责人")
+    phone = Column(String(20), default="", comment="联系电话")
+    status = Column(String(4), default="0", comment="状态: 0正常/1停用")
+    created_at = Column(DateTime, server_default=func.now())
+    children = relationship("Department", cascade="all, delete-orphan")

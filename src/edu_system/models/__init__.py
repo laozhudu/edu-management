@@ -71,6 +71,7 @@ from edu_system.models.system import (
 )
 from edu_system.models.teacher import (
     ClassSubject,
+    Department,
     Teacher,
     TeacherMovement,
 )

@@ -275,6 +275,16 @@ class ServiceRegistry:
             "rate_limit": 50,
             "rate_limit_window": 60,
         },
+        "dept": {
+            "name": "部门管理",
+            "description": "部门树形 CRUD",
+            "api_prefix": "/api/dept",
+            "enabled": True,
+            "required_permissions": ["config:edit"],
+            "allowed_roles": ["admin", "director"],
+            "rate_limit": 100,
+            "rate_limit_window": 60,
+        },
         "config": {
             "name": "UI 配置",
             "description": "UI 配置查询、热加载",

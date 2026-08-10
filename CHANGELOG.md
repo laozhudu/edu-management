@@ -1,5 +1,20 @@
 # 变更日志
 
+## [4.0.0] - 2026-08-10
+
+### 若依底座学习批次 3：部门管理 + 轻量代码生成器
+
+**B5 部门管理（对齐若依 sys_dept 树形）：**
+- Department 树形 model（parent_id 自引用）+ Teacher.dept_id 挂部门
+- /api/dept 树形 CRUD（嵌套 children + 下级删除保护）
+- Web dept.html（树形展开 + 新增下级/编辑/删除）+ 桌面 DeptManagerView（QTreeWidget）
+- 契约 +6 测试
+
+**B5 轻量代码生成器（对齐若依 generator）：**
+- core/codegen.py：CodegenConfig（对齐 gen_table）+ Jinja2 模板
+- 生成：CRUD 路由（PageQuery 分页 + 统一返回 + 权限）+ 契约测试 + 注册提示
+- 模板类型 crud（tree 预留），已实测生成 classroom 示例
+
 ## [3.10.0] - 2026-08-10
 
 ### 若依底座学习批次 2：模型拆分 + 仓库层 + 视图瘦身 + 系统监控

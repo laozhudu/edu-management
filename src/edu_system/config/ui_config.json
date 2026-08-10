@@ -6,8 +6,8 @@
     "name_short": "教务管理",
     "school_name": "示例学校",
     "window_title": "{school} {name} · {version_display}",
-    "version": "3.10.0",
-    "version_display": "3.10.0",
+    "version": "4.0.0",
+    "version_display": "4.0.0",
     "footer": "{school} · {version_display}"
   },
   "theme": {
@@ -240,6 +240,11 @@
           "id": "users",
           "title": "用户权限",
           "view": "users"
+        },
+        {
+          "id": "dept",
+          "title": "部门管理",
+          "view": "dept"
         },
         {
           "id": "data_maintenance",

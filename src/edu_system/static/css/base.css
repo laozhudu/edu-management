@@ -973,6 +973,37 @@ body {
     @apply fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-in-out;
 }
 
+/* 若依风格：侧栏项（激活态左侧主题色竖条 + 圆角高亮） */
+.sidebar-link {
+    @apply relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors;
+}
+
+.sidebar-link.active {
+    @apply bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300;
+}
+
+.sidebar-link.active::before {
+    content: '';
+    @apply absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r bg-primary-500;
+}
+
+/* 若依主题预设（深色侧栏 #2f4050） */
+.sidebar.ruoyi-theme {
+    @apply bg-[#2f4050] border-r border-[#293846];
+}
+
+.sidebar.ruoyi-theme .sidebar-link {
+    @apply text-[#bfcbd9] hover:bg-[#293846];
+}
+
+.sidebar.ruoyi-theme .sidebar-link.active {
+    @apply bg-[#1f3543] text-white;
+}
+
+.sidebar.ruoyi-theme .sidebar-link.active::before {
+    @apply bg-[#409EFF];
+}
+
 .sidebar.collapsed {
     @apply w-16;
 }
