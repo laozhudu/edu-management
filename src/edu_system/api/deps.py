@@ -168,3 +168,33 @@ def get_current_context_dep() -> SystemContext:
         ctx = SystemContext()
         set_current_context(ctx)
     return ctx
+
+
+# ════════════════════════════════════
+# B2：通用分页（对齐若依 PageHelper/startPage）
+# ════════════════════════════════════
+
+
+class PageQuery:
+    """通用分页查询参数依赖（对齐若依 PageDomain）"""
+
+    def __init__(
+        self,
+        page: int = 1,
+        page_size: int = 50,
+        order_by: str | None = None,
+    ):
+        self.page = max(page, 1)
+        self.page_size = min(max(page_size, 1), 200)
+        self.offset = (self.page - 1) * self.page_size
+        self.order_by = order_by
+
+
+def paginate_response(
+    items: list,
+    total: int,
+    page: int = 1,
+    page_size: int = 50,
+) -> dict:
+    """统一分页返回结构 {items, total, page, page_size}"""
+    return {"items": items, "total": total, "page": page, "page_size": page_size}

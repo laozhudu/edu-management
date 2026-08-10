@@ -1,0 +1,171 @@
+<!-- 系统扩展页（M2：通知公告/登录日志/在线用户） -->
+{% extends "index.html" %}
+
+{% block title %}通知公告 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="space-y-4 max-w-6xl mx-auto px-4" x-data="systemExt()">
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">通知公告</h2>
+            <button class="btn btn-primary btn-sm" @click="openNoticeModal()">发布公告</button>
+        </div>
+        <div class="card-body overflow-x-auto">
+            <table class="table">
+                <thead>
+                    <tr><th>标题</th><th>类型</th><th>发布人</th><th>阅读数</th><th>发布时间</th></tr>
+                </thead>
+                <tbody>
+                    <template x-for="n in notices" :key="n.id">
+                        <tr>
+                            <td class="font-medium" x-text="n.title"></td>
+                            <td><span class="badge" :class="n.notice_type === 'announce' ? 'badge-warning' : 'badge-primary'" x-text="n.notice_type === 'announce' ? '公告' : '通知'"></span></td>
+                            <td x-text="n.publisher"></td>
+                            <td x-text="n.read_count"></td>
+                            <td class="whitespace-nowrap" x-text="(n.created_at || '').slice(0, 16)"></td>
+                        </tr>
+                    </template>
+                    <tr x-show="!notices.length">
+                        <td colspan="5" class="text-center py-6 text-gray-500">暂无公告</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">登录日志</h2>
+            <button class="btn btn-secondary btn-sm" @click="loadLoginLogs()">刷新</button>
+        </div>
+        <div class="card-body overflow-x-auto max-h-96">
+            <table class="table">
+                <thead>
+                    <tr><th>时间</th><th>账号</th><th>状态</th><th>IP</th><th>说明</th></tr>
+                </thead>
+                <tbody>
+                    <template x-for="l in logs" :key="l.id">
+                        <tr>
+                            <td class="whitespace-nowrap" x-text="(l.created_at || '').slice(0, 19)"></td>
+                            <td x-text="l.username"></td>
+                            <td><span class="badge" :class="l.status === '0' ? 'badge-success' : 'badge-danger'" x-text="l.status === '0' ? '成功' : '失败'"></span></td>
+                            <td x-text="l.ip"></td>
+                            <td x-text="l.msg"></td>
+                        </tr>
+                    </template>
+                    <tr x-show="!logs.length">
+                        <td colspan="5" class="text-center py-6 text-gray-500">暂无登录日志</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">在线用户</h2>
+            <button class="btn btn-secondary btn-sm" @click="loadOnline()">刷新</button>
+        </div>
+        <div class="card-body overflow-x-auto">
+            <table class="table">
+                <thead>
+                    <tr><th>账号</th><th>姓名</th><th>IP</th><th>登录时间</th></tr>
+                </thead>
+                <tbody>
+                    <template x-for="u in onlineUsers" :key="u.id">
+                        <tr>
+                            <td x-text="u.username"></td>
+                            <td x-text="u.display_name"></td>
+                            <td x-text="u.ip"></td>
+                            <td class="whitespace-nowrap" x-text="(u.login_at || '').slice(0, 19)"></td>
+                        </tr>
+                    </template>
+                    <tr x-show="!onlineUsers.length">
+                        <td colspan="4" class="text-center py-6 text-gray-500">暂无在线用户</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 公告发布模态框 -->
+    <div x-show="noticeModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="noticeModal = false">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-[480px] p-5">
+            <h3 class="text-lg font-semibold mb-4">发布公告</h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="label">标题</label>
+                    <input class="input w-full" x-model="noticeForm.title">
+                </div>
+                <div>
+                    <label class="label">类型</label>
+                    <select class="select w-full" x-model="noticeForm.notice_type">
+                        <option value="notice">通知</option>
+                        <option value="announce">公告</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="label">内容</label>
+                    <textarea class="input w-full h-28" x-model="noticeForm.content"></textarea>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-5">
+                <button class="btn btn-secondary" @click="noticeModal = false">取消</button>
+                <button class="btn btn-primary" @click="saveNotice()">发布</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function systemExt() {
+        return {
+            notices: [], logs: [], onlineUsers: [],
+            noticeModal: false, noticeForm: {},
+
+            async loadNotices() {
+                try {
+                    const r = await fetch('/api/notice', { credentials: 'include', headers: authHeaders() });
+                    if (r.ok) this.notices = (await r.json()).items || [];
+                    else if (r.status === 401) window.location.href = '/login';
+                } catch (e) { console.error(e); }
+            },
+
+            async loadLoginLogs() {
+                try {
+                    const r = await fetch('/api/login-logs', { credentials: 'include', headers: authHeaders() });
+                    if (r.ok) this.logs = (await r.json()).items || [];
+                } catch (e) { console.error(e); }
+            },
+
+            async loadOnline() {
+                try {
+                    const r = await fetch('/api/online-users', { credentials: 'include', headers: authHeaders() });
+                    if (r.ok) this.onlineUsers = (await r.json()).items || [];
+                } catch (e) { console.error(e); }
+            },
+
+            openNoticeModal() {
+                this.noticeForm = { title: '', content: '', notice_type: 'notice' };
+                this.noticeModal = true;
+            },
+
+            async saveNotice() {
+                const r = await fetch('/api/notice', {
+                    method: 'POST', credentials: 'include',
+                    headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                    body: JSON.stringify(this.noticeForm)
+                });
+                const d = await r.json().catch(() => ({}));
+                if (!r.ok) { alert(d.detail || '发布失败'); return; }
+                this.noticeModal = false;
+                this.loadNotices();
+            },
+
+            init() { this.loadNotices(); this.loadLoginLogs(); this.loadOnline(); }
+        };
+    }
+</script>
+{% endblock %}

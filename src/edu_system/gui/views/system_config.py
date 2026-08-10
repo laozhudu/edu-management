@@ -774,26 +774,33 @@ class SystemConfigView(BaseView):
         tg = QGridLayout(theme_grp)
         tg.setSpacing(8)
 
-        tg.addWidget(QLabel("强调色:"), 0, 0)
+        tg.addWidget(QLabel("主题预设:"), 0, 0)
+        self._cfg_preset = QComboBox()
+        self._cfg_preset.addItems(["经典", "若依风格"])
+        self._cfg_preset.currentIndexChanged.connect(self._on_preset_change)
+        self._cfg_preset.setFont(QFont("Microsoft YaHei", 9))
+        tg.addWidget(self._cfg_preset, 0, 1)
+
+        tg.addWidget(QLabel("强调色:"), 0, 2)
         self._cfg_accent = QLineEdit()
         self._cfg_accent.setFont(QFont("Microsoft YaHei", 9))
-        tg.addWidget(self._cfg_accent, 0, 1)
+        tg.addWidget(self._cfg_accent, 0, 3)
 
-        tg.addWidget(QLabel("侧栏背景:"), 0, 2)
+        tg.addWidget(QLabel("侧栏背景:"), 1, 0)
         self._cfg_sidebar = QLineEdit()
         self._cfg_sidebar.setFont(QFont("Microsoft YaHei", 9))
-        tg.addWidget(self._cfg_sidebar, 0, 3)
+        tg.addWidget(self._cfg_sidebar, 1, 1)
 
-        tg.addWidget(QLabel("内容背景:"), 1, 0)
+        tg.addWidget(QLabel("内容背景:"), 1, 2)
         self._cfg_content = QLineEdit()
         self._cfg_content.setFont(QFont("Microsoft YaHei", 9))
-        tg.addWidget(self._cfg_content, 1, 1)
+        tg.addWidget(self._cfg_content, 1, 3)
 
-        tg.addWidget(QLabel("密度:"), 1, 2)
+        tg.addWidget(QLabel("密度:"), 2, 0)
         self._cfg_density = QComboBox()
         self._cfg_density.addItems(["compact", "comfortable"])
         self._cfg_density.setFont(QFont("Microsoft YaHei", 9))
-        tg.addWidget(self._cfg_density, 1, 3)
+        tg.addWidget(self._cfg_density, 2, 1)
         lay.addWidget(theme_grp)
 
         # 登录框
@@ -886,6 +893,19 @@ class SystemConfigView(BaseView):
             self._cfg_tb_palette.setChecked(getattr(cfg.topbar, "show_command_palette", True))
         except Exception as e:
             print(f"[样式] 加载配置失败: {e}")
+
+    def _on_preset_change(self):
+        """主题预设切换：若依 → 填充对应色值到表单"""
+        if self._cfg_preset.currentText() == "若依风格":
+            from edu_system.gui.theme import RUOYI_THEME
+
+            self._cfg_accent.setText(RUOYI_THEME["accent_blue"])
+            self._cfg_sidebar.setText(RUOYI_THEME["sidebar_bg"])
+            self._cfg_content.setText(RUOYI_THEME["bg_light"])
+        else:
+            self._cfg_accent.setText("#3498DB")
+            self._cfg_sidebar.setText("#2C3E50")
+            self._cfg_content.setText("#F5F6FA")
 
     def _save_appearance(self):
         """保存界面样式（调 /api/config/save-ui 写回 + reload）"""

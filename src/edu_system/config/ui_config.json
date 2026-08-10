@@ -6,8 +6,8 @@
     "name_short": "教务管理",
     "school_name": "示例学校",
     "window_title": "{school} {name} · {version_display}",
-    "version": "3.8.0",
-    "version_display": "3.8.0",
+    "version": "3.9.0",
+    "version_display": "3.9.0",
     "footer": "{school} · {version_display}"
   },
   "theme": {
@@ -255,6 +255,11 @@
           "id": "dict",
           "title": "字典管理",
           "view": "dict"
+        },
+        {
+          "id": "system_ext",
+          "title": "通知公告",
+          "view": "system_ext"
         },
         {
           "id": "init",

@@ -26,6 +26,26 @@ class BaseView(QWidget):
         super().__init__()
         self.session = session
 
+    # ── G1：统一底座便捷方法（消除各视图重复手搓 _btn/确认框）──
+    def btn(self, text: str, color: str = "primary"):
+        """统一按钮工厂（对齐 components.Toolbar 样式）"""
+        from edu_system.gui.components import make_button
+
+        return make_button(text, color)
+
+    def confirm(self, title: str, message: str, destructive: bool = False) -> bool:
+        """统一确认对话框（对齐 components.ConfirmDialog）"""
+        from edu_system.gui.components import ConfirmDialog
+
+        dlg = ConfirmDialog(title, message, destructive=destructive, parent=self)
+        return dlg.exec_() == QDialog.Accepted
+
+    def make_empty_state(self, **kwargs) -> QWidget:
+        """统一空状态组件"""
+        from edu_system.gui.components import EmptyState
+
+        return EmptyState(**kwargs)
+
 
 class LockToolbar(QWidget):
     """数据锁定工具栏（C3）：锁定/解锁/批量/理由必填 + 权限控制

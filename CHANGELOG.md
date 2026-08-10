@@ -1,5 +1,31 @@
 # 变更日志
 
+## [3.9.0] - 2026-08-10
+
+### 若依底座学习批次 1：M2 系统扩展 + 结构纪律
+
+**M2 通知公告 + 登录日志 + 在线用户（对齐若依 #8/#10/#11）：**
+- Notice/NoticeRead/LoginLog/OnlineUser 四表 + 登录成功/失败真实写入
+- /api/notice CRUD+已读 / /api/login-logs 分页 / /api/online-users 列表+强制下线
+- 桌面 SystemExtView（公告/日志/在线 3 tab）+ Web system_ext.html
+- 契约 +9 测试
+
+**若依风格主题：** theme.py RUOYI_THEME 预设 + apply_theme()，样式配置界面加主题预设下拉
+
+**P0 删死代码：** updater.py / settings.py / views/__init__.py 旧索引
+**P1 单一数据源：** service_registry 三处重复 → DEFAULT_SERVICES 常量（821→360 行）
+**B1 统一返回：** 全局异常处理器 code/msg/data（对齐 AjaxResult）
+**B2 通用分页：** PageQuery 依赖 + paginate_response（对齐 PageHelper）
+**G1 GUI 底座：** make_button 工厂 + BaseView btn/confirm/empty 便捷方法
+
+## [3.8.0] - 2026-08-09
+
+### 字典管理 + 参数管理（对齐若依 #6/#7）
+- DictType/DictData + seed 6 类 23 条 + /api/dict 全套 CRUD + 表单下拉
+- /api/params CRUD（GlobalSetting UI 化）
+- 桌面 DictManagerView（字典+参数 2 tab）+ Web dict.html
+- 契约 +15，全量 636 passed
+
 ## [3.7.0] - 2026-08-09
 
 ### 样式可配置化 + 权限视图修复 + 审计闭环（用户指导）

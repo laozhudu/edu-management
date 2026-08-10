@@ -45,6 +45,13 @@
                 <div class="space-y-2">
                     <div class="text-sm font-medium">外观主题</div>
                     <div>
+                        <label class="label">主题预设</label>
+                        <select class="select w-full" x-model="styleForm.theme.preset" @change="applyPreset()">
+                            <option value="classic">经典</option>
+                            <option value="ruoyi">若依风格</option>
+                        </select>
+                    </div>
+                    <div>
                         <label class="label">强调色</label>
                         <input type="color" class="input h-9 w-full" x-model="styleForm.theme.accent_color">
                     </div>
@@ -197,11 +204,23 @@
             loadingOps: false,
             opsFilter: { table_name: '', action: '' },
             styleForm: {
-                theme: { accent_color: '#3498DB', sidebar_bg: '#2C3E50', content_bg: '#F5F6FA', density: 'compact' },
+                theme: { accent_color: '#3498DB', sidebar_bg: '#2C3E50', content_bg: '#F5F6FA', density: 'compact', preset: 'classic' },
                 login: { window_width: 400, window_height: 400, brand_title_font_size: 16, brand_subtitle_font_size: 10, brand_enabled: true }
             },
             styleMsg: '',
             styleMsgType: 'success',
+
+            applyPreset() {
+                if (this.styleForm.theme.preset === 'ruoyi') {
+                    this.styleForm.theme.accent_color = '#409EFF';
+                    this.styleForm.theme.sidebar_bg = '#2f4050';
+                    this.styleForm.theme.content_bg = '#f0f2f5';
+                } else {
+                    this.styleForm.theme.accent_color = '#3498DB';
+                    this.styleForm.theme.sidebar_bg = '#2C3E50';
+                    this.styleForm.theme.content_bg = '#F5F6FA';
+                }
+            },
 
             async loadStyle() {
                 try {

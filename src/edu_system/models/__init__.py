@@ -1050,6 +1050,68 @@ class DictData(Base):
     __table_args__ = (Index("idx_dict_type_sort", "dict_type", "sort_order"),)
 
 
+# ════════════════════════════════════
+# M2：通知公告 / 登录日志 / 在线用户（对齐若依 #8/#10/#11）
+# ════════════════════════════════════
+
+
+class Notice(Base):
+    """通知公告"""
+
+    __tablename__ = "notices"
+    id = Column(Integer, primary_key=True)
+    title = Column(String(120), nullable=False, comment="标题")
+    content = Column(Text, default="")
+    notice_type = Column(String(10), default="notice", comment="类型: notice通知/announce公告")
+    status = Column(String(4), default="0", comment="状态: 0发布/1草稿/2已下线")
+    publisher = Column(String(32), default="", comment="发布人")
+    read_count = Column(Integer, default=0, comment="阅读数")
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class NoticeRead(Base):
+    """公告已读记录"""
+
+    __tablename__ = "notice_reads"
+    id = Column(Integer, primary_key=True)
+    notice_id = Column(Integer, ForeignKey("notices.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, nullable=False)
+    read_at = Column(DateTime, server_default=func.now())
+    __table_args__ = (UniqueConstraint("notice_id", "user_id", name="uq_notice_user"),)
+
+
+class LoginLog(Base):
+    """登录日志"""
+
+    __tablename__ = "login_logs"
+    id = Column(Integer, primary_key=True)
+    username = Column(String(32), default="")
+    status = Column(String(4), default="0", comment="0成功/1失败")
+    msg = Column(String(120), default="")
+    ip = Column(String(45), default="")
+    user_agent = Column(String(200), default="")
+    created_at = Column(DateTime, server_default=func.now())
+    __table_args__ = (Index("idx_loginlog_time", "created_at"),)
+
+
+class OnlineUser(Base):
+    """在线用户（登录会话跟踪）"""
+
+    __tablename__ = "online_users"
+    id = Column(Integer, primary_key=True)
+    token_fp = Column(
+        String(64), unique=True, nullable=False, comment="token 指纹（sha256 前 16 位）"
+    )
+    username = Column(String(32), default="")
+    display_name = Column(String(64), default="")
+    ip = Column(String(45), default="")
+    user_agent = Column(String(200), default="")
+    login_at = Column(DateTime, server_default=func.now())
+    expire_at = Column(DateTime, nullable=True)
+    __table_args__ = (Index("idx_online_expire", "expire_at"),)
+
+
 # ── 外部模块模型注册（确保全部表进入 Base.metadata，init_db 可建全量表）──
 # 模型按业务模块分散定义在 services/ 下，必须在此 import 触发注册，
 # 否则 Base.metadata.create_all() 不会创建对应表（如 stored_files）。

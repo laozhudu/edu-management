@@ -53,6 +53,31 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    # ── B1：全局统一异常处理器（对齐若依 AjaxResult：code/msg/data）──
+    from fastapi import Request
+    from fastapi.exceptions import RequestValidationError
+    from fastapi.responses import JSONResponse
+    from starlette.exceptions import HTTPException as StarletteHTTPException
+
+    def _err(code: int, msg: str, data=None) -> JSONResponse:
+        # 兼容：同时返回 detail（FastAPI 既有契约，测试/前端依赖）
+        return JSONResponse(
+            status_code=code,
+            content={"code": code, "msg": msg, "data": data, "detail": msg},
+        )
+
+    @app.exception_handler(StarletteHTTPException)
+    async def _http_exc_handler(request: Request, exc: StarletteHTTPException):
+        return _err(exc.status_code, str(exc.detail))
+
+    @app.exception_handler(RequestValidationError)
+    async def _validation_handler(request: Request, exc: RequestValidationError):
+        return _err(422, "参数校验失败", {"errors": exc.errors()})
+
+    @app.exception_handler(Exception)
+    async def _generic_handler(request: Request, exc: Exception):
+        return _err(500, f"服务器内部错误: {exc}")
+
     # CORS 配置
     app.add_middleware(
         CORSMiddleware,
@@ -115,6 +140,7 @@ def create_app() -> FastAPI:
         semester,
         semester_inherit,
         students,
+        system_ext,
         teachers,
         users,
     )
@@ -140,6 +166,7 @@ def create_app() -> FastAPI:
     app.include_router(users.router, prefix="/api")
     app.include_router(dict_routes.router, prefix="/api")
     app.include_router(params.router, prefix="/api")
+    app.include_router(system_ext.router, prefix="/api")
     from edu_system.api.routes.license import router as license_router
 
     app.include_router(license_router, prefix="/api")

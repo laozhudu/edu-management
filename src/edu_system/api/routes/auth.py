@@ -121,6 +121,22 @@ async def login(
     # 查找用户
     user = db.query(User).filter(User.username == login_data.username).first()
     if not user or not verify_password(login_data.password, user.password_hash):
+        # M2：登录失败日志
+        try:
+            from edu_system.models import LoginLog
+
+            db.add(
+                LoginLog(
+                    username=login_data.username,
+                    status="1",
+                    msg="用户名或密码错误",
+                    ip=request.client.host if request.client else "",
+                    user_agent=request.headers.get("user-agent", "")[:200],
+                )
+            )
+            db.commit()
+        except Exception:
+            db.rollback()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="用户名或密码错误",
@@ -200,6 +216,42 @@ async def login(
         max_age=token_pair.expires_in,  # 15 分钟，与 token 同步
         path="/",
     )
+
+    # M2：登录日志 + 在线用户记录
+    try:
+        import hashlib
+
+        from edu_system.models import LoginLog, OnlineUser
+
+        client_ip = request.client.host if request.client else ""
+        ua = request.headers.get("user-agent", "")[:200]
+        db.add(
+            LoginLog(
+                username=user.username,
+                status="0",
+                msg="登录成功",
+                ip=client_ip,
+                user_agent=ua,
+            )
+        )
+        # 在线用户（token 指纹，防重复）
+        token_fp = hashlib.sha256(token_pair.access_token.encode()).hexdigest()[:16]
+        old = db.query(OnlineUser).filter(OnlineUser.token_fp == token_fp).first()
+        if not old:
+            db.add(
+                OnlineUser(
+                    token_fp=token_fp,
+                    username=user.username,
+                    display_name=user.display_name,
+                    ip=client_ip,
+                    user_agent=ua,
+                    expire_at=datetime.utcnow()
+                    + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+                )
+            )
+        db.commit()
+    except Exception:
+        db.rollback()
 
     # 返回用户信息 + Access Token
     return LoginResponse(

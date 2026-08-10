@@ -21,6 +21,36 @@ from PyQt5.QtWidgets import (
 from edu_system.gui.theme import C, font
 
 # ============================================================
+# make_button — 统一按钮工厂（G1：消除各视图重复手搓 _btn）
+# 颜色映射：primary=蓝 / success=绿 / danger=红 / warning=橙 / neutral=灰
+# ============================================================
+
+_BTN_COLORS = {
+    "primary": "#3498DB",
+    "success": "#27AE60",
+    "danger": "#E74C3C",
+    "warning": "#E67E22",
+    "neutral": "#95A5A6",
+}
+
+
+def make_button(text: str, color: str = "primary", size: str = "md") -> QPushButton:
+    """统一按钮工厂（对齐若依 Element 按钮风格）"""
+    bg = _BTN_COLORS.get(color, _BTN_COLORS["primary"])
+    pad = "3px 12px" if size == "sm" else ("6px 16px" if size == "md" else "8px 24px")
+    fs = "8pt" if size == "sm" else ("9pt" if size == "md" else "10pt")
+    b = QPushButton(text)
+    b.setStyleSheet(
+        f"QPushButton {{ background:{bg}; color:white; border:none; border-radius:4px; "
+        f"padding:{pad}; font-size:{fs}; }} "
+        f"QPushButton:hover {{ background:{C['sidebar_hover']}; }} "
+        f"QPushButton:disabled {{ background:#ccc; }}"
+    )
+    b.setCursor(Qt.PointingHandCursor)
+    return b
+
+
+# ============================================================
 # FilterBar — 筛选栏
 # ============================================================
 

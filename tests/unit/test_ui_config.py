@@ -10,8 +10,8 @@ class TestUIConfig:
     def test_template_rendering(self):
         """模板变量正确渲染"""
         cfg = get_config()
-        assert cfg.window_title == "示例学校 教务管理系统 · 3.8.0"
-        assert cfg.footer_text == "示例学校 · 3.8.0"
+        assert cfg.window_title == "示例学校 教务管理系统 · 3.9.0"
+        assert cfg.footer_text == "示例学校 · 3.9.0"
         assert cfg.brand_text == "示例学校教务管理系统"
 
     def test_domains_loaded(self):
