@@ -134,6 +134,7 @@ def create_app() -> FastAPI:
         locks,
         maintenance,
         meta,
+        monitoring,
         pages,
         params,
         score,
@@ -167,6 +168,7 @@ def create_app() -> FastAPI:
     app.include_router(dict_routes.router, prefix="/api")
     app.include_router(params.router, prefix="/api")
     app.include_router(system_ext.router, prefix="/api")
+    app.include_router(monitoring.router, prefix="/api")
     from edu_system.api.routes.license import router as license_router
 
     app.include_router(license_router, prefix="/api")

@@ -1,5 +1,26 @@
 # 变更日志
 
+## [3.10.0] - 2026-08-10
+
+### 若依底座学习批次 2：模型拆分 + 仓库层 + 视图瘦身 + 系统监控
+
+**P2 models 按域拆分（对齐若依多 domain 包）：**
+- models/ 单文件 46 表 → base/academic/student/teacher/exam/system/attendance/report 8 文件
+- base.py 单一 Base + __all__ 明确导出（星导入安全）
+- __init__.py 纯 re-export（零破坏，现有 from edu_system.models import X 不变）
+
+**B3 Repository 层（对齐若依 Mapper）：**
+- repository/__init__.py：get_repo(model, session) 工厂 + register_repository 特化注册
+- BaseRepository 泛型 CRUD（get/list/count/add/update/delete）
+
+**G2 视图瘦身：**
+- student.py 1959 行 → student.py(1485) + student_edit_dialog.py(490) 拆分
+
+**M3 系统监控（对齐若依 #15）：**
+- /api/monitor/server（CPU/内存/磁盘/主机信息 psutil）+ /api/monitor/cache（服务统计）
+- Web monitor.html（进度条卡片 + 服务统计）+ 桌面 MonitorView
+- 契约+测试通过
+
 ## [3.9.0] - 2026-08-10
 
 ### 若依底座学习批次 1：M2 系统扩展 + 结构纪律

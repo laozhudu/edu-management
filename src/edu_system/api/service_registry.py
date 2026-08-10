@@ -265,6 +265,16 @@ class ServiceRegistry:
             "rate_limit": 50,
             "rate_limit_window": 60,
         },
+        "monitor": {
+            "name": "系统监控",
+            "description": "服务监控、缓存统计",
+            "api_prefix": "/api/monitor",
+            "enabled": True,
+            "required_permissions": ["system:admin"],
+            "allowed_roles": ["admin", "director"],
+            "rate_limit": 50,
+            "rate_limit_window": 60,
+        },
         "config": {
             "name": "UI 配置",
             "description": "UI 配置查询、热加载",

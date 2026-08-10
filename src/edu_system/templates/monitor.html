@@ -1,0 +1,110 @@
+<!-- 系统监控页（M3：对齐若依服务监控） -->
+{% extends "index.html" %}
+
+{% block title %}系统监控 - 教务管理系统{% endblock %}
+
+{% block content %}
+<div class="space-y-4 max-w-6xl mx-auto px-4" x-data="monitorPage()">
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h2 class="text-lg font-semibold">服务器监控</h2>
+            <button class="btn btn-secondary btn-sm" @click="load()">刷新</button>
+        </div>
+        <div class="card-body grid grid-cols-1 md:grid-cols-2 gap-4" x-show="server">
+            <div class="border rounded-lg p-4">
+                <div class="text-sm font-medium mb-2">CPU 使用率（<span x-text="server.cpu.cores"></span> 核）</div>
+                <div class="flex items-center gap-3">
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                        <div class="bg-blue-500 h-3 rounded-full" :style="'width:' + (server.cpu.usage_percent || 0) + '%'"></div>
+                    </div>
+                    <span class="text-sm font-bold whitespace-nowrap" x-text="server.cpu.usage_percent + '%'"></span>
+                </div>
+                <div class="text-xs text-gray-500 mt-2" x-text="'型号: ' + (server.cpu.model || '未知')"></div>
+            </div>
+            <div class="border rounded-lg p-4">
+                <div class="text-sm font-medium mb-2">内存使用率</div>
+                <div class="flex items-center gap-3">
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                        <div class="bg-green-500 h-3 rounded-full" :style="'width:' + (server.memory.usage_percent || 0) + '%'"></div>
+                    </div>
+                    <span class="text-sm font-bold whitespace-nowrap" x-text="server.memory.usage_percent + '%'"></span>
+                </div>
+                <div class="text-xs text-gray-500 mt-2" x-text="'已用: ' + fmtSize(server.memory.used) + ' / 总: ' + fmtSize(server.memory.total)"></div>
+            </div>
+            <div class="border rounded-lg p-4">
+                <div class="text-sm font-medium mb-2">磁盘使用率</div>
+                <div class="flex items-center gap-3">
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                        <div class="bg-orange-500 h-3 rounded-full" :style="'width:' + (server.disk.usage_percent || 0) + '%'"></div>
+                    </div>
+                    <span class="text-sm font-bold whitespace-nowrap" x-text="server.disk.usage_percent + '%'"></span>
+                </div>
+                <div class="text-xs text-gray-500 mt-2" x-text="'已用: ' + fmtSize(server.disk.used) + ' / 总: ' + fmtSize(server.disk.total)"></div>
+            </div>
+            <div class="border rounded-lg p-4">
+                <div class="text-sm font-medium mb-2">系统信息</div>
+                <table class="w-full text-xs">
+                    <tr><td class="py-1 text-gray-500">主机名</td><td class="py-1" x-text="server.hostname"></td></tr>
+                    <tr><td class="py-1 text-gray-500">操作系统</td><td class="py-1" x-text="server.os"></td></tr>
+                    <tr><td class="py-1 text-gray-500">进程数</td><td class="py-1" x-text="server.processes"></td></tr>
+                    <tr><td class="py-1 text-gray-500">负载</td><td class="py-1" x-text="JSON.stringify(server.load_avg || [])"></td></tr>
+                    <tr><td class="py-1 text-gray-500">启动时间</td><td class="py-1" x-text="(server.boot_time || '').slice(0, 19).replace('T', ' ')"></td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h2 class="text-lg font-semibold">底座服务统计</h2></div>
+        <div class="card-body grid grid-cols-1 md:grid-cols-3 gap-4" x-show="cache">
+            <div class="border rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-blue-500" x-text="cache.services.total"></div>
+                <div class="text-sm text-gray-500 mt-1">服务总数</div>
+            </div>
+            <div class="border rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-green-500" x-text="cache.services.enabled"></div>
+                <div class="text-sm text-gray-500 mt-1">启用服务</div>
+            </div>
+            <div class="border rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-orange-500" x-text="fmtUptime(cache.uptime_seconds)"></div>
+                <div class="text-sm text-gray-500 mt-1">系统运行时长</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function monitorPage() {
+        return {
+            server: null, cache: null,
+            fmtSize(bytes) {
+                if (!bytes) return '0 B';
+                const u = ['B', 'KB', 'MB', 'GB', 'TB'];
+                let i = 0;
+                let b = bytes;
+                while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
+                return b.toFixed(1) + ' ' + u[i];
+            },
+            fmtUptime(sec) {
+                if (!sec) return '-';
+                const d = Math.floor(sec / 86400);
+                const h = Math.floor((sec % 86400) / 3600);
+                const m = Math.floor((sec % 3600) / 60);
+                return d + '天' + h + '时' + m + '分';
+            },
+            async load() {
+                try {
+                    const r1 = await fetch('/api/monitor/server', { credentials: 'include', headers: authHeaders() });
+                    if (r1.ok) this.server = await r1.json();
+                    else if (r1.status === 401) { window.location.href = '/login'; return; }
+                    const r2 = await fetch('/api/monitor/cache', { credentials: 'include', headers: authHeaders() });
+                    if (r2.ok) this.cache = await r2.json();
+                } catch (e) { console.error(e); }
+            },
+            init() { this.load(); }
+        };
+    }
+</script>
+{% endblock %}
