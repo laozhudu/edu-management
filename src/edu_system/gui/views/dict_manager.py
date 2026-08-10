@@ -430,7 +430,7 @@ class DictManagerView(QWidget):
         form = QFormLayout(dlg)
         ed_key = QLineEdit(p.key if p else "")
         ed_key.setFont(font(9))
-        ed_key.setReadOnly(True if p else False)
+        ed_key.setReadOnly(bool(p))
         form.addRow("键", ed_key)
         ed_val = QLineEdit(p.value or "" if p else "")
         ed_val.setFont(font(9))
