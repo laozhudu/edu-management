@@ -1,5 +1,18 @@
 # 变更日志
 
+## [4.4.0] - 2026-08-11
+
+### GUI 界面瘦身 + 规范化（做减法）
+
+**G1 components.py 死组件清理：**
+- 删除 5 个全库 0 引用的死组件：FilterBar / PaginationBar / StatusBadge / BatchActionBar / DensityManager
+- components.py 779 → 390 行（瘦身 389 行，AST 精确提取保留 7 个在用组件）
+
+**G2 旧主题体系死代码：**
+- 删除 theme_manager.py（被 theme.py + UI 配置替代，全库 0 引用）
+
+**验收：** GUI 66 passed + 全量 661 passed EXIT=0 零回归
+
 ## [4.3.0] - 2026-08-11
 
 ### 代码瘦身 + 现代规范化（做减法）
