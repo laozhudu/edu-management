@@ -1030,7 +1030,6 @@ body {
     @apply text-lg font-semibold text-gray-900 dark:text-white;
 }
 
-/* 主内容区 */
 .main-content {
     @apply pt-16 pl-64 min-h-screen bg-gray-50 dark:bg-gray-900 transition-all duration-300;
 }
@@ -1047,4 +1046,132 @@ body {
 /* 页脚 */
 .footer {
     @apply py-4 px-4 text-center text-sm text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900;
+}
+
+/* ════════════════════════════════════════
+   UI 美化增强（v4.2：全局精致化）
+   卡片质感 / 按钮微交互 / 表格细节 / 表单聚焦 / 徽章色彩
+   ════════════════════════════════════════ */
+
+/* 卡片：柔和阴影 + 圆角 + 精致边框 */
+.card {
+    @apply rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.card:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06), 0 10px 24px rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+    @apply px-5 py-4 border-b border-gray-100 dark:border-gray-700;
+}
+
+.card-body {
+    @apply p-5;
+}
+
+/* 按钮：主按钮渐变 + 悬停提升 */
+.btn-primary {
+    @apply text-white;
+    background: linear-gradient(135deg, #409EFF 0%, #337ecc 100%);
+    box-shadow: 0 2px 6px rgba(64, 158, 255, 0.25);
+    transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #66b1ff 0%, #409EFF 100%);
+    box-shadow: 0 4px 12px rgba(64, 158, 255, 0.35);
+    transform: translateY(-1px);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200;
+}
+
+.btn-sm {
+    @apply px-2.5 py-1.5 text-xs;
+}
+
+/* 表格：表头渐变 + 行悬停 + 圆角容器 */
+.table-wrapper {
+    @apply rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700;
+}
+
+.table th {
+    @apply px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider;
+    background: linear-gradient(180deg, #fafafa 0%, #f3f4f6 100%);
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.table td {
+    @apply px-4 py-3 text-sm text-gray-700 dark:text-gray-300;
+}
+
+.table tbody tr {
+    @apply border-b border-gray-100 dark:border-gray-700 transition-colors;
+}
+
+.table tbody tr:hover {
+    @apply bg-primary-50/50 dark:bg-primary-900/10;
+}
+
+.table tbody tr:last-child {
+    @apply border-b-0;
+}
+
+/* 表单：输入聚焦环 + 圆角 */
+.input, .select, textarea.input {
+    @apply rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white transition-all duration-200;
+}
+
+.input:focus, .select:focus, textarea.input:focus {
+    @apply outline-none border-primary-400;
+    box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.15);
+}
+
+/* 徽章：色彩统一 */
+.badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+}
+
+.badge-primary {
+    @apply bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300;
+}
+
+.badge-success {
+    @apply bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300;
+}
+
+.badge-warning {
+    @apply bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300;
+}
+
+.badge-danger {
+    @apply bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300;
+}
+
+/* 标签 label */
+.label {
+    @apply block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1;
+}
+
+/* 空状态插图区 */
+.empty-state {
+    @apply text-center py-12 text-gray-400 dark:text-gray-500;
+}
+
+/* 页面标题 */
+.page-title {
+    @apply text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2;
+}
+
+/* 图标按钮 */
+.btn-icon {
+    @apply w-9 h-9 inline-flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 transition-colors;
 }

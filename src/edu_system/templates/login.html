@@ -10,99 +10,79 @@
 {% endblock %}
 
 {% block body %}
-<div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4 py-12">
-    <div class="max-w-md w-full space-y-8 p-8 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700" x-data="loginForm">
-        <div class="text-center">
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
-                {% if config.app.school_name %}{{ config.app.school_name }}{% else %}教务管理系统{% endif %}
-            </h1>
-            <h2 class="mt-2 text-lg text-gray-600 dark:text-gray-400">登录系统</h2>
-        </div>
-        
-        <form class="mt-8 space-y-6" id="login-form" @submit.prevent="handleLogin">
-            <div class="space-y-4">
-                <div>
-                    <label for="username" class="sr-only">用户名</label>
-                    <input 
-                        id="username" 
-                        name="username" 
-                        type="text" 
-                        autocomplete="username" 
-                        required
-                        x-model="form.username"
-                        @keydown.enter="handleLogin"
-                        class="appearance-none rounded-lg relative block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
-                        placeholder="用户名"
-                        autocomplete="username"
-                    >
+<div class="min-h-screen flex items-center justify-center relative overflow-hidden"
+     style="background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 40%, #409EFF 100%);">
+    <!-- 装饰光斑 -->
+    <div class="absolute -top-24 -left-24 w-96 h-96 rounded-full opacity-30" style="background: radial-gradient(circle, #60a5fa 0%, transparent 70%);"></div>
+    <div class="absolute -bottom-32 -right-24 w-[30rem] h-[30rem] rounded-full opacity-20" style="background: radial-gradient(circle, #93c5fd 0%, transparent 70%);"></div>
+
+    <div class="relative z-10 max-w-md w-full px-6"
+         x-data="loginForm">
+        <div class="bg-white/95 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden">
+            <!-- 品牌区 -->
+            <div class="px-8 pt-8 pb-6 text-center bg-gradient-to-b from-primary-50/60 to-transparent dark:from-primary-900/20">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center text-3xl text-white shadow-lg"
+                     style="background: linear-gradient(135deg, #409EFF 0%, #337ecc 100%);">
+                    <i class="fa fa-graduation-cap"></i>
                 </div>
-                
-                <div>
-                    <label for="password" class="sr-only">密码</label>
-                    <input 
-                        id="password" 
-                        name="password" 
-                        type="password" 
-                        autocomplete="current-password" 
-                        required
-                        x-model="form.password"
-                        @keydown.enter="handleLogin"
-                        class="appearance-none rounded-lg relative block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
-                        placeholder="密码"
-                        autocomplete="current-password"
-                    >
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+                    {% if config.app.school_name %}{{ config.app.school_name }}{% else %}教务管理系统{% endif %}
+                </h1>
+                <p class="mt-1.5 text-sm text-gray-500 dark:text-gray-400">登录系统</p>
+            </div>
+
+            <!-- 表单区 -->
+            <div class="px-8 pb-8">
+                <form class="mt-4 space-y-5" id="login-form" @submit.prevent="handleLogin">
+                    <div>
+                        <label for="username" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">用户名</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-3 flex items-center text-gray-400"><i class="fa fa-user"></i></span>
+                            <input id="username" name="username" type="text" autocomplete="username" required
+                                   x-model="form.username" @keydown.enter="handleLogin"
+                                   class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+                                   placeholder="请输入用户名">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="password" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">密码</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-3 flex items-center text-gray-400"><i class="fa fa-lock"></i></span>
+                            <input id="password" name="password" type="password" autocomplete="current-password" required
+                                   x-model="form.password" @keydown.enter="handleLogin"
+                                   class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+                                   placeholder="请输入密码">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-sm">
+                        <label class="flex items-center cursor-pointer">
+                            <input id="remember" name="remember" type="checkbox" x-model="form.remember"
+                                   class="h-4 w-4 text-primary-600 rounded focus:ring-primary-500">
+                            <span class="ml-2 text-gray-600 dark:text-gray-300">记住我</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer">
+                            <input id="auto_login" name="auto_login" type="checkbox" x-model="form.auto_login"
+                                   class="h-4 w-4 text-primary-600 rounded focus:ring-primary-500">
+                            <span class="ml-2 text-gray-600 dark:text-gray-300">自动登录</span>
+                        </label>
+                    </div>
+
+                    <button type="submit" :disabled="loading"
+                            class="w-full py-2.5 rounded-lg text-white font-medium text-sm transition-all disabled:opacity-60"
+                            style="background: linear-gradient(135deg, #409EFF 0%, #337ecc 100%); box-shadow: 0 4px 12px rgba(64,158,255,0.3);"
+                            :class="{ 'opacity-70': loading }">
+                        <span x-show="!loading"><i class="fa fa-sign-in-alt mr-1.5"></i>登 录</span>
+                        <span x-show="loading"><i class="fa fa-spinner fa-spin mr-1.5"></i>登录中...</span>
+                    </button>
+                </form>
+
+                <div class="mt-6 text-center">
+                    <p class="text-xs text-gray-400">
+                        版本: <span id="version-tag">v2.0.0</span>
+                    </p>
                 </div>
             </div>
-            
-            <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                    <input 
-                        id="remember" 
-                        name="remember" 
-                        type="checkbox" 
-                        x-model="form.remember"
-                        class="h-4 w-4 text-primary-600 border-gray-300 dark:border-gray-600 rounded focus:ring-primary-500 focus:ring-2"
-                    >
-                    <label for="remember" class="ml-2 block text-sm text-gray-900 dark:text-gray-300">
-                        记住我
-                    </label>
-                </div>
-                <div class="flex items-center">
-                    <input 
-                        id="auto_login" 
-                        name="auto_login" 
-                        type="checkbox" 
-                        x-model="form.auto_login"
-                        class="h-4 w-4 text-primary-600 border-gray-300 dark:border-gray-600 rounded focus:ring-primary-500 focus:ring-2"
-                    >
-                    <label for="auto_login" class="ml-2 block text-sm text-gray-900 dark:text-gray-300">
-                        自动登录
-                    </label>
-                </div>
-            </div>
-            
-            <div>
-                <button 
-                    type="submit"
-                    :disabled="loading"
-                    class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                    <span x-show="!loading">登录</span>
-                    <span x-show="loading" class="flex items-center">
-                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        登录中...
-                    </span>
-                </button>
-            </div>
-        </form>
-        
-        <div class="mt-6 text-center">
-            <p class="text-sm text-gray-600 dark:text-gray-400">
-                版本: <span id="version-tag">v2.0.0</span>
-            </p>
         </div>
     </div>
 </div>
