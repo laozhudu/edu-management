@@ -1,5 +1,22 @@
 # 变更日志
 
+## [4.3.0] - 2026-08-11
+
+### 代码瘦身 + 现代规范化（做减法）
+
+**S1 公共组件收编（DRY）：**
+- 15 个视图重复定义的 `_btn` → components.btn 统一委托（去重样式逻辑）
+- 8 个视图表格样式硬编码色值（#D9E1F2/#CCC）→ theme C 变量主题化（消除魔法数字）
+
+**S2 死代码删除：**
+- services/stats.py（3 个函数全库 0 引用，重造轮子）删除
+
+**S4 规范化确认：**
+- pyproject 已达标：ruff（line-length 100 + 严格 lint 集）、mypy strict、pytest markers 完善
+- services/__init__ 惰性工厂、routes/__init__ 精简
+
+**验收：** 661 passed EXIT=0 全量回归零破坏
+
 ## [4.2.0] - 2026-08-11
 
 ### Web 界面整体美化（解决"外观简陋难看"，对标 Element/Modern）

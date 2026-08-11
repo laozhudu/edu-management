@@ -13,7 +13,6 @@ from PyQt5.QtWidgets import (
     QLabel,
     QLineEdit,
     QMessageBox,
-    QPushButton,
     QSpinBox,
     QTreeWidget,
     QTreeWidgetItem,
@@ -26,13 +25,9 @@ from edu_system.models import Department
 
 
 def _btn(txt, color):
-    b = QPushButton(txt)
-    b.setStyleSheet(
-        f"QPushButton {{ background:{color}; color:white; border:none; border-radius:3px; "
-        f"padding:3px 12px; font-size:9pt; }} QPushButton:hover {{ background:#2C3E50; }}"
-    )
-    return b
+    from edu_system.gui.components import btn
 
+    return btn(txt, color)
 
 class DeptManagerView(QWidget):
     def __init__(self, session):

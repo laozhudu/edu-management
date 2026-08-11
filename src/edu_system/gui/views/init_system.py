@@ -3,14 +3,12 @@ GUI 视图 — 初始化系统 (PyQt5)
 完整清空数据库并重建，含配置向导
 """
 
-from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QInputDialog,
     QLabel,
     QMessageBox,
-    QPushButton,
     QSizePolicy,
     QVBoxLayout,
     QWidget,
@@ -23,16 +21,9 @@ from edu_system.gui.theme import C
 
 
 def _btn(txt, color):
-    b = QPushButton(txt)
-    b.setStyleSheet(
-        f"""QPushButton {{ background: {color}; color: white; border: none;
-        border-radius: 4px; padding: 8px 16px; font-size: 10pt; }}
-        QPushButton:hover {{ background: #34495E; }}"""
-    )
-    b.setCursor(Qt.PointingHandCursor)
-    b.setMinimumHeight(32)
-    return b
+    from edu_system.gui.components import btn
 
+    return btn(txt, color)
 
 class InitView(QWidget):
     def __init__(self, session: Session):

@@ -50,6 +50,28 @@ def make_button(text: str, color: str = "primary", size: str = "md") -> QPushBut
     return b
 
 
+def btn(text: str, hex_color: str, w: int | None = None) -> QPushButton:
+    """兼容按钮工厂（S1 收编：替代各视图重复定义的 _btn）
+
+    签名与原 _btn(txt, color, w) 完全一致，可直接替换：
+    _btn("新增", C["accent_green"])  →  btn("新增", C["accent_green"])
+    """
+    from edu_system.gui.theme import C as _C
+
+    b = QPushButton(text)
+    hover = _C.get("sidebar_hover", "#34495E")
+    b.setStyleSheet(
+        f"QPushButton {{ background: {hex_color}; color: white; border: none; "
+        f"border-radius: 3px; padding: 4px 10px; font-size: 9pt; }} "
+        f"QPushButton:hover {{ background: {hover}; }} "
+        f"QPushButton:disabled {{ background: #ccc; }}"
+    )
+    if w:
+        b.setFixedWidth(w)
+    b.setCursor(Qt.PointingHandCursor)
+    return b
+
+
 # ============================================================
 # FilterBar — 筛选栏
 # ============================================================

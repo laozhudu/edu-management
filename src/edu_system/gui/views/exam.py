@@ -29,18 +29,9 @@ from edu_system.models import Exam, Grade, Semester
 
 
 def _btn(txt, color, w=None):
-    b = QPushButton(txt)
-    b.setStyleSheet(
-        f"""QPushButton {{ background: {color}; color: white; border: none;
-        border-radius: 3px; padding: 4px 10px; font-size: 9pt; }}
-        QPushButton:hover {{ background: #34495E; }}"""
-    )
-    b.setCursor(Qt.PointingHandCursor)
-    b.setMinimumHeight(26)
-    if w:
-        b.setFixedWidth(w)
-    return b
+    from edu_system.gui.components import btn
 
+    return btn(txt, color, w)
 
 def _grp(title, layout):
     g = QGroupBox(title)

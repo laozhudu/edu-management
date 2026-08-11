@@ -89,8 +89,8 @@ class ClassroomView(QWidget):
             t.setStyleSheet(
                 """QTableWidget { font-size:9pt; border:1px solid #DDD;
                 background:white; alternate-background-color:#EBF5FB; }
-                QHeaderView::section { background:#D9E1F2; font-weight:bold; padding:4px;
-                border:1px solid #CCC; }"""
+                QHeaderView::section { background: {C["table_header_bg"]}; font-weight:bold; padding:4px;
+                border:1px solid {C["table_header_border"]}; }"""
             )
             for i, c in enumerate(classes):
                 t.setItem(i, 0, QTableWidgetItem(c.name))

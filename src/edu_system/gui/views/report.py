@@ -9,7 +9,6 @@ Tab 设计：
 
 from pathlib import Path
 
-from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QComboBox,
     QFileDialog,
@@ -33,17 +32,9 @@ from edu_system.models import Exam
 
 
 def _btn(txt, color, w=None):
-    b = QPushButton(txt)
-    b.setStyleSheet(
-        f"""QPushButton {{ background: {color}; color: white; border: none;
-        border-radius: 3px; padding: 6px 14px; font-size: 9pt; }}
-        QPushButton:hover {{ background: #34495E; }}"""
-    )
-    b.setCursor(Qt.PointingHandCursor)
-    if w:
-        b.setFixedWidth(w)
-    return b
+    from edu_system.gui.components import btn
 
+    return btn(txt, color, w)
 
 class ReportView(QWidget):
     def __init__(self, session: Session, view_id: str = "report"):
@@ -217,8 +208,8 @@ class ReportView(QWidget):
         self._tpl_table.horizontalHeader().setStretchLastSection(True)
         self._tpl_table.setStyleSheet(
             """QTableWidget { font-size:9pt; border:1px solid #DDD; background:white; }
-            QHeaderView::section { background:#D9E1F2; font-weight:bold;
-            padding:4px; border:1px solid #CCC; }"""
+            QHeaderView::section { background: {C["table_header_bg"]}; font-weight:bold;
+            padding:4px; border:1px solid {C["table_header_border"]}; }"""
         )
         self._tpl_table.setMinimumHeight(160)
         lay.addWidget(self._tpl_table)

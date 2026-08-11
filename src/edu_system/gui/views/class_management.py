@@ -3,7 +3,6 @@ GUI 视图 — 班级管理 (PyQt5)
 查看/编辑/新增班级，分配班主任，班级统计
 """
 
-from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (
     QComboBox,
@@ -15,7 +14,6 @@ from PyQt5.QtWidgets import (
     QInputDialog,
     QLabel,
     QLineEdit,
-    QPushButton,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -29,18 +27,9 @@ from edu_system.models import Grade, Student, Teacher
 
 
 def _btn(txt, color, w=None):
-    b = QPushButton(txt)
-    b.setStyleSheet(
-        f"""QPushButton {{ background: {color}; color: white; border: none;
-        border-radius: 3px; padding: 4px 10px; font-size: 9pt; }}
-        QPushButton:hover {{ background: #34495E; }}"""
-    )
-    b.setCursor(Qt.PointingHandCursor)
-    b.setMinimumHeight(26)
-    if w:
-        b.setFixedWidth(w)
-    return b
+    from edu_system.gui.components import btn
 
+    return btn(txt, color, w)
 
 class ClassView(QWidget):
     def __init__(self, session: Session):
@@ -106,8 +95,8 @@ class ClassView(QWidget):
             t.setStyleSheet(
                 """QTableWidget { font-size:9pt; border:1px solid #DDD;
                 background:white; alternate-background-color:#EBF5FB; }
-                QHeaderView::section { background:#D9E1F2; font-weight:bold;
-                padding:4px; border:1px solid #CCC; }"""
+                QHeaderView::section { background: {C["table_header_bg"]}; font-weight:bold;
+                padding:4px; border:1px solid {C["table_header_border"]}; }"""
             )
             for i, c in enumerate(classes):
                 t.setItem(i, 0, QTableWidgetItem(c.name))

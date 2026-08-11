@@ -23,7 +23,6 @@ from PyQt5.QtWidgets import (
     QHeaderView,
     QLabel,
     QMessageBox,
-    QPushButton,
     QTableWidget,
     QTableWidgetItem,
     QTabWidget,
@@ -40,18 +39,9 @@ from edu_system.services.score import ScoreService
 
 
 def _btn(txt, color, w=None):
-    b = QPushButton(txt)
-    b.setStyleSheet(
-        f"""QPushButton {{ background: {color}; color: white; border: none;
-        border-radius: 3px; padding: 4px 10px; font-size: 9pt; }}
-        QPushButton:hover {{ background: #34495E; }}"""
-    )
-    b.setCursor(Qt.PointingHandCursor)
-    b.setMinimumHeight(26)
-    if w:
-        b.setFixedWidth(w)
-    return b
+    from edu_system.gui.components import btn
 
+    return btn(txt, color, w)
 
 class ScoreView(QWidget):
     def __init__(self, session: Session):

@@ -33,17 +33,9 @@ from edu_system.services.enrollment import EnrollmentService
 
 
 def _btn(txt, color, w=None):
-    b = QPushButton(txt)
-    b.setStyleSheet(
-        f"""QPushButton {{ background: {color}; color: white; border: none;
-        border-radius: 3px; padding: 5px 10px; font-size: 9pt; }}
-        QPushButton:hover {{ background: #34495E; }}"""
-    )
-    b.setCursor(Qt.PointingHandCursor)
-    if w:
-        b.setFixedWidth(w)
-    return b
+    from edu_system.gui.components import btn
 
+    return btn(txt, color, w)
 
 class EnrollmentView(QWidget):
     """学籍变动：批量转班向导 + 单项操作 + 变动记录"""
@@ -146,8 +138,8 @@ class EnrollmentView(QWidget):
         self._log_table.setStyleSheet(
             """QTableWidget { font-size:9pt; border:1px solid #DDD;
             background:white; alternate-background-color:#EBF5FB; }
-            QHeaderView::section { background:#D9E1F2; font-weight:bold; padding:3px;
-            border:1px solid #CCC; }"""
+            QHeaderView::section { background: {C["table_header_bg"]}; font-weight:bold; padding:3px;
+            border:1px solid {C["table_header_border"]}; }"""
         )
         lay.addWidget(self._log_table)
         self._refresh_log()

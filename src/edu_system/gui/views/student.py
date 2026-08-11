@@ -47,18 +47,9 @@ from edu_system.models import Student
 
 
 def _btn(txt, color, w=None):
-    b = QPushButton(txt)
-    b.setStyleSheet(
-        f"""QPushButton {{ background: {color}; color: white; border: none;
-        border-radius: 3px; padding: 3px 8px; font-size: 9pt; }}
-        QPushButton:hover {{ background: #34495E; }}"""
-    )
-    b.setCursor(Qt.PointingHandCursor)
-    b.setMinimumHeight(24)
-    if w:
-        b.setFixedWidth(w)
-    return b
+    from edu_system.gui.components import btn
 
+    return btn(txt, color, w)
 
 ALL_COLUMNS = {
     "class_name": "班级",
@@ -503,8 +494,8 @@ class StudentView(QWidget):
         t.setStyleSheet(
             """QTableView { font-size:9pt; border:1px solid #DDD; gridline-color:#EEE;
             background:white; alternate-background-color:#EBF5FB; }
-            QHeaderView::section { background:#D9E1F2; font-weight:bold; font-size:9pt;
-            padding:4px; border:1px solid #CCC; color:#2C3E50; }
+            QHeaderView::section { background: {C["table_header_bg"]}; font-weight:bold; font-size:9pt;
+            padding:4px; border:1px solid {C["table_header_border"]}; color:#2C3E50; }
             QTableView::item { padding:2px 5px; }
             QTableView::item:selected { background:#3498DB; color:white; }"""
         )

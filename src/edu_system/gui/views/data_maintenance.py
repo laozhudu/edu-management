@@ -35,18 +35,9 @@ from edu_system.gui.theme import C, font
 
 
 def _btn(txt, color, w=None):
-    b = QPushButton(txt)
-    b.setStyleSheet(
-        f"""QPushButton {{ background: {color}; color: white; border: none;
-        border-radius: 3px; padding: 6px 12px; font-size: 9pt; }}
-        QPushButton:hover {{ background: {C["sidebar_hover"]}; }}"""
-    )
-    b.setCursor(Qt.PointingHandCursor)
-    b.setMinimumHeight(28)
-    if w:
-        b.setFixedWidth(w)
-    return b
+    from edu_system.gui.components import btn
 
+    return btn(txt, color, w)
 
 class BackupWorker(QThread):
     """备份工作线程"""

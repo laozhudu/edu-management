@@ -35,18 +35,9 @@ from edu_system.models import Semester, SemesterStatus, Student
 
 
 def _btn(txt, color, w=None):
-    b = QPushButton(txt)
-    b.setStyleSheet(
-        f"""QPushButton {{ background: {color}; color: white; border: none;
-        border-radius: 3px; padding: 4px 10px; font-size: 9pt; }}
-        QPushButton:hover {{ background: #34495E; }}"""
-    )
-    b.setCursor(Qt.PointingHandCursor)
-    b.setMinimumHeight(26)
-    if w:
-        b.setFixedWidth(w)
-    return b
+    from edu_system.gui.components import btn
 
+    return btn(txt, color, w)
 
 class SemesterView(QWidget):
     def __init__(self, session: Session):
@@ -132,8 +123,8 @@ class SemesterView(QWidget):
         t.setStyleSheet(
             """QTableWidget { font-size:9pt; border:1px solid #DDD;
             background:white; alternate-background-color:#EBF5FB; }
-            QHeaderView::section { background:#D9E1F2; font-weight:bold;
-            padding:4px; border:1px solid #CCC; }"""
+            QHeaderView::section { background: {C["table_header_bg"]}; font-weight:bold;
+            padding:4px; border:1px solid {C["table_header_border"]}; }"""
         )
 
         for i, sem in enumerate(semesters):
@@ -353,8 +344,8 @@ class SemesterView(QWidget):
         t.horizontalHeader().setStretchLastSection(True)
         t.setStyleSheet(
             """QTableWidget { font-size:9pt; border:1px solid #DDD; background:white; }
-            QHeaderView::section { background:#D9E1F2; font-weight:bold;
-            padding:4px; border:1px solid #CCC; }"""
+            QHeaderView::section { background: {C["table_header_bg"]}; font-weight:bold;
+            padding:4px; border:1px solid {C["table_header_border"]}; }"""
         )
         t.setMinimumHeight(140)
         gl.addWidget(t)
@@ -622,7 +613,7 @@ class SemesterView(QWidget):
         t.horizontalHeader().setStretchLastSection(True)
         t.setStyleSheet(
             """QTableWidget { font-size:9pt; border:1px solid #DDD; background:white; alternate-background-color:#EBF5FB; }
-            QHeaderView::section { background:#D9E1F2; font-weight:bold; padding:4px; border:1px solid #CCC; }"""
+            QHeaderView::section { background: {C["table_header_bg"]}; font-weight:bold; padding:4px; border:1px solid {C["table_header_border"]}; }"""
         )
         t.setMinimumHeight(200)
         lay.addWidget(t)
