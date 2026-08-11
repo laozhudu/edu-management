@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Runtime pid/state files
+src/edu_system/data/*.pid
+
 # Virtual environments
 venv*/
 env*/
