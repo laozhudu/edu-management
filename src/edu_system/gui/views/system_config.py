@@ -1,7 +1,13 @@
 """
 系统配置视图 - 连接嵌入式 FastAPI 后端 API
-包含：服务管理、定时任务、存储管理、网络设置
+包含：服务管理、定时任务、存储管理、网络设置、界面样式、操作审计
+改版：6 Tab 拍平为垂直卡片堆叠（消除三层标签冗余）
 """
+
+import json
+import urllib.parse
+import urllib.request
+from io import BytesIO
 
 import requests
 from PyQt5.QtCore import Qt, QThread, QTimer, pyqtSignal
@@ -20,26 +26,25 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
-    QSizePolicy,
+    QScrollArea,
     QSpinBox,
     QTableWidget,
     QTableWidgetItem,
-    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
 
-from edu_system.gui.theme import C
+from edu_system.gui.theme import RUOYI_THEME, C
 from edu_system.gui.views.base import BaseView
 
 
 class ApiWorker(QThread):
     """异步 API 调用工作线程"""
 
-    finished = pyqtSignal(bool, dict, str)  # success, data, error_msg
+    finished = pyqtSignal(bool, dict, str)
 
     def __init__(
-        self, base_url: str, method: str, path: str, data: dict = None, params: dict = None
+        self, base_url: str, method: str, path: str, data: dict | None = None, params: dict | None = None
     ):
         super().__init__()
         self.base_url = base_url.rstrip("/")
@@ -77,30 +82,24 @@ class ApiWorker(QThread):
 
 
 class SystemConfigView(BaseView):
-    """系统配置视图"""
+    """系统配置视图 - 垂直卡片堆叠（拍平 6 Tab）"""
 
     def __init__(self, session):
         super().__init__(session)
         self.setWindowTitle("系统配置")
         self.setObjectName("systemConfigView")
 
-        # API 基础地址（本地嵌入式服务）
         self.api_base = "http://127.0.0.1:8080"
-        self.server_thread = None  # 将在主窗口中设置
+        self.server_thread = None
 
         self._init_ui()
         self._load_config()
 
     def set_server_thread(self, server_thread):
-        """设置服务器线程引用（由主窗口调用）"""
         self.server_thread = server_thread
-        # 连接信号更新网络信息
         if server_thread:
             server_thread.signals.started.connect(self._on_server_started)
             server_thread.signals.stopped.connect(self._on_server_stopped)
-
-            # 关键修复：如果服务已经在运行，立即同步界面状态
-            # （因为服务可能在视图加载前就已启动，错过了 started 信号）
             if server_thread.isRunning():
                 self._on_server_started(server_thread.host, server_thread._actual_port)
 
@@ -115,66 +114,81 @@ class SystemConfigView(BaseView):
         title.setStyleSheet(f"color: {C['antd_title']}; margin-bottom: 8px;")
         layout.addWidget(title)
 
-        # 标签页
-        self.tabs = QTabWidget()
-        self.tabs.setStyleSheet(
-            f"""
-            QTabWidget::pane {{ border: 1px solid {C["antd_border"]}; border-radius: 4px; }}
-            QTabBar::tab {{ padding: 8px 16px; margin-right: 4px; }}
-            QTabBar::tab:selected {{ background: {C["antd_blue"]}; color: white; }}
-        """
-        )
+        # 滚动区域（垂直卡片堆叠）
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setStyleSheet("background: transparent;")
 
-        # 1. 服务管理标签页
-        self._create_service_tab()
+        container = QWidget()
+        self.sections_layout = QVBoxLayout(container)
+        self.sections_layout.setContentsMargins(0, 0, 0, 0)
+        self.sections_layout.setSpacing(24)
+        self.sections_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        # 2. 定时任务标签页
-        self._create_scheduler_tab()
+        # 6 个区块
+        self.sections_layout.addWidget(self._create_service_section())
+        self.sections_layout.addWidget(self._create_scheduler_section())
+        self.sections_layout.addWidget(self._create_storage_section())
+        self.sections_layout.addWidget(self._create_network_section())
+        self.sections_layout.addWidget(self._create_appearance_section())
+        self.sections_layout.addWidget(self._create_audit_section())
 
-        # 3. 存储管理标签页
-        self._create_storage_tab()
+        self.sections_layout.addStretch()
 
-        # 4. 网络设置标签页
-        self._create_network_tab()
+        scroll.setWidget(container)
+        layout.addWidget(scroll)
 
-        # 5. 界面样式标签页（v3.7.0：菜单/字体/登录框零代码配置）
-        self._create_appearance_tab()
-
-        # 6. 操作审计标签页（v3.7.0：业务操作审计查询）
-        self._create_audit_tab()
-
-        layout.addWidget(self.tabs)
-
-        # 设置标签页最小尺寸，防止切换时界面跳动
-        self.tabs.setMinimumSize(800, 550)
-        self.tabs.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-
-        # 底部按钮
+        # 底部保存按钮
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
         self.btn_save = QPushButton("保存配置")
         self.btn_save.setStyleSheet(
             f"""
-            QPushButton {{ background: {C["antd_blue"]}; color: white; padding: 8px 24px; 
+            QPushButton {{ background: {C['antd_blue']}; color: white; padding: 8px 24px; 
                           border-radius: 4px; font-weight: 500; }}
-            QPushButton:hover {{ background: {C["antd_blue_hover"]}; }}
+            QPushButton:hover {{ background: {C['antd_blue_hover']}; }}
         """
         )
         self.btn_save.clicked.connect(self._save_config)
-        btn_layout.addWidget(self.btn_save)
         layout.addLayout(btn_layout)
 
+    # ===== 统一区块容器 =====
+    def _make_section(self, title: str, description: str = "") -> QFrame:
+        """创建统一风格的区块容器"""
+        section = QFrame()
+        section.setFrameStyle(QFrame.Box | QFrame.Raised)
+        section.setStyleSheet(
+            f"""
+            QFrame {{
+                background: white;
+                border: 1px solid {C['antd_border']};
+                border-radius: 8px;
+            }}
+        """
+        )
+        layout = QVBoxLayout(section)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(16)
+
+        # 标题栏
+        header = QHBoxLayout()
+        title_lbl = QLabel(title)
+        title_lbl.setFont(QFont("Microsoft YaHei", 14, QFont.Bold))
+        title_lbl.setStyleSheet(f"color: {C['antd_title']};")
+        header.addWidget(title_lbl)
+        header.addStretch()
+        layout.addLayout(header)
+
+        if description:
+            desc = QLabel(description)
+            desc.setStyleSheet("color: #666; margin-bottom: 8px;")
+            layout.addWidget(desc)
+
+        return section
+
     # ===== API 调用辅助方法 =====
-    def _api_call(
-        self,
-        method: str,
-        path: str,
-        data: dict = None,
-        params: dict = None,
-        on_success=None,
-        on_error=None,
-    ):
-        """异步调用 API"""
+    def _api_call(self, method, path, data: dict | None = None, params: dict | None = None, on_success=None, on_error=None):
         worker = ApiWorker(self.api_base, method, path, data, params)
         if on_success:
             worker.finished.connect(
@@ -188,14 +202,10 @@ class SystemConfigView(BaseView):
         return worker
 
     def _handle_api_result(self, success: bool, data: dict, error: str):
-        """默认 API 结果处理"""
         if not success:
             QMessageBox.warning(self, "API 调用失败", error)
 
-    def _api_call_sync(
-        self, method: str, path: str, data: dict = None, params: dict = None
-    ) -> tuple:
-        """同步调用 API（阻塞，仅用于初始化加载）"""
+    def _api_call_sync(self, method: str, path: str, data: dict | None = None, params: dict | None = None) -> tuple:
         try:
             url = f"{self.api_base}{path}"
             headers = {"Content-Type": "application/json"}
@@ -221,45 +231,41 @@ class SystemConfigView(BaseView):
         except Exception as e:
             return False, str(e)
 
-    # ===== 1. 服务管理标签页 =====
-    def _create_service_tab(self):
-        tab = QWidget()
-        layout = QVBoxLayout(tab)
-        layout.setSpacing(16)
+    # ===== 1. 服务管理区块 =====
+    def _create_service_section(self):
+        section = self._make_section(
+            "服务管理",
+            "管理各业务服务的启停、权限绑定、速率限制、访问日志查看。实时生效无需重启。"
+        )
+        section_layout = section.layout()
+        if section_layout is None:
+            return section
 
-        desc = QLabel("管理各业务服务的启停、权限绑定、速率限制、访问日志查看。实时生效无需重启。")
-        desc.setStyleSheet("color: #666; margin-bottom: 8px;")
-        layout.addWidget(desc)
-
-        # 服务列表表格
         self.service_table = QTableWidget()
         self.service_table.setColumnCount(7)
         self.service_table.setHorizontalHeaderLabels(
             ["服务代码", "服务名称", "状态", "权限要求", "允许角色", "速率限制", "操作"]
         )
-        self.service_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.service_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)  # type: ignore[union-attr]
         self.service_table.setAlternatingRowColors(True)
         self.service_table.setSelectionBehavior(QTableWidget.SelectRows)
-        layout.addWidget(self.service_table)
+        section_layout.addWidget(self.service_table)
 
-        # 刷新按钮
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
         btn_refresh = QPushButton("刷新服务列表")
         btn_refresh.clicked.connect(self._refresh_services)
         btn_layout.addWidget(btn_refresh)
-        layout.addLayout(btn_layout)
+        section_layout.addLayout(btn_layout)  # type: ignore[attr-defined]
 
-        self.tabs.addTab(tab, "服务管理")
         self._refresh_services()
+        return section
 
     def _refresh_services(self):
         """刷新服务列表（同步调用）"""
         success, data = self._api_call_sync("GET", "/api/admin/scheduler/jobs")
         if not success:
-            # 回退到本地注册表
             from edu_system.api.service_registry import service_registry
-
             services = service_registry.list_services()
         else:
             services = data
@@ -319,7 +325,7 @@ class SystemConfigView(BaseView):
         )
 
     def _view_service_logs(self, service_code: str):
-        """查看服务访问日志（M5-F1：真实查询 audit_logs）"""
+        """查看服务访问日志"""
         success, data = self._api_call_sync(
             "GET",
             "/api/audit/logs",
@@ -338,7 +344,7 @@ class SystemConfigView(BaseView):
         table = QTableWidget()
         table.setColumnCount(5)
         table.setHorizontalHeaderLabels(["时间", "方法", "路径", "状态", "耗时(ms)"])
-        table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)  # type: ignore[union-attr]
         table.setRowCount(len(logs))
         for row, log in enumerate(logs):
             created = (log.get("created_at") or "")[:19]
@@ -361,27 +367,24 @@ class SystemConfigView(BaseView):
         layout.addLayout(btn_row)
         dlg.exec_()
 
-    # ===== 2. 定时任务标签页 =====
-    def _create_scheduler_tab(self):
-        tab = QWidget()
-        layout = QVBoxLayout(tab)
-        layout.setSpacing(16)
-
-        desc = QLabel(
+    # ===== 2. 定时任务区块 =====
+    def _create_scheduler_section(self):
+        section = self._make_section(
+            "定时任务",
             "管理定时任务：统计刷新、自动锁分、自动归档、备份、审计清理。可视化增删改查、手动触发、执行历史。"
         )
-        desc.setStyleSheet("color: #666; margin-bottom: 8px;")
-        layout.addWidget(desc)
+        section_layout = section.layout()
+        if section_layout is None:
+            return section
 
-        # 任务列表
         self.scheduler_table = QTableWidget()
         self.scheduler_table.setColumnCount(7)
         self.scheduler_table.setHorizontalHeaderLabels(
             ["任务ID", "任务名称", "触发方式", "下次运行", "状态", "上次运行", "操作"]
         )
-        self.scheduler_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.scheduler_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)  # type: ignore[union-attr]
         self.scheduler_table.setAlternatingRowColors(True)
-        layout.addWidget(self.scheduler_table)
+        section_layout.addWidget(self.scheduler_table)
 
         btn_layout = QHBoxLayout()
         btn_add = QPushButton("添加任务")
@@ -391,20 +394,20 @@ class SystemConfigView(BaseView):
         btn_layout.addWidget(btn_add)
         btn_layout.addWidget(btn_refresh)
         btn_layout.addStretch()
-        layout.addLayout(btn_layout)
+        section_layout.addLayout(btn_layout)  # type: ignore[attr-defined]
 
-        self.tabs.addTab(tab, "定时任务")
         self._refresh_scheduler()
 
         # 定时刷新
         self.scheduler_timer = QTimer()
         self.scheduler_timer.timeout.connect(self._refresh_scheduler)
-        self.scheduler_timer.start(30000)  # 30秒刷新
+        self.scheduler_timer.start(30000)
+
+        return section
 
     def _refresh_scheduler(self):
         success, data = self._api_call_sync("GET", "/api/admin/scheduler/jobs")
         if not success:
-            # 回退到本地调度器
             from edu_system.services.scheduler import get_scheduler
 
             scheduler = get_scheduler()
@@ -422,7 +425,7 @@ class SystemConfigView(BaseView):
 
             status_item = QTableWidgetItem("运行中" if not job.get("paused") else "已暂停")
             if job.get("paused"):
-                status_item.setBackground(Qt.yellow)
+                status_item.setBackground(Qt.GlobalColor.yellow)
             self.scheduler_table.setItem(row, 4, status_item)
 
             self.scheduler_table.setItem(row, 5, QTableWidgetItem(job.get("last_run_time", "N/A")))
@@ -464,15 +467,15 @@ class SystemConfigView(BaseView):
             on_error=lambda err: QMessageBox.warning(self, "失败", err),
         )
 
-    # ===== 3. 存储管理标签页 =====
-    def _create_storage_tab(self):
-        tab = QWidget()
-        layout = QVBoxLayout(tab)
-        layout.setSpacing(16)
-
-        desc = QLabel("文件存储管理：查看存储统计、清理孤儿文件、配置存储策略。")
-        desc.setStyleSheet("color: #666; margin-bottom: 8px;")
-        layout.addWidget(desc)
+    # ===== 3. 存储管理区块 =====
+    def _create_storage_section(self):
+        section = self._make_section(
+            "存储管理",
+            "文件存储管理：查看存储统计、清理孤儿文件、配置存储策略。"
+        )
+        section_layout = section.layout()
+        if section_layout is None:
+            return section
 
         # 统计卡片
         stats_layout = QHBoxLayout()
@@ -496,7 +499,7 @@ class SystemConfigView(BaseView):
             card_layout.addWidget(value_lbl)
             self.storage_cards[key] = value_lbl
             stats_layout.addWidget(card)
-        layout.addLayout(stats_layout)
+        section_layout.addLayout(stats_layout)  # type: ignore[attr-defined]
 
         # 操作按钮
         btn_layout = QHBoxLayout()
@@ -508,7 +511,7 @@ class SystemConfigView(BaseView):
         btn_layout.addWidget(btn_refresh)
         btn_layout.addWidget(btn_cleanup)
         btn_layout.addStretch()
-        layout.addLayout(btn_layout)
+        section_layout.addLayout(btn_layout)  # type: ignore[attr-defined]
 
         # 按类型统计表格
         self.storage_type_table = QTableWidget()
@@ -516,16 +519,15 @@ class SystemConfigView(BaseView):
         self.storage_type_table.setHorizontalHeaderLabels(
             ["文件类型", "数量", "大小(MB)", "去重率"]
         )
-        self.storage_type_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        layout.addWidget(self.storage_type_table)
+        self.storage_type_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)  # type: ignore[union-attr]
+        section_layout.addWidget(self.storage_type_table)
 
-        self.tabs.addTab(tab, "存储管理")
         self._refresh_storage_stats()
+        return section
 
     def _refresh_storage_stats(self):
         success, data = self._api_call_sync("GET", "/api/admin/storage/stats")
         if not success:
-            # 回退到本地存储服务
             from edu_system.services.storage import get_storage_service
 
             storage = get_storage_service()
@@ -559,11 +561,15 @@ class SystemConfigView(BaseView):
             on_error=lambda err: QMessageBox.warning(self, "失败", err),
         )
 
-    # ===== 4. 网络设置标签页 =====
-    def _create_network_tab(self):
-        tab = QWidget()
-        layout = QVBoxLayout(tab)
-        layout.setSpacing(16)
+    # ===== 4. 网络设置区块 =====
+    def _create_network_section(self):
+        section = self._make_section(
+            "网络设置",
+            "配置服务端口、查看局域网访问地址、生成二维码分享。"
+        )
+        section_layout = section.layout()
+        if section_layout is None:
+            return section
 
         # 服务地址显示
         group = QGroupBox("服务地址")
@@ -573,21 +579,21 @@ class SystemConfigView(BaseView):
         self.lbl_lan_url.setStyleSheet(
             f"font-family: monospace; font-size: 14px; color: {C['antd_blue']};"
         )
-        self.lbl_lan_url.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.lbl_lan_url.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         group_layout.addRow("局域网访问地址:", self.lbl_lan_url)
 
         self.lbl_local_url = QLabel("http://127.0.0.1:8080")
         self.lbl_local_url.setStyleSheet("font-family: monospace; font-size: 14px;")
-        self.lbl_local_url.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.lbl_local_url.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         group_layout.addRow("本地访问地址:", self.lbl_local_url)
 
         # 二维码
         self.lbl_qr = QLabel()
-        self.lbl_qr.setAlignment(Qt.AlignCenter)
+        self.lbl_qr.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_qr.setMinimumSize(200, 200)
         group_layout.addRow("二维码:", self.lbl_qr)
 
-        layout.addWidget(group)
+        section_layout.addWidget(group)
 
         # 端口设置
         port_group = QGroupBox("端口设置")
@@ -603,7 +609,7 @@ class SystemConfigView(BaseView):
         self.chk_auto_port.setChecked(True)
         port_layout.addRow("", self.chk_auto_port)
 
-        layout.addWidget(port_group)
+        section_layout.addWidget(port_group)
 
         # 服务开关
         service_group = QGroupBox("服务控制")
@@ -629,19 +635,19 @@ class SystemConfigView(BaseView):
         svc_layout.addWidget(self.btn_stop)
         svc_layout.addWidget(self.btn_restart)
 
-        layout.addWidget(service_group)
+        section_layout.addWidget(service_group)
 
         # 状态显示
         self.lbl_service_status = QLabel("服务状态: 未启动")
         self.lbl_service_status.setStyleSheet(f"color: {C['antd_red']}; font-weight: bold;")
-        layout.addWidget(self.lbl_service_status)
-
-        self.tabs.addTab(tab, "网络设置")
+        section_layout.addWidget(self.lbl_service_status)
 
         # 定时更新二维码和状态
         self.network_timer = QTimer()
         self.network_timer.timeout.connect(self._update_network_info)
         self.network_timer.start(5000)
+
+        return section
 
     def _on_port_changed(self, value: int):
         self.lbl_local_url.setText(f"http://127.0.0.1:{value}")
@@ -696,9 +702,6 @@ class SystemConfigView(BaseView):
             qr.make(fit=True)
             img = qr.make_image(fill_color="black", back_color="white")
 
-            # 转为 QPixmap
-            from io import BytesIO
-
             buffer = BytesIO()
             img.save(buffer, format="PNG")
             buffer.seek(0)
@@ -706,7 +709,7 @@ class SystemConfigView(BaseView):
             pixmap = QPixmap()
             pixmap.loadFromData(buffer.getvalue())
             self.lbl_qr.setPixmap(
-                pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                pixmap.scaled(200, 200, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             )
         except ImportError:
             self.lbl_qr.setText("安装 qrcode 库以显示二维码")
@@ -750,23 +753,15 @@ class SystemConfigView(BaseView):
             self.server_thread.stop()
             QTimer.singleShot(1000, self._start_service)
 
-    def _save_config(self):
-        QMessageBox.information(self, "提示", "配置保存功能开发中...")
-
-    # ═══════════════════════════════════
-    #  Tab 5: 界面样式（v3.7.0 可配置化）
-    # ═══════════════════════════════════
-
-    def _create_appearance_tab(self):
-        tab = QWidget()
-        lay = QVBoxLayout(tab)
-        lay.setContentsMargins(16, 16, 16, 16)
-        lay.setSpacing(12)
-
-        info = QLabel("界面样式零代码配置：修改后点击「保存样式」立即生效（双端同步）。")
-        info.setFont(QFont("Microsoft YaHei", 9))
-        info.setStyleSheet(f"color: {C['text_light']};")
-        lay.addWidget(info)
+    # ===== 5. 界面样式区块 =====
+    def _create_appearance_section(self):
+        section = self._make_section(
+            "界面样式",
+            "界面样式零代码配置：修改后点击「保存样式」立即生效（双端同步）。"
+        )
+        section_layout = section.layout()
+        if section_layout is None:
+            return section
 
         # 外观主题
         theme_grp = QGroupBox("外观主题")
@@ -801,7 +796,7 @@ class SystemConfigView(BaseView):
         self._cfg_density.addItems(["compact", "comfortable"])
         self._cfg_density.setFont(QFont("Microsoft YaHei", 9))
         tg.addWidget(self._cfg_density, 2, 1)
-        lay.addWidget(theme_grp)
+        section_layout.addWidget(theme_grp)
 
         # 登录框
         login_grp = QGroupBox("登录框")
@@ -837,7 +832,7 @@ class SystemConfigView(BaseView):
         self._cfg_lg_brand = QCheckBox("启用品牌区")
         self._cfg_lg_brand.setFont(QFont("Microsoft YaHei", 9))
         lg.addWidget(self._cfg_lg_brand, 2, 3)
-        lay.addWidget(login_grp)
+        section_layout.addWidget(login_grp)
 
         # 顶部栏
         top_grp = QGroupBox("顶部栏")
@@ -854,7 +849,7 @@ class SystemConfigView(BaseView):
         self._cfg_tb_palette.setFont(QFont("Microsoft YaHei", 9))
         tl.addWidget(self._cfg_tb_palette)
         tl.addStretch()
-        lay.addWidget(top_grp)
+        section_layout.addWidget(top_grp)
 
         # 保存按钮
         btn_row = QHBoxLayout()
@@ -866,10 +861,10 @@ class SystemConfigView(BaseView):
         )
         b_save.clicked.connect(self._save_appearance)
         btn_row.addWidget(b_save)
-        lay.addLayout(btn_row)
-        lay.addStretch()
+        section_layout.addLayout(btn_row)  # type: ignore[attr-defined]
+        section_layout.addStretch()  # type: ignore[attr-defined]
 
-        self.tabs.addTab(tab, "界面样式")
+        return section
 
     def _load_appearance_values(self):
         """从当前配置填充样式表单（_load_config 中调用）"""
@@ -897,8 +892,6 @@ class SystemConfigView(BaseView):
     def _on_preset_change(self):
         """主题预设切换：若依 → 填充对应色值到表单"""
         if self._cfg_preset.currentText() == "若依风格":
-            from edu_system.gui.theme import RUOYI_THEME
-
             self._cfg_accent.setText(RUOYI_THEME["accent_blue"])
             self._cfg_sidebar.setText(RUOYI_THEME["sidebar_bg"])
             self._cfg_content.setText(RUOYI_THEME["bg_light"])
@@ -909,9 +902,6 @@ class SystemConfigView(BaseView):
 
     def _save_appearance(self):
         """保存界面样式（调 /api/config/save-ui 写回 + reload）"""
-        import json
-        import urllib.request
-
         payload = {
             "theme": {
                 "accent_color": self._cfg_accent.text().strip(),
@@ -944,7 +934,6 @@ class SystemConfigView(BaseView):
                 data = json.loads(resp.read().decode())
             if data.get("success"):
                 QMessageBox.information(self, "完成", data.get("message", "样式已保存并生效"))
-                # 同步最新配置到表单
                 from edu_system.config.ui_config import reload_config
 
                 reload_config()
@@ -953,15 +942,15 @@ class SystemConfigView(BaseView):
         except Exception as e:
             QMessageBox.warning(self, "错误", f"保存失败: {e}")
 
-    # ═══════════════════════════════════
-    #  Tab 6: 操作审计（v3.7.0）
-    # ═══════════════════════════════════
-
-    def _create_audit_tab(self):
-        tab = QWidget()
-        lay = QVBoxLayout(tab)
-        lay.setContentsMargins(16, 16, 16, 16)
-        lay.setSpacing(8)
+    # ===== 6. 操作审计区块 =====
+    def _create_audit_section(self):
+        section = self._make_section(
+            "操作审计",
+            "业务操作审计查询：按表、操作类型、操作者筛选，查看变更详情。"
+        )
+        section_layout = section.layout()
+        if section_layout is None:
+            return section
 
         # 工具栏：过滤 + 刷新
         tb = QHBoxLayout()
@@ -991,7 +980,7 @@ class SystemConfigView(BaseView):
         )
         b_refresh.clicked.connect(self._load_audit_ops)
         tb.addWidget(b_refresh)
-        lay.addLayout(tb)
+        section_layout.addLayout(tb)  # type: ignore[attr-defined]
 
         # 审计日志表
         self._audit_table = QTableWidget(0, 7)
@@ -999,24 +988,20 @@ class SystemConfigView(BaseView):
             ["时间", "操作者", "表", "记录ID", "动作", "IP", "变更详情"]
         )
         self._audit_table.setFont(QFont("Microsoft YaHei", 9))
-        self._audit_table.verticalHeader().hide()
+        self._audit_table.verticalHeader().hide()  # type: ignore[union-attr]
         self._audit_table.setEditTriggers(QTableWidget.NoEditTriggers)
-        self._audit_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-        self._audit_table.horizontalHeader().setStretchLastSection(True)
+        self._audit_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)  # type: ignore[union-attr]
+        self._audit_table.horizontalHeader().setStretchLastSection(True)  # type: ignore[union-attr]
         self._audit_table.setStyleSheet(
             f"QTableWidget {{ font-size:9pt; border:1px solid {C['table_border']}; background:white; }}"
         )
-        lay.addWidget(self._audit_table)
+        section_layout.addWidget(self._audit_table)
 
-        self.tabs.addTab(tab, "操作审计")
         self._load_audit_ops()
+        return section
 
     def _load_audit_ops(self):
         """查询业务操作审计（/api/audit/operations）"""
-        import json
-        import urllib.parse
-        import urllib.request
-
         params = {}
         table = self._audit_table_cb.currentText()
         if table != "全部":
@@ -1059,3 +1044,6 @@ class SystemConfigView(BaseView):
 
     def _load_config(self):
         self._load_appearance_values()
+
+    def _save_config(self):
+        QMessageBox.information(self, "提示", "配置保存功能开发中...")

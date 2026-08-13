@@ -10,8 +10,8 @@ class TestUIConfig:
     def test_template_rendering(self):
         """模板变量正确渲染"""
         cfg = get_config()
-        assert cfg.window_title == "示例学校 教务管理系统 · 4.4.0"
-        assert cfg.footer_text == "示例学校 · 4.4.0"
+        assert cfg.window_title == "示例学校 教务管理系统 · 4.6.0"
+        assert cfg.footer_text == "示例学校 · 4.6.0"
         assert cfg.brand_text == "示例学校教务管理系统"
 
     def test_domains_loaded(self):
@@ -39,12 +39,12 @@ class TestUIConfig:
         students = next(d for d in cfg.domains_parsed if d["title"] == "学生管理")
         assert students["permissions"] == ["admin", "academic_staff"]
 
-    def test_student_register_admin_only(self):
-        """新生注册页签仅 admin 可见"""
+    def test_student_movement_permissions(self):
+        """学籍业务页签 admin/academic_staff 可见"""
         cfg = get_config()
         students = next(d for d in cfg.domains_parsed if d["title"] == "学生管理")
-        reg_tab = next(t for t in students["tabs"] if t.id == "student_register")
-        assert reg_tab.permissions == ["admin"]
+        move_tab = next(t for t in students["tabs"] if t.id == "student_movement")
+        assert move_tab.permissions == ["admin", "academic_staff"]
 
     def test_admin_sees_all(self):
         """admin 角色看到全部 10 个域"""
